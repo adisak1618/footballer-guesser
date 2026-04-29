@@ -300,8 +300,8 @@
         "Typecheck passes"
       ],
       "priority": 19,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "playwright.config.ts (chromium, 414×896, workers:1, fullyParallel:false, auto-start `bun run dev` with reuseExistingServer:true). e2e/_helpers/admin.ts holds a service-role Supabase client (RLS bypass) with setMaxRounds + getAssignedNameForDisplayName — the local supabase-demo JWT is the env-overridable fallback. e2e/_helpers/flow.ts has createRoom/joinRoom/startGameAsHost/submitGuessFromCard. lobby.spec asserts both contexts see both chips with bg-tag-red/bg-tag-blue + host-only Start vs guest's รอ host เริ่มเกม. full-game.spec overrides max_rounds=2 mid-lobby (realtime pushes the new value before PLAYING), plays 2 rounds with host-first → host total 6, guest total 4, asserts on the 'รอผู้เล่นคนอื่น' inter-round waiting message and the Final Score winner banner '🎉 Host ชนะ!'. Bug fix in app/room/[code]/playing.tsx: load() now early-returns on !active AFTER the initial refetch await and BEFORE creating the realtime channel — without this React 19 StrictMode's dev double-mount races and supabase-js memoizes channels by topic, so the second mount's .on() chain fires on an already-subscribed channel and throws 'cannot add postgres_changes callbacks ... after subscribe()'."
     },
     {
       "id": "US-020",

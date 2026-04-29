@@ -36,6 +36,7 @@ export function Playing() {
 
     async function load() {
       await refetch()
+      if (!active) return
 
       channel = supabase
         .channel(`room:${roomId}:round_state`)
