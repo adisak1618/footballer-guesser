@@ -285,8 +285,8 @@
         "Typecheck passes"
       ],
       "priority": 18,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "vitest.config.ts uses @vitejs/plugin-react + jsdom env + alias '@'->'./'. vitest.setup.ts ALSO installs an in-memory localStorage shim (Object.defineProperty on both window and globalThis) BEFORE tests run — Node 25 ships a stub `globalThis.localStorage = {}` (no methods) when --experimental-webstorage is on without a --localstorage-file path, and that stub bleeds through jsdom's window.localStorage. Without the shim every getItem/setItem/removeItem throws 'is not a function'. Setup also `beforeEach(() => storage.clear())` for test isolation. New `lib/scoring.ts` exports pure `calculateGuessScore(position, scorePositions)` mirroring the SQL `score_positions - position + 1` formula (returns 0 for invalid/out-of-range inputs). Tests live in `lib/__tests__/`: scoring.test.ts (5 cases incl. boundary), room-code.test.ts (alphabet/length/no-ambiguous + createRoomWithRetry mocked SupabaseClient via vi.fn covering success, exhaust-retry, recover-mid-attempt, non-23505 rethrow, custom maxRetries), game-store.test.ts (initial state, setRoom syncs currentRound, setPlayers derives totalScores+refreshes me, setRoundState/setConnectionStatus/setError/reset, getOrCreatePlayerId v4 UUID + persistence + readPlayerId null). Added `\"test\": \"vitest run\"` script to package.json."
     },
     {
       "id": "US-019",
