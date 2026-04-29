@@ -186,8 +186,8 @@
         "Verify in browser using dev-browser skill"
       ],
       "priority": 12,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "components/name-card.tsx renders the BIG NAME card per Screen 3: full-viewport bg tinted to my tag color (TAG_BG/TAG_TEXT static maps copied from lobby — yellow uses on-light, all others on-dark), Bebas Neue 96px on <375px / 144px ≥375px via `text-[96px] min-[375px]:text-[144px]` (Tailwind v4 arbitrary breakpoint, no theme extension needed), `Round X/Y` caption top-left, '— tap to act —' caption bottom-center, role='img' + Thai aria-label for screen readers. is_active=false branch renders bg-surface + line-through grey name + 'OUT' badge (border-error/40 bg-error/15 text-error) with same caption. Wake Lock requested in useEffect via `navigator.wakeLock.request('screen')` (lib.dom WakeLockSentinel typing is built-in; feature-detected via `'wakeLock' in navigator`); released on unmount; cancellation flag handles unmount-before-grant; all errors swallowed silently because the API rejects on hidden tabs / permission denied and that's not a user-actionable failure. app/room/[code]/playing.tsx is the new PLAYING-state container — owns the round_state subscription (channel `room:${roomId}:round_state` with `*` events on `round_state` filter `room_id=eq.${roomId}`), seeds via initial select, refetches the full ordered list on each change (same pattern as lobby's players subscription). Picks myRow with `r.player_id === me.player_id && r.round_number === currentRound`. room.current_round / room.max_rounds are `number | null` in generated types — coalesce to `?? 0` before passing into NameCard which types them as plain `number`. app/room/[code]/page.tsx PLAYING branch now `<Playing/>` instead of the placeholder."
     },
     {
       "id": "US-013",
