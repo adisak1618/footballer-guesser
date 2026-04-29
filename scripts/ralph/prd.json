@@ -34,6 +34,7 @@
       "priority": 2,
       "passes": true,
       "notes": "0002_functions.sql: SECURITY DEFINER fns create_room/join_room/start_round/submit_guess. anon-only EXECUTE; #variable_conflict use_column on join_room/create_room because returns table cols (room_id/player_id) shadow table cols. submit_guess returns table uses quoted \"position\" — reserved keyword. Seed migration must use 0003_*.sql now."
+    },
     {
       "id": "US-003",
       "title": "Seed 100 Premier League player names (0002_seed_players.sql)",
@@ -46,8 +47,8 @@
         "Typecheck passes"
       ],
       "priority": 3,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "0003_seed_players.sql: 100 distinct Premier League names, idempotent via ON CONFLICT (name, category) DO NOTHING. Mix of 90s/00s legends (Cantona, Bergkamp, Henry, Gerrard, Lampard) and current stars (Haaland, Salah, Saka, Palmer). N'Golo Kante uses doubled '' for the apostrophe."
     },
     {
       "id": "US-004",

@@ -13,6 +13,9 @@ Started: Thu 30 Apr 2026 02:54:51 +07
 - `position` is a reserved word in `returns table (...)`. Quote it: `returns table (..., "position" int, ...)`.
 - `0002_*.sql` is now `0002_functions.sql` (atomic write fns). The seed migration referenced as `0002_seed_players.sql` in PLAN.md / US-003 must instead be authored as `0003_seed_players.sql`.
 - Function security pattern: `security definer` + `set search_path = public`, then at the bottom `revoke execute ... from public; grant execute ... to anon;`. Anon never gets direct INSERT/UPDATE.
+- SQL string literals: escape apostrophes by doubling them (`'N''Golo Kante'`). Backslash escapes do NOT work in PG standard strings.
+- Seed migrations: rely on table unique constraints + `on conflict (...) do nothing` for idempotency. `bunx supabase db reset` runs migrations in numeric order; the legacy `supabase/seed.sql` is unused (benign warning).
+- Validate `scripts/ralph/prd.json` with `bunx node -e "JSON.parse(require('fs').readFileSync('scripts/ralph/prd.json','utf8'))"` at the start of every iteration — past iterations have left it malformed.
 
 ---
 
@@ -40,4 +43,16 @@ Started: Thu 30 Apr 2026 02:54:51 +07
   - `start_round` requires `rooms.current_round >= 1` — caller (start-game / next-round actions) is responsible for incrementing it before invoking. This keeps `start_round` itself stateless about round transitions.
   - Random-distinct-name pattern: shuffle both `players` and `football_players` with `row_number() over (order by random())` then join on `rn`. No `LIMIT` needed because the players CTE is naturally bounded.
   - The `start_round`'s "not host" smoke test in psql had a setup issue (`current_setting('myapp.code')` doesn't exist) — the function itself rejects non-host callers correctly via direct invocation.
+---
+
+## 2026-04-30 - US-003
+- Implemented: `supabase/migrations/0003_seed_players.sql` — single INSERT with 100 distinct Premier League names (mix of 90s/00s legends and current stars), idempotent via `ON CONFLICT (name, category) DO NOTHING` against the unique constraint from 0001_init.sql.
+- Files changed: `supabase/migrations/0003_seed_players.sql` (new); `scripts/ralph/prd.json` (US-003 passes=true, fixed missing `},` between US-002 and US-003 that broke JSON parsing).
+- Verified: `bunx supabase db reset` applied all 3 migrations cleanly. `select count(*) from football_players where category='premier-league'` = 100. `select count(distinct name) ...` = 100 (no duplicates). Re-running the seed file via psql produced `INSERT 0 0` confirming idempotency. `bunx tsc --noEmit` clean. `bun run lint` clean.
+- **Learnings for future iterations:**
+  - The PRD JSON had a syntax error (missing `},` between US-002 and US-003) that prevented `JSON.parse` — Ralph script should validate JSON at start. Future iterations: if `bunx node -e "JSON.parse(...)"` fails, fix the closing brace before continuing.
+  - Apostrophes in names need doubling for SQL: write `'N''Golo Kante'`, not `'N\'Golo Kante'`. PG does not understand backslash escapes in standard string literals.
+  - Watch for transliteration duplicates: "Son Heung-min" vs "Heung-Min Son" are the same player. Pick one canonical form per player.
+  - Idempotency pattern for seed migrations: rely on the unique constraint and `ON CONFLICT (col1, col2) DO NOTHING`. No need for `IF NOT EXISTS` table-level checks since 0001_init.sql created `unique (name, category)`.
+  - `bunx supabase db reset` runs every migration including seeds — there is no separate seed step. The runtime warning `no files matched pattern: supabase/seed.sql` is benign; we use numbered migration files instead.
 ---
