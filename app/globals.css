@@ -46,6 +46,50 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
+
+  /* Stadium Energy — surfaces */
+  --color-ink: #0a0e1a;
+  --color-surface: #131826;
+  --color-surface-elevated: #1c2236;
+  --color-hairline: #2a3146;
+  --color-hairline-soft: #1a2030;
+  --color-canvas: #fafbfc;
+  --color-surface-soft: #f3f4f6;
+  --color-surface-card: #e9ebef;
+
+  /* Stadium Energy — text */
+  --color-on-dark: #fafbfc;
+  --color-on-dark-soft: #9ca3af;
+  --color-on-dark-muted: #6b7280;
+  --color-on-light: #0a0e1a;
+  --color-on-light-soft: #374151;
+  --color-on-light-muted: #6b7280;
+
+  /* Stadium Energy — primary action */
+  --color-goal: #e63946;
+  --color-goal-active: #c1121f;
+  --color-goal-disabled: #7a1f26;
+
+  /* Stadium Energy — player tags */
+  --color-tag-red: #e63946;
+  --color-tag-blue: #1d4ed8;
+  --color-tag-yellow: #fbbf24;
+  --color-tag-green: #16a34a;
+  --color-tag-purple: #a855f7;
+  --color-tag-orange: #f97316;
+  --color-tag-pink: #ec4899;
+  --color-tag-cyan: #06b6d4;
+
+  /* Stadium Energy — semantic */
+  --color-success: #16a34a;
+  --color-warning: #fbbf24;
+  --color-error: #e63946;
+  --color-info: #1d4ed8;
+
+  /* Stadium Energy — fonts */
+  --font-hero: var(--font-bebas);
+  --font-display: var(--font-anton);
+  --font-body: var(--font-plex-thai);
 }
 
 :root {

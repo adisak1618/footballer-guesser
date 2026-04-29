@@ -21,6 +21,10 @@ Started: Thu 30 Apr 2026 02:54:51 +07
 - Re-export row/RPC types from `lib/types.ts` (`Room`, `Player`, `RoundState`, `RoundEvent`, `RoomStatus`, `EventType`, `CreateRoomArgs/Result`, `JoinRoomArgs/Result`, `StartRoundArgs`, `SubmitGuessArgs/Result`). Future stories should import from `@/lib/types`, not from `lib/database.types` directly.
 - Room code alphabet is `ABCDEFGHJKLMNPQRSTUVWXYZ23456789` (32 chars, no 0/O/1/I). Server side lives in `0002_functions.sql` create_room, client side in `lib/room-code.ts` (`ROOM_CODE_ALPHABET`). Keep these in sync if the alphabet ever changes.
 - Postgres unique-violation error code is `23505` — surface it as `error.code` from a `supabase.rpc(...)` response. Use this code (not message string matching) for retry logic.
+- Stadium Energy design tokens live in `app/globals.css` `@theme inline` block — colors (`--color-ink`, `--color-goal`, `--color-on-dark*`, `--color-tag-*`, `--color-surface*`, etc.) and font aliases (`--font-hero`=Bebas, `--font-display`=Anton, `--font-body`=IBM Plex Thai). Tailwind v4 auto-derives utilities like `bg-ink`, `text-on-dark-soft`, `font-display`. NEVER use Tailwind arbitrary color values — extend tokens here instead.
+- Fonts loaded via `next/font/google` in `app/layout.tsx`: `Anton` (display), `Bebas_Neue` (hero/scoreboard), `IBM_Plex_Sans_Thai_Looped` (body, weights 400/500/600/700, subsets `["thai","latin"]`). All three are wired as CSS variables and the body element gets `bg-ink text-on-dark font-body` so screens inherit Stadium defaults.
+- `<html lang="th">` — Thai-only at launch. Don't reset to `en`.
+- For Thai-only button labels, use the body font (IBM Plex Thai). The DESIGN.md `button-lg` token specifies Anton, but Anton has no Thai glyphs. Pragmatic rule: Anton/Bebas only for Latin all-caps content (HEADBALL, ROUND 2, scores, room code).
 
 ---
 
@@ -97,4 +101,19 @@ Started: Thu 30 Apr 2026 02:54:51 +07
   - `setPlayers` should be the single source of truth for refreshing `me` — Supabase realtime delivers a `players` row update for all rows, and the store should pick the matching `me` row out of the new array rather than expect callers to call `setMe` separately.
   - `setRoom` mirrors `room.current_round → currentRound`; UI subscribers can read `useGameStore(s => s.currentRound)` without joining on `room`. If a future story needs to advance the round optimistically before the realtime room update arrives, call `setCurrentRound` directly.
   - Future US-007/US-009 (landing + join): on first client mount call `getOrCreatePlayerId()` once and stash it via `setMe(null)` then later `setMe(player)` once join_room/create_room returns. Don't put the bare `player_id` on the store — it lives on `me.player_id` after join.
+---
+
+## 2026-04-30 - US-007
+- Implemented: Stadium Energy landing page. `app/layout.tsx` now loads Anton, Bebas Neue, and IBM Plex Sans Thai Looped via `next/font/google` (variables `--font-anton/--font-bebas/--font-plex-thai`), sets `lang="th"`, and gives `<body>` the `bg-ink text-on-dark font-body` baseline. `app/globals.css` `@theme inline` extended with the full Stadium Energy color palette (ink, surface*, hairline*, on-dark*, on-light*, goal*, tag-*, semantic) and font aliases (`--font-hero/--font-display/--font-body`). `app/page.tsx` rewritten to match PLAN.md Screen 1: 100dvh dark navy bg, centered max-w 480px column, subtle goal-red gradient at top edge, Anton 56px "HEADBALL" headline, Plex Thai 16px subtitle "ทายชื่อนักฟุตบอลบนหัว", primary `+ สร้างห้อง` goal button (min-h-14, bg-goal, active bg-goal-active), secondary `เข้าห้อง` button (min-h-11, surface-elevated, hairline border), footer `วิธีเล่น` link in on-dark-muted caption.
+- Files changed: `app/layout.tsx`, `app/globals.css`, `app/page.tsx`, `scripts/ralph/prd.json` (US-007 passes=true), `scripts/ralph/progress.txt`.
+- Verified: `bunx tsc --noEmit` clean, `bun run lint` clean. Started `bun run dev`; `GET /` returns 200 in 167ms; HTML contains all four Thai strings ("สร้างห้อง", "เข้าห้อง", "ทายชื่อนักฟุตบอลบนหัว", "วิธีเล่น") and the `<html>` element carries all 3 next/font variable classes (anton/bebas_neue/ibm_plex_sans_thai_looped).
+- **Learnings for future iterations:**
+  - `next/font/google` exports use snake_case identifiers: `Anton`, `Bebas_Neue`, `IBM_Plex_Sans_Thai_Looped`. Plex Thai needs `subsets: ["thai", "latin"]` and explicit `weight: ["400","500","600","700"]` (variable-weight family on Google Fonts but next/font wants the exact weights you'll render).
+  - Tailwind v4 auto-generates utilities from `@theme inline` CSS variables. `--color-ink: #0a0e1a` → `bg-ink`/`text-ink`. `--font-display: var(--font-anton)` → `font-display`. No Tailwind config file changes needed.
+  - DESIGN.md says button-lg uses Anton, but Anton has no Thai glyphs — Thai labels on Goal/Secondary buttons use IBM Plex Thai (semibold 15-17px). Reserve Anton for Latin all-caps section heads ("HEADBALL", "ROUND 2") and Bebas for scoreboard/hero name and room code.
+  - `text-2xl` for the `+` glyph in the Goal button + `font-semibold` Thai label sits well aligned with `gap-3`. Don't try to render the `+` in Anton — keep it in body font for consistent vertical rhythm with Thai script.
+  - `bg-goal/20` style alpha modifiers work on custom theme colors in Tailwind v4 (used for the floodlight gradient `from-goal/20 via-goal/5`). No need to define separate alpha tokens.
+  - `min-h-[100dvh]` is the right viewport unit on mobile (handles iOS Safari toolbar collapse). `100vh` causes content to clip behind the bottom toolbar.
+  - The shadcn `--font-sans` mapping in `@theme inline` (`--font-sans: var(--font-sans)`) is a self-referential leftover from create-next-app; we left it alone since shadcn primitives are not used on the landing page. Future stories that pull in shadcn `Button` etc. should either fix that mapping or override the `font-sans` utility per component.
+  - Routes `/create`, `/join`, `/how-to-play` don't exist yet — left the buttons as bare `<button type="button">` and the footer link as an in-page `#how-to-play` anchor. US-008/US-009 will wire `onClick` handlers (server action + redirect).
 ---
