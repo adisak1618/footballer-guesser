@@ -16,6 +16,9 @@ Started: Thu 30 Apr 2026 02:54:51 +07
 - SQL string literals: escape apostrophes by doubling them (`'N''Golo Kante'`). Backslash escapes do NOT work in PG standard strings.
 - Seed migrations: rely on table unique constraints + `on conflict (...) do nothing` for idempotency. `bunx supabase db reset` runs migrations in numeric order; the legacy `supabase/seed.sql` is unused (benign warning).
 - Validate `scripts/ralph/prd.json` with `bunx node -e "JSON.parse(require('fs').readFileSync('scripts/ralph/prd.json','utf8'))"` at the start of every iteration — past iterations have left it malformed.
+- `bunx supabase gen types typescript --local` writes log lines ("Saved lockfile", "Connecting to db 5432") to stderr; using `> file` alone leaves stdout clean, but `2>&1 > file` will pollute the output. Use `bunx supabase gen types typescript --local 2>/dev/null > lib/database.types.ts` or just plain `>` redirect.
+- Supabase browser client lives in `lib/supabase.ts` and uses `@supabase/ssr`'s `createBrowserClient<Database>` — pass the generated `Database` type so RPC calls (`.rpc('submit_guess', {...})`) get typed args + return shape automatically.
+- Re-export row/RPC types from `lib/types.ts` (`Room`, `Player`, `RoundState`, `RoundEvent`, `RoomStatus`, `EventType`, `CreateRoomArgs/Result`, `JoinRoomArgs/Result`, `StartRoundArgs`, `SubmitGuessArgs/Result`). Future stories should import from `@/lib/types`, not from `lib/database.types` directly.
 
 ---
 
@@ -55,4 +58,16 @@ Started: Thu 30 Apr 2026 02:54:51 +07
   - Watch for transliteration duplicates: "Son Heung-min" vs "Heung-Min Son" are the same player. Pick one canonical form per player.
   - Idempotency pattern for seed migrations: rely on the unique constraint and `ON CONFLICT (col1, col2) DO NOTHING`. No need for `IF NOT EXISTS` table-level checks since 0001_init.sql created `unique (name, category)`.
   - `bunx supabase db reset` runs every migration including seeds — there is no separate seed step. The runtime warning `no files matched pattern: supabase/seed.sql` is benign; we use numbered migration files instead.
+---
+
+## 2026-04-30 - US-004
+- Implemented: generated `lib/database.types.ts` (417 lines, 6 tables + create_room/join_room/start_round/submit_guess function shapes + room_status/event_type enums) via `bunx supabase gen types typescript --local`. Added `lib/supabase.ts` exporting `createSupabaseBrowserClient()` + a default `supabase` instance using `@supabase/ssr`'s `createBrowserClient<Database>`. Added `lib/types.ts` re-exporting row types (`Room`, `Player`, `RoundState`, `RoundEvent`, `RoundPosition`, `FootballPlayer`), enums (`RoomStatus`, `EventType`), and RPC arg/result helper types. `.env.example` already had `NEXT_PUBLIC_SUPABASE_URL` + `NEXT_PUBLIC_SUPABASE_ANON_KEY` placeholders + a commented local-Supabase block, so left untouched.
+- Files changed: `lib/database.types.ts` (new, generated), `lib/supabase.ts` (new), `lib/types.ts` (new), `scripts/ralph/prd.json` (US-004 passes=true), `scripts/ralph/progress.txt`.
+- Verified: `bunx tsc --noEmit` clean, `bun run lint` clean. Inspected generated types: rooms.status uses `Database["public"]["Enums"]["room_status"]`, submit_guess returns `{correct: boolean; position: number; score: number}[]`, all FK relationships preserved.
+- **Learnings for future iterations:**
+  - Generator stdout vs stderr: `bunx supabase gen types ... 2>&1 > lib/database.types.ts` pollutes the file with "Saved lockfile" / "Connecting to db 5432" lines. Use `... 2>/dev/null > lib/database.types.ts` (or just `>` since those are stderr) to keep the file clean. If lines do leak in, regenerate — don't hand-edit the header.
+  - `@supabase/ssr` is already in `package.json` (^0.10.2). Use `createBrowserClient<Database>` (NOT `createClient` from `@supabase/supabase-js` directly) — the `ssr` package handles cookie sync for App Router and is the canonical Next.js pattern.
+  - RPC return type for SQL functions that `returns table (...)` is always `T[]` even when only one row is produced. Callers must do `data?.[0]` or destructure with `.single()`.
+  - Future stories that need the client should `import { supabase } from "@/lib/supabase"` (singleton) for component code, or call `createSupabaseBrowserClient()` for tests/SSR contexts where a fresh instance is needed.
+  - Re-export pattern: `lib/types.ts` is the public surface for application code. Do NOT import `lib/database.types.ts` directly from app/components — keep the dependency contained so a future schema regeneration only affects `lib/types.ts`.
 ---

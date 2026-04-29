@@ -62,8 +62,8 @@
         "Typecheck passes"
       ],
       "priority": 4,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "lib/database.types.ts generated via `bunx supabase gen types typescript --local` (suppress stderr — bun/supabase log lines leak to stdout otherwise). lib/supabase.ts uses @supabase/ssr createBrowserClient<Database>. lib/types.ts re-exports row types + RPC arg/result types. .env.example already had placeholders."
     },
     {
       "id": "US-005",
