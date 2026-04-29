@@ -39,3 +39,23 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Local "Save As" copies of design preview (use docs/mood-board.html instead)
+Headball — Design Preview.html
+Headball — Design Preview_files/
+
+# Mockup screenshots / scratch images at root
+/*.png
+!public/**/*.png
+
+# Supabase local
+supabase/.temp/
+supabase/.branches/
+
+# IDE
+.vscode/
+.idea/
+
+# Playwright
+/playwright-report/
+/test-results/
