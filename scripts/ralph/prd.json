@@ -154,8 +154,8 @@
         "Verify in browser using dev-browser skill"
       ],
       "priority": 10,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Lobby renders room code (Bebas 48px tracking-8), tap-to-copy, players list with tag colors by join_order, host-only START GAME (disabled placeholder until US-011 wires action), non-host sees รอ host เริ่มเกม. Realtime subscriptions on rooms+players push updates into Zustand store via setRoom/setPlayers. page.tsx is a client component that uses use(params), then status-switches LOBBY→Lobby, PLAYING→placeholder, ENDED→placeholder."
     },
     {
       "id": "US-011",
