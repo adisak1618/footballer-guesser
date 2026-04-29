@@ -80,3 +80,24 @@ export async function getAssignedNameForDisplayName(
 
   return rs.assigned_name
 }
+
+export async function getAssignedNameByPlayerId(
+  roomId: string,
+  playerId: string,
+  roundNumber: number,
+): Promise<string> {
+  const sb = adminClient()
+  const { data, error } = await sb
+    .from("round_state")
+    .select("assigned_name")
+    .eq("room_id", roomId)
+    .eq("player_id", playerId)
+    .eq("round_number", roundNumber)
+    .maybeSingle()
+  if (error || !data) {
+    throw new Error(
+      `round_state for player ${playerId} round ${roundNumber} not found: ${error?.message}`,
+    )
+  }
+  return data.assigned_name
+}

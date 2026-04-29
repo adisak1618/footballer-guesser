@@ -315,8 +315,8 @@
         "Typecheck passes"
       ],
       "priority": 20,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "e2e/race-guess.spec.ts drives the submit_guess concurrency property from two independent anon HTTP clients (must be SEPARATE SupabaseClient instances — supabase-js serializes requests on a single client, which would mask the race). Setup uses the same anon RPCs the real client uses (create_room → join_room x2 → start_game) so this also smoke-tests the public API end-to-end. 5 iterations × {assert both correct, sorted positions === [1,2], sorted scores === [2,3]} all pass in ~150ms total — atomicity comes from start_round seeding round_positions(next_position=1) + submit_guess's `update round_positions set next_position = next_position + 1 ... returning next_position - 1` running under PG's row-level lock. Added admin helper `getAssignedNameByPlayerId(roomId, playerId, round)` for tests that already know the player_id (vs the existing display_name lookup). No new browser context needed: pure Node-side anon RPCs inside a Playwright test, which keeps the spec fast and deterministic. Anon key fallback `sb_publishable_ACJWlzQHlZjBrEguHvfOxg_3BJgxAaH` mirrors the .env.local local-dev publishable key (NEXT_PUBLIC_SUPABASE_ANON_KEY override is honored)."
     },
     {
       "id": "US-021",

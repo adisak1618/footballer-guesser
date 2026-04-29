@@ -20,3 +20,5 @@ Run with `bun run e2e` (or `bunx playwright test`). Local Supabase must be runni
 
 - Two CTAs on the landing page match the `สร้างห้อง` regex (the page button + the dialog submit). Use `.first()` for the page CTA, then scope dialog submit via `getByRole("dialog", { name: ... }).getByRole("button", ...)`.
 - Realtime takes a moment to deliver player-join events; rely on Playwright's auto-retrying assertions (`toBeVisible({ timeout })`) instead of `waitForTimeout`.
+- Concurrency / race specs (e.g. `race-guess.spec.ts`): supabase-js serializes RPCs on a single `SupabaseClient`. To exercise PG-level row-lock concurrency you MUST instantiate two separate `createClient(...)` instances and only THEN `Promise.all(...)`. A single shared client makes the race trivially pass.
+- Specs that call Supabase RPCs from Node (no browser) need the anon key in `process.env`. Playwright's runner does not auto-load `.env.local` (only `bun run dev` does), so hardcode the local-dev publishable key as a fallback (`sb_publishable_ACJWlzQHlZjBrEguHvfOxg_3BJgxAaH`) and let `NEXT_PUBLIC_SUPABASE_ANON_KEY` override. Same pattern as `_helpers/admin.ts`'s service-role fallback.
