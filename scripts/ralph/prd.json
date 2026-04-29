@@ -329,8 +329,8 @@
         "Typecheck passes"
       ],
       "priority": 21,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "e2e/foul.spec.ts: 2 contexts (Host+Guest), max_rounds shortened to 2, host fouls by typing 'ZZZ_NOT_A_REAL_PLAYER_ZZZ' through the real Tap → TurnOverlay → GuessModal flow. Asserts the FOUL overlay via `toBeAttached` (NOT `toBeVisible`) on `[aria-label=\"Foul\"]` — the hb-flash keyframe ends at opacity 0 with `forwards` and the React effect tears the div down at 600ms, so toBeVisible races the animation and produces a flake on slower CI machines while passing in isolation. Element-in-DOM is sufficient proof of the foul UI. Then asserts the transition to scoreboard's `รอผู้เล่นคนอื่น` waiting copy + DB invariants (is_active=false, score_this_round=0) + a round_events row with type='FOUL'. Important schema gotcha: round_events.type column is named `type` (not `event_type`); generated TS types reflect this. e2e/reconnect.spec.ts: same setup, captures localStorage `headball_player_id` + DB round_state row pre-reload, calls `guestPage.reload()` mid-round, asserts URL contains /room/CODE, localStorage player_id stable, BIG NAME card re-renders with the same uppercased assigned_name, and the round_state row (assigned_name/is_active/score_this_round) is byte-identical pre/post — proves the rejoin path is fully resumed from localStorage with no row churn. PLAYER_ID_KEY constant is duplicated in the spec rather than imported from lib/game-store.ts to keep the spec a black-box test of the persistence contract."
     }
   ]
 }
