@@ -11,14 +11,19 @@ Mobile multiplayer game ทายชื่อนักฟุตบอลบน�
 
 ## Key Files
 
-- `PLAN.md` — implementation plan, schema, file structure, tasks
-- `DESIGN.md` — design system (Stadium Energy aesthetic) — **READ BEFORE ANY UI WORK**
-- `DESIGN-clay-reference.md` — old Clay.com reference (legacy, do not use)
-- `game-rules.md` — game rules in Thai
+- `docs/PLAN.md` — implementation plan, schema, file structure, tasks
+- `docs/DESIGN.md` — design system (Stadium Energy aesthetic) — **READ BEFORE ANY UI WORK**
+- `docs/DESIGN-clay-reference.md` — old Clay.com reference (legacy, do not use)
+- `docs/game-rules.md` — game rules in Thai
+- `docs/mood-board.html` — visual preview (open in browser to see all 6 screens)
+- `supabase/` — Supabase config + migrations
+- `app/` — Next.js App Router pages
+- `components/ui/` — shadcn primitives (button, input, dialog)
+- `lib/utils.ts` — shadcn cn() helper
 
-## Design System
+## Stadium Energy Design System
 
-Always read `DESIGN.md` before making any visual or UI decisions.
+Always read `docs/DESIGN.md` before making any visual or UI decisions.
 All font choices, colors, spacing, and aesthetic direction are defined there.
 Do not deviate without explicit user approval.
 

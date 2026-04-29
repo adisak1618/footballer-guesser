@@ -1,44 +1,41 @@
-# OS
-.DS_Store
-Thumbs.db
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
-# Dependencies
-node_modules/
-.pnp
+# dependencies
+/node_modules
+/.pnp
 .pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
 
-# Build output
-.next/
-out/
-dist/
-build/
+# testing
+/coverage
 
-# Env
-.env*.local
-.env
-!.env.example
+# next.js
+/.next/
+/out/
 
-# Logs
-*.log
+# production
+/build
+
+# misc
+.DS_Store
+*.pem
+
+# debug
 npm-debug.log*
 yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
 
-# IDE
-.vscode/
-.idea/
+# env files (can opt-in for committing if needed)
+.env*
 
-# Supabase
-supabase/.temp/
-supabase/.branches/
-
-# Vercel
+# vercel
 .vercel
 
-# TypeScript
+# typescript
 *.tsbuildinfo
 next-env.d.ts
-
-# Test
-coverage/
-playwright-report/
-test-results/
