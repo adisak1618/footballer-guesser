@@ -1,0 +1,335 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Headball — Stadium Floodlight Mood Board</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Anton&family=IBM+Plex+Sans+Thai+Looped:wght@400;500;600;700&family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --ink:#0a0e1a; --surface:#131826; --surface-elevated:#1c2236;
+  --hairline:#2a3146; --hairline-soft:#1a2030;
+  --canvas:#fafbfc; --on-dark:#fafbfc; --on-dark-soft:#9ca3af; --on-dark-muted:#6b7280;
+  --goal:#e63946; --goal-active:#c1121f;
+  --tag-red:#e63946; --tag-blue:#1d4ed8; --tag-yellow:#fbbf24; --tag-green:#16a34a;
+  --tag-purple:#a855f7; --tag-orange:#f97316; --tag-pink:#ec4899; --tag-cyan:#06b6d4;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--ink);color:var(--on-dark);font-family:'IBM Plex Sans Thai Looped','Sarabun',sans-serif;min-height:100vh;-webkit-font-smoothing:antialiased}
+body{
+  background:
+    radial-gradient(ellipse 80% 40% at 50% -10%, rgba(250,251,252,.08), transparent 60%),
+    radial-gradient(ellipse 60% 30% at 50% 100%, rgba(230,57,70,.10), transparent 60%),
+    var(--ink);
+  background-attachment: fixed;
+  position:relative;
+}
+body::before{
+  content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.06 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+  opacity:.5;
+}
+.wrap{max-width:1240px;margin:0 auto;padding:64px 32px 96px;position:relative;z-index:1}
+.eyebrow{font-family:'IBM Plex Sans Thai Looped',sans-serif;font-size:12px;font-weight:500;letter-spacing:.3em;text-transform:uppercase;color:var(--on-dark-soft);margin-bottom:16px}
+.hairline{height:1px;background:var(--hairline);width:100%;margin:48px 0}
+
+/* HERO */
+.hero{padding:48px 0 24px;text-align:left;border-bottom:1px solid var(--hairline-soft)}
+.hero h1{font-family:'Bebas Neue',sans-serif;font-size:clamp(96px,13vw,176px);line-height:.9;letter-spacing:1px;color:var(--on-dark)}
+.hero h2{font-family:'Anton',sans-serif;font-size:clamp(36px,5vw,64px);line-height:1;letter-spacing:.5px;text-transform:uppercase;color:var(--goal);margin-top:8px}
+.hero p{font-family:'IBM Plex Sans Thai Looped',sans-serif;font-size:18px;line-height:1.5;color:var(--on-dark-soft);max-width:680px;margin-top:24px}
+.hero .meta{display:flex;flex-wrap:wrap;gap:16px;margin-top:32px}
+.hero .meta span{font-size:12px;letter-spacing:.2em;text-transform:uppercase;padding:8px 14px;border:1px solid var(--hairline);border-radius:9999px;color:var(--on-dark-soft)}
+
+/* SECTION */
+.section{margin-top:64px}
+.section-title{font-family:'Anton',sans-serif;font-size:40px;line-height:1.05;letter-spacing:.3px;text-transform:uppercase;color:var(--on-dark);margin-bottom:24px}
+.section-sub{font-size:14px;color:var(--on-dark-soft);margin-bottom:32px;max-width:680px;line-height:1.55}
+
+/* MOOD QUOTE */
+.quote{padding:48px;border-radius:24px;background:linear-gradient(180deg,#0e1424 0%,#080c16 100%);border:1px solid var(--hairline);position:relative;overflow:hidden}
+.quote::before{content:"";position:absolute;top:-50%;left:50%;width:600px;height:600px;transform:translateX(-50%);background:radial-gradient(circle,rgba(250,251,252,.06) 0%,transparent 60%);pointer-events:none}
+.quote .label{position:relative;z-index:1;font-size:11px;letter-spacing:.3em;text-transform:uppercase;color:var(--on-dark-muted);margin-bottom:12px}
+.quote .body{position:relative;z-index:1;font-family:'Anton',sans-serif;font-size:36px;line-height:1.15;letter-spacing:.5px;text-transform:uppercase;color:var(--on-dark)}
+.quote .body em{color:var(--goal);font-style:normal}
+
+/* COLOR PALETTE */
+.swatches{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:16px}
+.swatch{border-radius:16px;padding:24px 20px;min-height:140px;display:flex;flex-direction:column;justify-content:space-between;color:#fff;font-family:'IBM Plex Sans Thai Looped',sans-serif;box-shadow:0 1px 0 rgba(255,255,255,.08) inset, 0 12px 24px -16px rgba(0,0,0,.6)}
+.swatch .n{font-family:'Anton',sans-serif;font-size:18px;letter-spacing:.5px;text-transform:uppercase;line-height:1}
+.swatch .h{font-family:'Bebas Neue',monospace;font-size:18px;letter-spacing:2px;opacity:.92}
+.swatch .role{font-size:11px;letter-spacing:.2em;text-transform:uppercase;opacity:.78}
+
+/* SURFACE STACK */
+.surfaces{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1px;background:var(--hairline);border-radius:16px;overflow:hidden;border:1px solid var(--hairline)}
+.surface-cell{padding:24px 20px;display:flex;flex-direction:column;gap:8px;min-height:140px}
+.surface-cell .n{font-family:'Anton',sans-serif;font-size:16px;letter-spacing:.3px;text-transform:uppercase}
+.surface-cell .h{font-family:'Bebas Neue',monospace;font-size:14px;letter-spacing:1.5px;opacity:.85}
+.surface-cell .role{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--on-dark-muted)}
+
+/* COMPONENTS GRID */
+.comps{display:grid;grid-template-columns:1.4fr 1fr;gap:24px}
+@media (max-width:880px){.comps{grid-template-columns:1fr}}
+
+/* BIG NAME CARD */
+.big-name{background:var(--tag-red);border-radius:24px;padding:48px;min-height:480px;display:flex;flex-direction:column;justify-content:space-between;color:var(--on-dark);position:relative;overflow:hidden;box-shadow:0 0 80px -20px rgba(230,57,70,.55)}
+.big-name::before{content:"";position:absolute;top:-30%;right:-20%;width:90%;height:90%;background:radial-gradient(circle,rgba(255,255,255,.18) 0%,transparent 60%);pointer-events:none}
+.big-name .top{display:flex;justify-content:space-between;align-items:center;position:relative;z-index:1}
+.big-name .pill{font-family:'IBM Plex Sans Thai Looped',sans-serif;font-size:11px;font-weight:600;letter-spacing:.3em;text-transform:uppercase;background:rgba(0,0,0,.25);padding:8px 14px;border-radius:9999px}
+.big-name .name{font-family:'Bebas Neue',sans-serif;font-size:clamp(96px,13vw,160px);line-height:.92;letter-spacing:1px;text-transform:uppercase;position:relative;z-index:1}
+.big-name .bottom{display:flex;justify-content:space-between;align-items:flex-end;position:relative;z-index:1}
+.big-name .bottom .lbl{font-size:11px;letter-spacing:.3em;text-transform:uppercase;opacity:.85}
+.big-name .bottom .v{font-family:'Bebas Neue',sans-serif;font-size:48px;line-height:1;font-feature-settings:"tnum"}
+
+/* RIGHT STACK */
+.right-stack{display:flex;flex-direction:column;gap:24px}
+
+.room-code{background:var(--surface-elevated);border:2px solid var(--hairline);border-radius:16px;padding:24px;text-align:center}
+.room-code .lbl{font-size:11px;letter-spacing:.3em;text-transform:uppercase;color:var(--on-dark-soft);margin-bottom:16px}
+.room-code .code{font-family:'Bebas Neue',monospace;font-size:48px;letter-spacing:8px;font-feature-settings:"tnum";line-height:1}
+
+.scoreboard{background:var(--surface);border:1px solid var(--hairline-soft);border-radius:8px;padding:20px;display:flex;flex-direction:column;gap:12px}
+.scoreboard .head{display:flex;justify-content:space-between;align-items:center;padding-bottom:8px;border-bottom:1px solid var(--hairline-soft)}
+.scoreboard .head .t{font-family:'Anton',sans-serif;font-size:24px;letter-spacing:.3px;text-transform:uppercase}
+.scoreboard .head .r{font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--on-dark-soft);letter-spacing:1px}
+.scoreboard .row{display:flex;align-items:center;justify-content:space-between;padding:6px 0}
+.scoreboard .row .L{display:flex;align-items:center;gap:12px}
+.scoreboard .dot{width:12px;height:12px;border-radius:9999px;flex-shrink:0}
+.scoreboard .nm{font-family:'IBM Plex Sans Thai Looped',sans-serif;font-size:16px;font-weight:600}
+.scoreboard .sc{font-family:'Bebas Neue',sans-serif;font-size:32px;line-height:1;font-feature-settings:"tnum"}
+
+.player-chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{font-family:'IBM Plex Sans Thai Looped',sans-serif;font-size:14px;font-weight:600;color:var(--on-dark);padding:8px 14px;border-radius:16px;line-height:1.3}
+
+/* BUTTONS */
+.btns{display:flex;flex-wrap:wrap;gap:16px;align-items:center}
+.btn-goal{background:var(--goal);color:var(--on-dark);font-family:'Anton',sans-serif;font-size:20px;letter-spacing:1px;text-transform:uppercase;padding:16px 32px;border-radius:12px;border:none;cursor:pointer;min-height:56px;line-height:1}
+.btn-goal:hover{background:var(--goal-active)}
+.btn-secondary{background:var(--surface-elevated);color:var(--on-dark);font-family:'IBM Plex Sans Thai Looped',sans-serif;font-size:15px;font-weight:600;padding:12px 24px;border-radius:12px;border:1px solid var(--hairline);min-height:44px;line-height:1;cursor:pointer}
+
+/* TYPE SPECIMEN */
+.type-specimen{display:grid;grid-template-columns:160px 1fr;gap:24px;align-items:baseline;padding:20px 0;border-bottom:1px solid var(--hairline-soft)}
+.type-specimen:last-child{border-bottom:none}
+.type-specimen .label{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--on-dark-soft);font-family:'IBM Plex Sans Thai Looped',sans-serif}
+.type-specimen .label small{display:block;color:var(--on-dark-muted);margin-top:4px;letter-spacing:.05em;text-transform:none}
+
+.t-bebas{font-family:'Bebas Neue',sans-serif}
+.t-anton{font-family:'Anton',sans-serif;text-transform:uppercase}
+.t-plex{font-family:'IBM Plex Sans Thai Looped','Sarabun',sans-serif}
+
+/* DON'TS */
+.donts{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.dont{padding:14px 18px;background:var(--surface);border:1px solid var(--hairline-soft);border-radius:12px;font-size:14px;color:var(--on-dark-soft);line-height:1.45}
+.dont span{color:var(--goal);margin-right:8px;font-weight:700}
+
+/* FOOTER */
+.foot{margin-top:96px;padding-top:32px;border-top:1px solid var(--hairline-soft);font-size:12px;color:var(--on-dark-muted);letter-spacing:.05em;display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px}
+</style>
+</head>
+<body>
+<main class="wrap">
+
+  <!-- HERO -->
+  <header class="hero">
+    <div class="eyebrow">Mood Board · v.alpha · 2026-04-30</div>
+    <h1>STADIUM</h1>
+    <h2>FLOODLIGHT</h2>
+    <p>A stadium-floodlight aesthetic for Headball — a Thai mobile multiplayer football guessing game (ทายชื่อนักฟุตบอลบนหัว). Dark navy mimics Anfield at night. Jersey-bright player tags pop like kit colors under floodlights. Bebas Neue at 144px makes assigned player names readable across a 1.5-meter table. Names ARE the content.</p>
+    <div class="meta">
+      <span>3 fonts</span>
+      <span>8 player tags</span>
+      <span>Dark default</span>
+      <span>Mobile only</span>
+      <span>WCAG AA</span>
+      <span>Thai + Latin</span>
+    </div>
+  </header>
+
+  <!-- MOOD QUOTE -->
+  <section class="section">
+    <div class="quote">
+      <div class="label">The Memorable Thing</div>
+      <div class="body">รู้สึกเหมือนเชียร์ <em>Liverpool</em> ตอนชนะ Champions League final.<br>Stadium energy. Broadcast-grade. <em>Celebratory</em>.</div>
+    </div>
+  </section>
+
+  <!-- BIG NAME + RIGHT STACK -->
+  <section class="section">
+    <h3 class="section-title">The Hero — Big Name Card</h3>
+    <p class="section-sub">The entire viewport. Saturated jersey color from the player's tag. Bebas Neue at scoreboard scale. White text, full breathing room. This screen has ONE job.</p>
+    <div class="comps">
+      <div class="big-name">
+        <div class="top">
+          <div class="pill">Round 2 · ทายเลย</div>
+          <div class="pill">P1 · เทพ</div>
+        </div>
+        <div class="name">MO<br>SALAH</div>
+        <div class="bottom">
+          <div>
+            <div class="lbl">Score</div>
+            <div class="v">07</div>
+          </div>
+          <div style="text-align:right">
+            <div class="lbl">Time</div>
+            <div class="v">0:42</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="right-stack">
+        <div class="room-code">
+          <div class="lbl">Room Code</div>
+          <div class="code">8K3R7Q</div>
+        </div>
+
+        <div class="scoreboard">
+          <div class="head">
+            <div class="t">Final Score</div>
+            <div class="r">Round 5/5</div>
+          </div>
+          <div class="row">
+            <div class="L"><span class="dot" style="background:var(--tag-red)"></span><span class="nm">เทพลีลา</span></div>
+            <div class="sc">14</div>
+          </div>
+          <div class="row">
+            <div class="L"><span class="dot" style="background:var(--tag-blue)"></span><span class="nm">บอย</span></div>
+            <div class="sc">11</div>
+          </div>
+          <div class="row">
+            <div class="L"><span class="dot" style="background:var(--tag-yellow)"></span><span class="nm">เก่ง</span></div>
+            <div class="sc">09</div>
+          </div>
+          <div class="row">
+            <div class="L"><span class="dot" style="background:var(--tag-green)"></span><span class="nm">มิ้ง</span></div>
+            <div class="sc">06</div>
+          </div>
+        </div>
+
+        <div class="btns">
+          <button class="btn-goal">ทายชื่อ</button>
+          <button class="btn-secondary">ออกจากห้อง</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PLAYER TAG PALETTE -->
+  <section class="section">
+    <h3 class="section-title">Player Tag Palette</h3>
+    <p class="section-sub">Each player gets ONE jersey color, assigned by join_order. Deterministic — re-joins keep the same color. All 8 verified ≥4.5:1 contrast for white text.</p>
+    <div class="swatches">
+      <div class="swatch" style="background:var(--tag-red)"><div><div class="role">Player 1</div><div class="n">Tag Red</div></div><div class="h">#E63946</div></div>
+      <div class="swatch" style="background:var(--tag-blue)"><div><div class="role">Player 2</div><div class="n">Tag Blue</div></div><div class="h">#1D4ED8</div></div>
+      <div class="swatch" style="background:var(--tag-yellow);color:#0a0e1a"><div><div class="role" style="color:#374151">Player 3</div><div class="n">Tag Yellow</div></div><div class="h">#FBBF24</div></div>
+      <div class="swatch" style="background:var(--tag-green)"><div><div class="role">Player 4</div><div class="n">Tag Green</div></div><div class="h">#16A34A</div></div>
+      <div class="swatch" style="background:var(--tag-purple)"><div><div class="role">Player 5</div><div class="n">Tag Purple</div></div><div class="h">#A855F7</div></div>
+      <div class="swatch" style="background:var(--tag-orange)"><div><div class="role">Player 6</div><div class="n">Tag Orange</div></div><div class="h">#F97316</div></div>
+      <div class="swatch" style="background:var(--tag-pink)"><div><div class="role">Player 7</div><div class="n">Tag Pink</div></div><div class="h">#EC4899</div></div>
+      <div class="swatch" style="background:var(--tag-cyan);color:#0a0e1a"><div><div class="role" style="color:#374151">Player 8</div><div class="n">Tag Cyan</div></div><div class="h">#06B6D4</div></div>
+    </div>
+
+    <div style="margin-top:24px">
+      <div class="player-chips">
+        <span class="chip" style="background:var(--tag-red)">เทพลีลา</span>
+        <span class="chip" style="background:var(--tag-blue)">บอย</span>
+        <span class="chip" style="background:var(--tag-yellow);color:#0a0e1a">เก่ง</span>
+        <span class="chip" style="background:var(--tag-green)">มิ้ง</span>
+        <span class="chip" style="background:var(--tag-purple)">ปลา</span>
+        <span class="chip" style="background:var(--tag-orange)">เจมส์</span>
+        <span class="chip" style="background:var(--tag-pink)">ฝน</span>
+        <span class="chip" style="background:var(--tag-cyan);color:#0a0e1a">โบว์</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- SURFACES -->
+  <section class="section">
+    <h3 class="section-title">Surfaces</h3>
+    <p class="section-sub">Dark by default. Light only appears on the win celebration screen — like a trophy ceremony moment.</p>
+    <div class="surfaces">
+      <div class="surface-cell" style="background:var(--ink)"><div class="n">Ink</div><div class="h">#0A0E1A</div><div class="role">Page bg</div></div>
+      <div class="surface-cell" style="background:var(--surface)"><div class="n">Surface</div><div class="h">#131826</div><div class="role">Panels</div></div>
+      <div class="surface-cell" style="background:var(--surface-elevated)"><div class="n">Elevated</div><div class="h">#1C2236</div><div class="role">Buttons / modals</div></div>
+      <div class="surface-cell" style="background:var(--hairline)"><div class="n">Hairline</div><div class="h">#2A3146</div><div class="role">Borders</div></div>
+      <div class="surface-cell" style="background:var(--canvas);color:var(--ink)"><div class="n" style="color:var(--ink)">Canvas</div><div class="h" style="color:var(--ink)">#FAFBFC</div><div class="role" style="color:#374151">Win screen only</div></div>
+    </div>
+  </section>
+
+  <!-- TYPOGRAPHY -->
+  <section class="section">
+    <h3 class="section-title">Typography</h3>
+    <p class="section-sub">Three fonts, strict role separation. Bebas Neue = scoreboard moments. Anton = section heads + primary CTAs. IBM Plex Thai = everything else.</p>
+
+    <div class="type-specimen">
+      <div class="label">Hero name<small>Bebas Neue · 144px</small></div>
+      <div class="t-bebas" style="font-size:96px;line-height:.95;letter-spacing:1px;text-transform:uppercase">Salah</div>
+    </div>
+    <div class="type-specimen">
+      <div class="label">Display XL<small>Anton · 56px</small></div>
+      <div class="t-anton" style="font-size:48px;line-height:1;letter-spacing:.5px">Round 2</div>
+    </div>
+    <div class="type-specimen">
+      <div class="label">Score XL<small>Bebas · 64px tnum</small></div>
+      <div class="t-bebas" style="font-size:56px;line-height:1;font-feature-settings:'tnum'">07 · 11 · 14</div>
+    </div>
+    <div class="type-specimen">
+      <div class="label">Room code<small>Bebas · 48px tracked</small></div>
+      <div class="t-bebas" style="font-size:40px;letter-spacing:8px;font-feature-settings:'tnum'">8K3R7Q</div>
+    </div>
+    <div class="type-specimen">
+      <div class="label">Title LG<small>Plex Thai · 20px / 600</small></div>
+      <div class="t-plex" style="font-size:20px;font-weight:600;line-height:1.3">เลือกชื่อในห้องของคุณ</div>
+    </div>
+    <div class="type-specimen">
+      <div class="label">Body MD<small>Plex Thai · 16px</small></div>
+      <div class="t-plex" style="font-size:16px;line-height:1.55;color:var(--on-dark-soft);max-width:520px">รอผู้เล่นคนถัดไปกด "ทายชื่อ" — เมื่อทุกคนพร้อมแล้ว เกมจะเริ่มต้นโดยอัตโนมัติ. The next round starts when all players tap ready.</div>
+    </div>
+    <div class="type-specimen">
+      <div class="label">Button LG<small>Anton · 20px caps</small></div>
+      <div><button class="btn-goal" style="font-size:20px">ทายชื่อ</button></div>
+    </div>
+    <div class="type-specimen">
+      <div class="label">Caption<small>Plex Thai · 12px / 500</small></div>
+      <div class="t-plex" style="font-size:12px;font-weight:500;letter-spacing:.3px;color:var(--on-dark-muted);text-transform:uppercase">Reconnecting · Round 3 · 0:08 left</div>
+    </div>
+  </section>
+
+  <!-- MOTION CARDS -->
+  <section class="section">
+    <h3 class="section-title">Motion · Sport-Broadcast</h3>
+    <p class="section-sub">Every motion serves comprehension or celebration. No decorative animation. Haptic-paired flashes. Card flips, score rolls, GOAL letter cascade.</p>
+    <div class="surfaces" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr))">
+      <div class="surface-cell" style="background:var(--surface)"><div class="n" style="color:var(--success,#16a34a)">Correct</div><div class="role">50ms green flash<br>+ haptic 50ms<br>+ confetti 300ms</div></div>
+      <div class="surface-cell" style="background:var(--surface)"><div class="n" style="color:var(--goal)">Foul</div><div class="role">50ms red flash<br>+ haptic 100ms ×2<br>+ shake 200ms</div></div>
+      <div class="surface-cell" style="background:var(--surface)"><div class="n">Score Flip</div><div class="role">600ms ease-in-out<br>tabular-nums no jitter</div></div>
+      <div class="surface-cell" style="background:var(--surface)"><div class="n">Goal Cascade</div><div class="role">G·O·A·L letters<br>100ms apart, bounce</div></div>
+    </div>
+  </section>
+
+  <!-- DON'TS -->
+  <section class="section">
+    <h3 class="section-title">Don'ts</h3>
+    <p class="section-sub">Boundaries are the system. These are off-limits.</p>
+    <div class="donts">
+      <div class="dont"><span>✕</span> No Inter / Roboto / Poppins / Montserrat</div>
+      <div class="dont"><span>✕</span> No purple gradients (AI slop)</div>
+      <div class="dont"><span>✕</span> No mascots, illustrations, claymation</div>
+      <div class="dont"><span>✕</span> No Bebas / Anton in body text</div>
+      <div class="dont"><span>✕</span> No light mode as default</div>
+      <div class="dont"><span>✕</span> No hover-only affordances on mobile</div>
+      <div class="dont"><span>✕</span> No touch targets under 44px</div>
+      <div class="dont"><span>✕</span> No body text under 16px</div>
+      <div class="dont"><span>✕</span> No duplicate tag colors in one room</div>
+      <div class="dont"><span>✕</span> No 3-column SaaS card grids</div>
+    </div>
+  </section>
+
+  <footer class="foot">
+    <span>Headball · Stadium Floodlight · DESIGN.md alpha</span>
+    <span>Rendered with the actual tokens · Bebas Neue · Anton · IBM Plex Sans Thai Looped</span>
+  </footer>
+</main>
+</body>
+</html>
