@@ -9,6 +9,10 @@ Started: Thu 30 Apr 2026 02:54:51 +07
 - Use `bun` / `bunx` (not npm). `bunx tsc --noEmit` for typecheck, `bun run lint` for lint.
 - Local Postgres: `PGPASSWORD=postgres psql -h 127.0.0.1 -p 54322 -U postgres -d postgres` for ad-hoc verification queries.
 - The schema in `docs/PLAN.md` line 105 has `index(category)` inside the table body — that is pseudocode, not valid PG. Use a separate `create index ... on football_players(category);` statement.
+- Postgres functions that `returns table (room_id uuid, player_id uuid, ...)` create implicit OUT params that shadow table columns of the same name. Add `#variable_conflict use_column` after `as $$` so identifiers in the body resolve to columns.
+- `position` is a reserved word in `returns table (...)`. Quote it: `returns table (..., "position" int, ...)`.
+- `0002_*.sql` is now `0002_functions.sql` (atomic write fns). The seed migration referenced as `0002_seed_players.sql` in PLAN.md / US-003 must instead be authored as `0003_seed_players.sql`.
+- Function security pattern: `security definer` + `set search_path = public`, then at the bottom `revoke execute ... from public; grant execute ... to anon;`. Anon never gets direct INSERT/UPDATE.
 
 ---
 
@@ -22,4 +26,18 @@ Started: Thu 30 Apr 2026 02:54:51 +07
   - Functions (submit_guess, create_room, join_room, start_round) are deliberately deferred to US-002 — do NOT add them to 0001_init.sql.
   - football_players got a `unique (name, category)` constraint up front so US-003's seed can use `ON CONFLICT (name, category) DO NOTHING` for idempotency.
   - RLS without any write policy = anon writes are denied by default. That is the desired behavior; do not add `for insert/update to anon` policies later.
+---
+
+## 2026-04-30 - US-002
+- Implemented: `supabase/migrations/0002_functions.sql` — four SECURITY DEFINER functions: `create_room` (generates 6-char code minus ambiguous chars, inserts room + host player, returns code+player_id), `join_room` (validates LOBBY status, name 1-20, max 8 players, idempotent rejoin on same player_id), `start_round` (locks room, validates host caller, shuffles players + football_players via row_number windowing, writes round_state + round_positions), `submit_guess` (verbatim from PLAN.md — FOR UPDATE lock, atomic next_position increment, score = score_positions - pos + 1).
+- Files changed: `supabase/migrations/0002_functions.sql` (new); `scripts/ralph/prd.json` (US-002 passes=true); `scripts/ralph/progress.txt`.
+- Verified: `bunx supabase db reset` applies cleanly. End-to-end smoke test via psql confirms create_room → 2x join_room (incl. idempotent rejoin) → start_round produces 3 distinct active assignments → submit_guess sequence yields host pos=1 score=3, p2 foul (active=false score=0), p3 pos=2 score=2; round_events log shows 2x GUESS_OK + 1x FOUL with positions. Validation paths (`'invalid display_name length'`, `'room not found'`) raise as expected. `bunx tsc --noEmit` clean. `bun run lint` clean.
+- **Learnings for future iterations:**
+  - PL/pgSQL `returns table (room_id uuid, player_id uuid, ...)` produces OUT-param identifiers that collide with same-named table columns inside the body. Add `#variable_conflict use_column` immediately after `as $$` to resolve identifiers as columns first.
+  - `position` is reserved in `returns table (..., position int, ...)` — must be quoted as `"position"`. Caller-side this just means `result.position` works either way.
+  - File-numbering conflict: PLAN.md and US-003 both name the seed migration `0002_seed_players.sql`. Functions took `0002_*` here (US-002 didn't pin a filename), so US-003 must use `0003_seed_players.sql`. Order doesn't matter functionally — start_round only references football_players at runtime, not at migration time.
+  - Idempotent join is important for the reconnect/localStorage flow (US-017): same `player_id` rejoining must NOT raise — return existing row. Implemented via `perform 1 from players ... if found then return ...`.
+  - `start_round` requires `rooms.current_round >= 1` — caller (start-game / next-round actions) is responsible for incrementing it before invoking. This keeps `start_round` itself stateless about round transitions.
+  - Random-distinct-name pattern: shuffle both `players` and `football_players` with `row_number() over (order by random())` then join on `rn`. No `LIMIT` needed because the players CTE is naturally bounded.
+  - The `start_round`'s "not host" smoke test in psql had a setup issue (`current_setting('myapp.code')` doesn't exist) — the function itself rejects non-host callers correctly via direct invocation.
 ---
