@@ -89,8 +89,8 @@
         "Typecheck passes"
       ],
       "priority": 6,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "lib/game-store.ts: zustand v5 create() store with room/players/me/currentRound/roundState/totalScores/connectionStatus/error + setters and reset(). totalScores derived from players[].total_score on setPlayers. setRoom syncs currentRound from room.current_round. Player ID persistence is split out of the store (SSR-safe): getOrCreatePlayerId() / readPlayerId() read+write window.localStorage under 'headball_player_id' (PLAYER_ID_STORAGE_KEY const exported). UUID gen prefers crypto.randomUUID, falls back to crypto.getRandomValues. Tests deferred to US-018."
     },
     {
       "id": "US-007",

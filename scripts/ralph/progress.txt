@@ -85,3 +85,16 @@ Started: Thu 30 Apr 2026 02:54:51 +07
   - `crypto.getRandomValues` works in Node 20+, modern browsers, and Edge — fine for both server actions and client code without polyfills.
   - Future US-008 (create-room flow): import `createRoomWithRetry` and pass `{ p_max_rounds: 5, p_score_positions: 3, p_host_name, p_host_player_id }`. The function returns `{ code, player_id }` directly (already `data[0]`-extracted).
 ---
+
+## 2026-04-30 - US-006
+- Implemented: `lib/game-store.ts` — zustand v5 store (`useGameStore`) with state `room`, `players`, `me`, `currentRound`, `roundState`, `totalScores`, `connectionStatus`, `error`; setters `setRoom/setPlayers/setMe/setCurrentRound/setRoundState/setConnectionStatus/setError`; and `reset()`. `setRoom` mirrors `room.current_round` into `currentRound`. `setPlayers` re-derives `totalScores` from `players[].total_score` (coalescing `null` → 0) and refreshes `me` if its row is in the new list. Exported `PLAYER_ID_STORAGE_KEY = 'headball_player_id'`, `getOrCreatePlayerId()` (throws on SSR, generates UUID via `crypto.randomUUID` or `getRandomValues` fallback, persists to `localStorage`), `readPlayerId()` (SSR-safe, returns null off-client). `ConnectionStatus` union: `IDLE | CONNECTING | SUBSCRIBED | DISCONNECTED`.
+- Files changed: `lib/game-store.ts` (new), `scripts/ralph/prd.json` (US-006 passes=true), `scripts/ralph/progress.txt`.
+- Verified: `bunx tsc --noEmit` clean, `bun run lint` clean. Tests deferred to US-018.
+- **Learnings for future iterations:**
+  - `Player.total_score` is `number | null` in the generated types (because the column has a default 0 server-side). Always coalesce `?? 0` when reading it into client state — Zod-typed math will choke on `null`.
+  - Persisting `player_id` outside the Zustand store (separate `getOrCreatePlayerId()` / `readPlayerId()` helpers) keeps the store SSR-safe. Calling Zustand actions during render is fine; touching `localStorage` is not — do it inside `useEffect` or event handlers.
+  - `crypto.randomUUID` is the right primary path (Node 20+, modern browsers, Edge runtime). Keep the `getRandomValues` fallback for older Safari that still ships in some PWA wrappers — total cost ~10 lines.
+  - `setPlayers` should be the single source of truth for refreshing `me` — Supabase realtime delivers a `players` row update for all rows, and the store should pick the matching `me` row out of the new array rather than expect callers to call `setMe` separately.
+  - `setRoom` mirrors `room.current_round → currentRound`; UI subscribers can read `useGameStore(s => s.currentRound)` without joining on `room`. If a future story needs to advance the round optimistically before the realtime room update arrives, call `setCurrentRound` directly.
+  - Future US-007/US-009 (landing + join): on first client mount call `getOrCreatePlayerId()` once and stash it via `setMe(null)` then later `setMe(player)` once join_room/create_room returns. Don't put the bare `player_id` on the store — it lives on `me.player_id` after join.
+---
