@@ -137,8 +137,8 @@
         "Verify in browser using dev-browser skill"
       ],
       "priority": 9,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Server action `app/actions/join-room.ts` validates {code, displayName, playerId} via Zod (composes roomCodeSchema + displayNameSchema + z.uuid()), calls supabase.rpc('join_room', ...) on the server anon client, and maps PG errcodes → Thai strings via mapPgError(): P0002→'ห้องไม่พบ', P0003→'เกมเริ่มแล้ว', P0004→'ห้องเต็ม', P0001→'ชื่อไม่ถูกต้อง', default→'เข้าห้องไม่สำเร็จ ลองใหม่'. `app/join/page.tsx` is a server component shell that renders <JoinRoomForm/>. `components/join-room-form.tsx` (client) controls both inputs, sanitizes the code field on every keystroke (uppercase + strip non-alphanumeric + clamp to 6 chars) so the user sees only valid chars, renders the code in font-hero (Bebas) 32px with 8px letter-spacing per DESIGN.md, runs Zod validation client-side first (per-field errors), then `getOrCreatePlayerId()` and dispatches the action inside `useTransition`. Form-level errors (server result.error) render in a dedicated alert panel above the submit button. Landing's 'เข้าห้อง' button now uses `<Link href=\"/join\">` instead of an inert <button>."
     },
     {
       "id": "US-010",

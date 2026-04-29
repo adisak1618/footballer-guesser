@@ -1,3 +1,4 @@
+import Link from "next/link"
 import { CreateRoomButton } from "@/components/create-room-button"
 
 export default function Home() {
@@ -20,12 +21,12 @@ export default function Home() {
       <div className="relative flex w-full flex-col gap-4">
         <CreateRoomButton />
 
-        <button
-          type="button"
+        <Link
+          href="/join"
           className="flex min-h-11 w-full items-center justify-center rounded-xl border border-hairline bg-surface-elevated px-6 text-[15px] font-semibold tracking-[0.3px] text-on-dark transition-colors active:bg-surface"
         >
           เข้าห้อง
-        </button>
+        </Link>
       </div>
 
       <a
