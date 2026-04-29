@@ -1,7 +1,8 @@
 "use client"
 
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import type { Player, RoundState } from "@/lib/types"
+import { TurnOverlay } from "@/components/turn-overlay"
 
 const TAG_BG: Record<number, string> = {
   1: "bg-tag-red",
@@ -30,9 +31,20 @@ interface NameCardProps {
   round: number
   maxRounds: number
   myRoundState: RoundState | null
+  onGuess?: () => void
+  onScores?: () => void
 }
 
-export function NameCard({ me, round, maxRounds, myRoundState }: NameCardProps) {
+export function NameCard({
+  me,
+  round,
+  maxRounds,
+  myRoundState,
+  onGuess,
+  onScores,
+}: NameCardProps) {
+  const [overlayOpen, setOverlayOpen] = useState(false)
+
   useEffect(() => {
     let sentinel: WakeLockSentinel | null = null
     let cancelled = false
@@ -94,21 +106,46 @@ export function NameCard({ me, round, maxRounds, myRoundState }: NameCardProps) 
     )
   }
 
+  function handleGuess() {
+    setOverlayOpen(false)
+    onGuess?.()
+  }
+
+  function handleScores() {
+    setOverlayOpen(false)
+    onScores?.()
+  }
+
   return (
-    <main
-      role="img"
-      aria-label="ชื่อของคุณซ่อนอยู่ — หันจอให้เพื่อนเห็นเพื่อเริ่มเล่น"
-      className={`relative flex min-h-[100dvh] w-full select-none flex-col items-center justify-center overflow-hidden px-6 text-center ${tagBg} ${tagText}`}
-    >
-      <p className="absolute left-4 top-4 text-xs font-semibold uppercase tracking-[0.5px] opacity-80">
-        Round {round}/{maxRounds}
-      </p>
-      <span className="font-hero text-[96px] leading-[0.95] tracking-[2px] min-[375px]:text-[144px]">
-        {upperName}
-      </span>
-      <p className="absolute inset-x-0 bottom-6 text-xs font-medium uppercase tracking-[0.5px] opacity-80">
-        — tap to act —
-      </p>
-    </main>
+    <>
+      <main
+        role="img"
+        aria-label="ชื่อของคุณซ่อนอยู่ — หันจอให้เพื่อนเห็นเพื่อเริ่มเล่น"
+        className={`relative flex min-h-[100dvh] w-full select-none flex-col items-center justify-center overflow-hidden px-6 text-center ${tagBg} ${tagText}`}
+      >
+        <p className="absolute left-4 top-4 text-xs font-semibold uppercase tracking-[0.5px] opacity-80">
+          Round {round}/{maxRounds}
+        </p>
+        <span className="font-hero text-[96px] leading-[0.95] tracking-[2px] min-[375px]:text-[144px]">
+          {upperName}
+        </span>
+        <p className="absolute inset-x-0 bottom-6 text-xs font-medium uppercase tracking-[0.5px] opacity-80">
+          — tap to act —
+        </p>
+        <button
+          type="button"
+          aria-label="แตะเพื่อเปิดตัวเลือก"
+          onClick={() => setOverlayOpen(true)}
+          className="absolute inset-0 z-10 cursor-pointer focus:outline-none"
+        />
+      </main>
+      {overlayOpen ? (
+        <TurnOverlay
+          onCancel={() => setOverlayOpen(false)}
+          onGuess={handleGuess}
+          onScores={handleScores}
+        />
+      ) : null}
+    </>
   )
 }

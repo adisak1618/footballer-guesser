@@ -202,8 +202,8 @@
         "Verify in browser using dev-browser skill"
       ],
       "priority": 13,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "components/turn-overlay.tsx renders the fullscreen control overlay per Screen 3: fixed inset-0 z-50 bg-black/95 with 100ms `motion-safe:transition-opacity` (rAF-driven opacity 0→100 on mount; prefers-reduced-motion bypasses fade automatically via Tailwind v4's motion-safe:* variant). YOUR TURN title in font-display 28px tracking-2 + 'เลือก action' subtitle. Goal CTA `⚽ ทายชื่อ` (min-h-14 bg-goal active:bg-goal-active) and secondary `🏆 ดูคะแนน` (min-h-11 surface-elevated + hairline border). '✕ cancel' button absolute top-right. Warning row '⚠️ ทายผิด = Foul' / '(ออกจากรอบ)' uses text-warning. 10s countdown text uses tabular-nums + aria-live='polite'; updates every 250ms, calls onCancel on timeout. Escape key closes overlay (window keydown listener). role='dialog' aria-modal='true' aria-label='ตัวเลือกของผู้เล่น'. components/name-card.tsx now manages overlayOpen state (useState) and renders an absolute z-10 invisible button inside the active card (preserves the role='img' on <main>) with aria-label='แตะเพื่อเปิดตัวเลือก' that triggers setOverlayOpen(true). NameCard accepts optional onGuess/onScores callbacks (US-014/US-015 will pass real handlers); both close the overlay before invoking the parent callback. The is_active=false branch returns early before any overlay render, so the overlay never appears for OUT players (no extra effect needed)."
     },
     {
       "id": "US-014",
