@@ -75,8 +75,8 @@
         "Typecheck passes"
       ],
       "priority": 5,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "lib/schemas.ts: displayName/roomCode/guessText Zod schemas with Thai error messages; roomCode applies trim+toUpperCase before regex. lib/room-code.ts: generateRoomCode() uses crypto.getRandomValues over ABCDEFGHJKLMNPQRSTUVWXYZ23456789 (matches server alphabet in 0002_functions.sql). createRoomWithRetry retries up to 5x on PG unique violation (code 23505), throws RoomCodeCollisionError after exhaustion; non-23505 errors rethrow immediately."
     },
     {
       "id": "US-006",

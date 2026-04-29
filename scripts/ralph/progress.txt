@@ -19,6 +19,8 @@ Started: Thu 30 Apr 2026 02:54:51 +07
 - `bunx supabase gen types typescript --local` writes log lines ("Saved lockfile", "Connecting to db 5432") to stderr; using `> file` alone leaves stdout clean, but `2>&1 > file` will pollute the output. Use `bunx supabase gen types typescript --local 2>/dev/null > lib/database.types.ts` or just plain `>` redirect.
 - Supabase browser client lives in `lib/supabase.ts` and uses `@supabase/ssr`'s `createBrowserClient<Database>` — pass the generated `Database` type so RPC calls (`.rpc('submit_guess', {...})`) get typed args + return shape automatically.
 - Re-export row/RPC types from `lib/types.ts` (`Room`, `Player`, `RoundState`, `RoundEvent`, `RoomStatus`, `EventType`, `CreateRoomArgs/Result`, `JoinRoomArgs/Result`, `StartRoundArgs`, `SubmitGuessArgs/Result`). Future stories should import from `@/lib/types`, not from `lib/database.types` directly.
+- Room code alphabet is `ABCDEFGHJKLMNPQRSTUVWXYZ23456789` (32 chars, no 0/O/1/I). Server side lives in `0002_functions.sql` create_room, client side in `lib/room-code.ts` (`ROOM_CODE_ALPHABET`). Keep these in sync if the alphabet ever changes.
+- Postgres unique-violation error code is `23505` — surface it as `error.code` from a `supabase.rpc(...)` response. Use this code (not message string matching) for retry logic.
 
 ---
 
@@ -70,4 +72,16 @@ Started: Thu 30 Apr 2026 02:54:51 +07
   - RPC return type for SQL functions that `returns table (...)` is always `T[]` even when only one row is produced. Callers must do `data?.[0]` or destructure with `.single()`.
   - Future stories that need the client should `import { supabase } from "@/lib/supabase"` (singleton) for component code, or call `createSupabaseBrowserClient()` for tests/SSR contexts where a fresh instance is needed.
   - Re-export pattern: `lib/types.ts` is the public surface for application code. Do NOT import `lib/database.types.ts` directly from app/components — keep the dependency contained so a future schema regeneration only affects `lib/types.ts`.
+---
+
+## 2026-04-30 - US-005
+- Implemented: `lib/schemas.ts` exporting `displayNameSchema` (trim + 1-20 chars), `roomCodeSchema` (trim + uppercase + `^[A-Z0-9]{6}$`), `guessTextSchema` (trim + non-empty); all three carry Thai error messages and have inferred type aliases. `lib/room-code.ts` exporting `generateRoomCode()` (crypto.getRandomValues over `ABCDEFGHJKLMNPQRSTUVWXYZ23456789`, matching the server alphabet), `ROOM_CODE_ALPHABET`, `ROOM_CODE_LENGTH`, `ROOM_CODE_MAX_RETRIES`, `RoomCodeCollisionError`, and `createRoomWithRetry(supabase, args, maxRetries=5)` that retries on PG unique violation (`error.code === '23505'`) and rethrows other errors immediately.
+- Files changed: `lib/schemas.ts` (new), `lib/room-code.ts` (new), `scripts/ralph/prd.json` (US-005 passes=true), `scripts/ralph/progress.txt`.
+- Verified: `bunx tsc --noEmit` clean, `bun run lint` clean. Tests are deferred to US-018 per the PRD (no vitest config yet).
+- **Learnings for future iterations:**
+  - The server already generates the room code inside `create_room` (see `0002_functions.sql`). `generateRoomCode()` exists for tests + as the documented charset reference; the live retry path in `createRoomWithRetry` just re-invokes the RPC and lets PG generate a fresh code on each attempt.
+  - Supabase `error.code` for a Postgres unique-violation is exactly `'23505'`. Don't string-match `error.message` — the format changes between supabase-js minor versions.
+  - Zod v4 (`^4.3.6`) is installed. `z.string().trim().toUpperCase().regex(...)` chains preprocessing before validation in v4 — the regex sees the transformed value, so callers can pass `'wftgkm'` and it becomes `'WFTGKM'` before regex test.
+  - `crypto.getRandomValues` works in Node 20+, modern browsers, and Edge — fine for both server actions and client code without polyfills.
+  - Future US-008 (create-room flow): import `createRoomWithRetry` and pass `{ p_max_rounds: 5, p_score_positions: 3, p_host_name, p_host_player_id }`. The function returns `{ code, player_id }` directly (already `data[0]`-extracted).
 ---
