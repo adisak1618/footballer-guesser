@@ -6,6 +6,7 @@ import type { RealtimeChannel } from "@supabase/supabase-js"
 import { supabase } from "@/lib/supabase"
 import { readPlayerId, useGameStore } from "@/lib/game-store"
 import type { Player, Room } from "@/lib/types"
+import { ConnectionStatus } from "@/components/connection-status"
 import { Lobby } from "./lobby"
 import { Playing } from "./playing"
 import { Results } from "./results"
@@ -30,6 +31,34 @@ export default function RoomPage({
   useEffect(() => {
     let active = true
     let channel: RealtimeChannel | null = null
+    let prevSubStatus: string | null = null
+    let knownRoomId: string | null = null
+
+    async function refetchAll() {
+      if (!knownRoomId) return
+      const { data: roomRow } = await supabase
+        .from("rooms")
+        .select("*")
+        .eq("id", knownRoomId)
+        .maybeSingle()
+      if (!active || !roomRow) return
+      setRoom(roomRow as Room)
+
+      const { data: playerRows } = await supabase
+        .from("players")
+        .select("*")
+        .eq("room_id", knownRoomId)
+        .order("join_order", { ascending: true })
+      if (!active) return
+      const ps = (playerRows ?? []) as Player[]
+      setPlayers(ps)
+
+      const localPlayerId = readPlayerId()
+      const myRow = localPlayerId
+        ? (ps.find((p) => p.player_id === localPlayerId) ?? null)
+        : null
+      setMe(myRow)
+    }
 
     async function load() {
       setConnectionStatus("CONNECTING")
@@ -48,6 +77,7 @@ export default function RoomPage({
       }
 
       const roomId = roomRow.id
+      knownRoomId = roomId
       setRoom(roomRow as Room)
 
       const { data: playerRows } = await supabase
@@ -101,13 +131,20 @@ export default function RoomPage({
         )
         .subscribe((status) => {
           if (!active) return
-          if (status === "SUBSCRIBED") setConnectionStatus("SUBSCRIBED")
-          else if (
+          if (status === "SUBSCRIBED") {
+            setConnectionStatus("SUBSCRIBED")
+            if (prevSubStatus && prevSubStatus !== "SUBSCRIBED") {
+              void refetchAll()
+            }
+            prevSubStatus = "SUBSCRIBED"
+          } else if (
             status === "CHANNEL_ERROR" ||
             status === "TIMED_OUT" ||
             status === "CLOSED"
-          )
+          ) {
             setConnectionStatus("DISCONNECTED")
+            prevSubStatus = "DISCONNECTED"
+          }
         })
     }
 
@@ -141,21 +178,29 @@ export default function RoomPage({
 
   if (!room) {
     return (
-      <main className="relative mx-auto flex min-h-[100dvh] w-full max-w-[480px] flex-col items-center justify-center gap-3 px-6 text-center">
-        <p className="text-sm text-on-dark-soft">กำลังโหลด...</p>
-      </main>
+      <>
+        <ConnectionStatus />
+        <main className="relative mx-auto flex min-h-[100dvh] w-full max-w-[480px] flex-col items-center justify-center gap-3 px-6 text-center">
+          <p className="text-sm text-on-dark-soft">กำลังโหลด...</p>
+        </main>
+      </>
     )
   }
 
-  if (room.status === "LOBBY") return <Lobby code={code} />
-
-  if (room.status === "PLAYING") return <Playing />
-
-  if (room.status === "ENDED") return <Results />
-
   return (
-    <main className="relative mx-auto flex min-h-[100dvh] w-full max-w-[480px] flex-col items-center justify-center gap-3 px-6 text-center">
-      <p className="text-sm text-on-dark-soft">กำลังโหลด...</p>
-    </main>
+    <>
+      <ConnectionStatus />
+      {room.status === "LOBBY" ? (
+        <Lobby code={code} />
+      ) : room.status === "PLAYING" ? (
+        <Playing />
+      ) : room.status === "ENDED" ? (
+        <Results />
+      ) : (
+        <main className="relative mx-auto flex min-h-[100dvh] w-full max-w-[480px] flex-col items-center justify-center gap-3 px-6 text-center">
+          <p className="text-sm text-on-dark-soft">กำลังโหลด...</p>
+        </main>
+      )}
+    </>
   )
 }

@@ -23,14 +23,19 @@ export function Playing() {
     if (!roomId) return
     let active = true
     let channel: RealtimeChannel | null = null
+    let prevSubStatus: string | null = null
 
-    async function load() {
-      const { data } = await supabase
+    async function refetch() {
+      const { data: refreshed } = await supabase
         .from("round_state")
         .select("*")
         .eq("room_id", roomId!)
       if (!active) return
-      setRoundState((data ?? []) as RoundState[])
+      setRoundState((refreshed ?? []) as RoundState[])
+    }
+
+    async function load() {
+      await refetch()
 
       channel = supabase
         .channel(`room:${roomId}:round_state`)
@@ -42,16 +47,25 @@ export function Playing() {
             table: "round_state",
             filter: `room_id=eq.${roomId}`,
           },
-          async () => {
-            const { data: refreshed } = await supabase
-              .from("round_state")
-              .select("*")
-              .eq("room_id", roomId!)
-            if (!active) return
-            setRoundState((refreshed ?? []) as RoundState[])
+          () => {
+            void refetch()
           },
         )
-        .subscribe()
+        .subscribe((status) => {
+          if (!active) return
+          if (status === "SUBSCRIBED") {
+            if (prevSubStatus && prevSubStatus !== "SUBSCRIBED") {
+              void refetch()
+            }
+            prevSubStatus = "SUBSCRIBED"
+          } else if (
+            status === "CHANNEL_ERROR" ||
+            status === "TIMED_OUT" ||
+            status === "CLOSED"
+          ) {
+            prevSubStatus = "DISCONNECTED"
+          }
+        })
     }
 
     void load()

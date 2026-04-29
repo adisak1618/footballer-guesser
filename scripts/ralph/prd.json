@@ -269,8 +269,8 @@
         "Verify in browser using dev-browser skill"
       ],
       "priority": 17,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "components/connection-status.tsx renders BOTH the pulse banner and the 30s offline modal, reading `connectionStatus` from the Zustand store. Banner: `fixed inset-x-0 top-0 z-40 bg-warning text-on-light` with red-dot 🔴 + Thai 'กำลังเชื่อมต่อ...', `motion-safe:transition-transform motion-safe:duration-300` slide-down (translate-y-full → 0), `motion-safe:animate-pulse` on the dot. role='status' aria-live='assertive' aria-hidden mirrors visibility. 500ms grace period (BANNER_GRACE_MS) before showing prevents flicker on fast initial subscribes. 30s offline modal (OFFLINE_TIMEOUT_MS=30_000) is a centered overlay (role='dialog' aria-modal='true') with goal CTA 'กลับหน้าหลัก' that router.push('/'). Both useEffects schedule the state transition via setTimeout(shouldShow ? DELAY : 0) — never call setState synchronously in effect body (that pattern is blocked by react-hooks/set-state-in-effect; same fix as US-013's overlay). Mounted in `app/room/[code]/page.tsx` as a sibling of the route's main content (renders for !room/loading shell + LOBBY/PLAYING/ENDED branches, but NOT on the loadError 'ห้องไม่พบ' page since the user is already heading away). Reconnect refetch: `page.tsx` subscribe callback now tracks `prevSubStatus` in a closure-scoped variable; on every SUBSCRIBED event after a previous DISCONNECTED, calls `refetchAll()` which re-selects rooms+players and re-derives `me` from `readPlayerId()`. `playing.tsx` subscribe callback applies the same trick to refetch round_state on round_state-channel reconnect. Initial SUBSCRIBED skipped (prevSubStatus starts null)."
     },
     {
       "id": "US-018",
