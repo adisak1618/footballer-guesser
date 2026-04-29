@@ -121,8 +121,8 @@
         "Verify in browser using dev-browser skill"
       ],
       "priority": 8,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Server action `app/actions/create-room.ts` (use server) validates {displayName, playerId} via Zod (composes displayNameSchema + z.uuid()), calls createRoomWithRetry through a fresh `lib/supabase-server.ts` anon client (createClient from @supabase/supabase-js with persistSession:false — @supabase/ssr's createBrowserClient is browser-only), returns discriminated {ok:true|false} with Thai error strings. `components/create-room-button.tsx` (client) wraps the goal CTA, opens a Stadium-themed custom modal (no shadcn Dialog — its bg-popover conflicts with the dark theme), uses useTransition + getOrCreatePlayerId() then router.push(`/room/${code}`). category='premier-league' satisfied by rooms.category DEFAULT (the PG function takes no category arg)."
     },
     {
       "id": "US-009",

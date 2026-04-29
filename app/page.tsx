@@ -1,3 +1,5 @@
+import { CreateRoomButton } from "@/components/create-room-button"
+
 export default function Home() {
   return (
     <main className="relative mx-auto flex min-h-[100dvh] w-full max-w-[480px] flex-col items-center justify-between px-6 pt-16 pb-10">
@@ -16,15 +18,7 @@ export default function Home() {
       </header>
 
       <div className="relative flex w-full flex-col gap-4">
-        <button
-          type="button"
-          className="flex min-h-14 w-full items-center justify-center gap-3 rounded-xl bg-goal px-8 text-on-dark transition-colors active:bg-goal-active"
-        >
-          <span aria-hidden className="text-2xl leading-none">+</span>
-          <span className="text-[17px] font-semibold tracking-[0.3px]">
-            สร้างห้อง
-          </span>
-        </button>
+        <CreateRoomButton />
 
         <button
           type="button"
