@@ -1,7 +1,8 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useTransition } from "react"
 import Link from "next/link"
+import { startGameAction } from "@/app/actions/start-game"
 import { useGameStore } from "@/lib/game-store"
 
 const TAG_BG: Record<number, string> = {
@@ -35,10 +36,26 @@ export function Lobby({ code }: { code: string }) {
 
   const [copied, setCopied] = useState(false)
   const [copyError, setCopyError] = useState(false)
+  const [startError, setStartError] = useState<string | null>(null)
+  const [isPending, startTransition] = useTransition()
 
   if (!room) return null
 
   const isHost = me ? me.player_id === room.host_player_id : false
+  const canStart = players.length >= 2
+
+  function handleStart() {
+    if (!room || !me) return
+    setStartError(null)
+    const roomId = room.id
+    const hostPlayerId = me.player_id
+    startTransition(async () => {
+      const result = await startGameAction({ roomId, hostPlayerId })
+      if (!result.ok) {
+        setStartError(result.error)
+      }
+    })
+  }
 
   async function copyCode() {
     try {
@@ -131,18 +148,27 @@ export function Lobby({ code }: { code: string }) {
 
       <section className="flex flex-col gap-3">
         <p className="text-center text-sm text-on-dark-soft">
-          เกมจะเริ่มเมื่อทุกคนพร้อม
+          {canStart ? "เกมจะเริ่มเมื่อทุกคนพร้อม" : "ต้องมีผู้เล่นอย่างน้อย 2 คน"}
         </p>
+        {startError ? (
+          <p
+            role="alert"
+            className="rounded-lg border border-error/40 bg-error/10 px-4 py-3 text-center text-sm font-medium text-error"
+          >
+            {startError}
+          </p>
+        ) : null}
         {isHost ? (
           <button
             type="button"
-            disabled
+            onClick={handleStart}
+            disabled={!canStart || isPending}
+            aria-busy={isPending}
             className="flex min-h-14 w-full items-center justify-center gap-2 rounded-xl bg-goal px-6 text-on-dark transition-colors active:bg-goal-active disabled:bg-goal-disabled disabled:text-on-dark/70"
-            title="จะเปิดใช้งานในรอบถัดไป"
           >
             <span aria-hidden className="text-xl leading-none">⚽</span>
             <span className="font-display text-[20px] uppercase tracking-[1px]">
-              Start Game
+              {isPending ? "กำลังเริ่ม..." : "Start Game"}
             </span>
           </button>
         ) : (

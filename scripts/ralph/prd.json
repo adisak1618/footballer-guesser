@@ -169,8 +169,8 @@
         "Verify in browser using dev-browser skill"
       ],
       "priority": 11,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "0004_start_game.sql: SECURITY DEFINER fn start_game(p_room_id, p_host_player_id) — locks room FOR UPDATE, validates host (errcode P0005), status=LOBBY (P0003), player count >= 2 (P0006), then UPDATEs rooms.status='PLAYING', current_round=1 and `perform start_round(...)` to seed round_state + round_positions. Wraps both writes in one transaction so anon can't end up in a partial PLAYING-but-no-round-state state. Anon EXECUTE granted, public revoked. Server action `app/actions/start-game.ts` validates {roomId, hostPlayerId} via Zod (z.uuid x2), calls supabase.rpc('start_game', ...) on createSupabaseServerClient(), maps PG errcodes → Thai: P0002→'ห้องไม่พบ', P0003→'เกมเริ่มแล้ว', P0005→'เฉพาะ host เท่านั้นที่เริ่มเกมได้', P0006→'ต้องมีผู้เล่นอย่างน้อย 2 คน'. Lobby.tsx wires onClick={handleStart} via useTransition; button disabled when players.length < 2 or isPending; under-2-players hint replaces 'เกมจะเริ่มเมื่อทุกคนพร้อม' with 'ต้องมีผู้เล่นอย่างน้อย 2 คน'; server-error slot renders in `text-error` (existing token; no `tag-foul` token exists). Status transition arrives via the existing rooms-table realtime subscription in app/room/[code]/page.tsx — no extra wiring needed."
     },
     {
       "id": "US-012",
