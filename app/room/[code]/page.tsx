@@ -8,6 +8,7 @@ import { readPlayerId, useGameStore } from "@/lib/game-store"
 import type { Player, Room } from "@/lib/types"
 import { Lobby } from "./lobby"
 import { Playing } from "./playing"
+import { Results } from "./results"
 
 export default function RoomPage({
   params,
@@ -150,12 +151,11 @@ export default function RoomPage({
 
   if (room.status === "PLAYING") return <Playing />
 
+  if (room.status === "ENDED") return <Results />
 
   return (
     <main className="relative mx-auto flex min-h-[100dvh] w-full max-w-[480px] flex-col items-center justify-center gap-3 px-6 text-center">
-      <h1 className="font-display text-[40px] uppercase tracking-[0.5px] text-on-dark">
-        จบเกม
-      </h1>
+      <p className="text-sm text-on-dark-soft">กำลังโหลด...</p>
     </main>
   )
 }

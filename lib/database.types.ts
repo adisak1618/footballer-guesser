@@ -262,6 +262,10 @@ export type Database = {
         Args: { p_host_player_id: string; p_room_id: string }
         Returns: undefined
       }
+      reset_game: {
+        Args: { p_host_player_id: string; p_room_id: string }
+        Returns: undefined
+      }
       start_game: {
         Args: { p_host_player_id: string; p_room_id: string }
         Returns: undefined
