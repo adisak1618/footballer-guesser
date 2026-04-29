@@ -1,0 +1,336 @@
+{
+  "project": "Headball",
+  "branchName": "ralph/headball-mvp",
+  "description": "Headball MVP — Heads Up-style ทายชื่อนักฟุตบอลบนหัว multiplayer game. Mobile-first Next.js 16 + Supabase realtime. See docs/PLAN.md for full plan and docs/DESIGN.md for Stadium Energy design system.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Add 0001_init.sql migration with all tables, enums, and RLS policies",
+      "description": "As a developer, I need the database schema in place so all subsequent features have a place to read and write data.",
+      "acceptanceCriteria": [
+        "Create supabase/migrations/0001_init.sql exactly matching the schema in docs/PLAN.md (rooms, players, round_state, round_positions, round_events, football_players)",
+        "Include room_status and event_type enums",
+        "Include RLS policies: anon role can SELECT all tables; INSERT/UPDATE only via Postgres functions (no direct table writes from client)",
+        "Run `bunx supabase db reset` (or equivalent) successfully against local Supabase",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-002",
+      "title": "Add submit_guess Postgres function and create_room/join_room helper functions",
+      "description": "As a developer, I need atomic write operations exposed as Postgres functions so the client never races on guess position counters.",
+      "acceptanceCriteria": [
+        "Add submit_guess function exactly as specified in docs/PLAN.md (FOR UPDATE lock, atomic position increment, score calc, FOUL on miss)",
+        "Add create_room(p_max_rounds int, p_score_positions int, p_host_name text, p_host_player_id uuid) returning room code + player_id",
+        "Add join_room(p_code char, p_player_id uuid, p_display_name varchar) with checks: room exists, status=LOBBY, player count < 8, name length 1-20",
+        "Add start_round(p_room_id uuid, p_host_player_id uuid) that picks random distinct names from football_players for category and writes round_state rows + round_positions",
+        "Function security: SECURITY DEFINER with revoke-public + grant-anon",
+        "Migrations apply cleanly via `bunx supabase db reset`",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-003",
+      "title": "Seed 100 Premier League player names (0002_seed_players.sql)",
+      "description": "As a player, I need a deck of football names available so rounds can start.",
+      "acceptanceCriteria": [
+        "Create supabase/migrations/0002_seed_players.sql with INSERT statements for 100 Premier League player names, category='premier-league'",
+        "Names are real, well-known players (e.g., Steven Gerrard, Mohamed Salah, Harry Kane, Erling Haaland, Bruno Fernandes, etc.) — mix of historic legends and current stars",
+        "Idempotent: ON CONFLICT DO NOTHING on (name, category) or use a UNIQUE index",
+        "Verify with `select count(*) from football_players where category='premier-league'` returns 100",
+        "Typecheck passes"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-004",
+      "title": "Generate Supabase TypeScript types and add lib/supabase.ts client",
+      "description": "As a developer, I need type-safe access to the database from Next.js.",
+      "acceptanceCriteria": [
+        "Run `bunx supabase gen types typescript --local > lib/database.types.ts`",
+        "Create lib/supabase.ts exporting a browser supabase client using NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY",
+        "Create lib/types.ts re-exporting useful row types (Room, Player, RoundState) from generated types",
+        "Update .env.example with NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY placeholders",
+        "Typecheck passes"
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-005",
+      "title": "Add Zod schemas and room-code utility",
+      "description": "As a developer, I need input validation and a 6-char room code generator with collision retry.",
+      "acceptanceCriteria": [
+        "Create lib/schemas.ts with Zod validators: displayName (1-20 chars), roomCode (6 alphanumeric uppercase), guessText (non-empty trim)",
+        "Create lib/room-code.ts exporting generateRoomCode() (6 chars from A-Z0-9, excluding ambiguous chars 0/O/1/I) and createRoomWithRetry(supabase, params) that retries up to 5x on unique-violation",
+        "Typecheck passes"
+      ],
+      "priority": 5,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-006",
+      "title": "Add Zustand game store",
+      "description": "As a developer, I need a single client-side store so all game screens share state.",
+      "acceptanceCriteria": [
+        "Create lib/game-store.ts using zustand with state: room, players[], me (current player), currentRound, roundState[], totalScores, connectionStatus, error",
+        "Actions: setRoom, setPlayers, setRoundState, setConnectionStatus, reset",
+        "persist player_id to localStorage under key 'headball_player_id' (generate UUID if absent)",
+        "Typecheck passes"
+      ],
+      "priority": 6,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-007",
+      "title": "Build landing page (app/page.tsx) per DESIGN.md",
+      "description": "As a player, I want a stadium-energy landing page with Create + Join CTAs.",
+      "acceptanceCriteria": [
+        "Replace app/page.tsx with the layout from docs/PLAN.md Screen 1 — HEADBALL Anton 56px title, Thai subtitle, primary 'สร้างห้อง' goal button, secondary 'เข้าห้อง' button, footer 'วิธีเล่น' link",
+        "Use Stadium Energy tokens from docs/DESIGN.md (--ink background, --goal CTA, IBM Plex Thai for body, Anton for display)",
+        "Mobile-first 100dvh, max-width 480px centered on larger screens",
+        "Configure fonts in app/layout.tsx (Anton, Bebas Neue, IBM Plex Thai) via next/font/google",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 7,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-008",
+      "title": "Add create-room flow (server action + redirect to lobby)",
+      "description": "As a host, when I tap 'สร้างห้อง' I want a new room created and to land in the lobby.",
+      "acceptanceCriteria": [
+        "Add app/actions/create-room.ts server action that calls create_room RPC with default max_rounds=5, score_positions=3, category='premier-league'",
+        "Action accepts displayName, validates with Zod, returns { code, playerId } or error",
+        "Wire 'สร้างห้อง' button on landing to a name-input dialog → call action → router.push(`/room/${code}`)",
+        "On error, show inline Thai error message",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 8,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-009",
+      "title": "Add /join page with code + name input",
+      "description": "As a player, I want to type a 6-char room code and my name to join an existing room.",
+      "acceptanceCriteria": [
+        "Create app/join/page.tsx with two inputs: room code (auto-uppercase, 6 chars, monospace), display name (1-20 chars, char counter)",
+        "On submit call a join-room server action that invokes join_room RPC",
+        "Handle errors with friendly Thai messages: 'ห้องไม่พบ' (404), 'ห้องเต็ม' (full), 'เกมเริ่มแล้ว' (status != LOBBY)",
+        "On success router.push(`/room/${code}`)",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 9,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-010",
+      "title": "Build lobby UI (app/room/[code]/lobby.tsx) with realtime player list",
+      "description": "As a player in the lobby, I want to see other players join in real time and see the room code displayed prominently.",
+      "acceptanceCriteria": [
+        "Create app/room/[code]/page.tsx as a client component that loads the room by code and renders <Lobby/>, <Playing/>, or <Results/> based on room.status",
+        "Create app/room/[code]/lobby.tsx matching docs/PLAN.md Screen 2: room code display in Bebas 48px with 8px letter-spacing, tap-to-copy, players list with tag-color chips, START GAME button (host only)",
+        "Subscribe to Supabase realtime on rooms+players for this room_id; update Zustand store on changes",
+        "Tag colors assigned by join_order (red, blue, yellow, green, purple, orange, pink, teal)",
+        "Non-host sees 'รอ host เริ่มเกม' instead of START button",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 10,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-011",
+      "title": "Add start-game flow (host action + status transition)",
+      "description": "As a host, when I tap START GAME the room transitions to PLAYING and round 1 names are assigned.",
+      "acceptanceCriteria": [
+        "Add app/actions/start-game.ts server action that verifies caller is host, then updates rooms.status='PLAYING', rooms.current_round=1, and calls start_round RPC",
+        "Action rejects with error if caller is not host or player count < 2",
+        "Realtime subscription on rooms triggers transition to <Playing/> component on all clients",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 11,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-012",
+      "title": "Build BIG NAME card (face-out display)",
+      "description": "As a player, I want to see the name assigned to ME displayed huge so others can read it from across the table.",
+      "acceptanceCriteria": [
+        "Create components/name-card.tsx rendering Bebas Neue at 144px (96px on <375px screens), all-caps, centered on full-viewport background tinted to my tag color",
+        "Show 'ROUND X/Y' caption top-left and 'tap to act' hint at bottom",
+        "Pull my round_state row from store (filter by player_id + current_round)",
+        "If is_active=false, show greyed-out card with 'OUT' overlay instead",
+        "Request Wake Lock on mount, release on unmount",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 12,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-013",
+      "title": "Add tap-to-cover overlay with control buttons",
+      "description": "As a player, when I tap the BIG NAME card I want it covered immediately and presented with action buttons (honor system).",
+      "acceptanceCriteria": [
+        "On tap of name-card, show fullscreen overlay rgba(0,0,0,0.95) with 100ms fade",
+        "Overlay shows 'YOUR TURN' title, 'ทายชื่อ' goal button, 'ดูคะแนน' secondary button, '✕ cancel' top-right, and 'ทายผิด = Foul' warning",
+        "Auto-dismiss after 10s of inactivity returning to face-out display",
+        "Cancel tap returns to display",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 13,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-014",
+      "title": "Add guess modal wired to submit_guess RPC",
+      "description": "As a player, I want to type my guess and submit; the server returns correct/foul atomically.",
+      "acceptanceCriteria": [
+        "Create components/guess-modal.tsx matching docs/PLAN.md Screen 3 modal: title, text input (autofocus, 'ทายชื่อนักเตะของคุณ'), warning, ยกเลิก/ส่งคำตอบ buttons",
+        "On submit, call submit_guess RPC; show inline spinner ≥200ms",
+        "On success: green flash + score-flip animation, dismiss to display (now is_active=false with score)",
+        "On foul: red shake + 600ms 'FOUL' overlay + grey card",
+        "On network error: 'เครือข่ายขาด ลองอีกครั้ง' with retry button",
+        "Respects prefers-reduced-motion (skip shake/flash animations)",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 14,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-015",
+      "title": "Add round-end detection and inter-round scoreboard",
+      "description": "As a player, when all players finish their turn (active=false) the round ends and I see a scoreboard interlude.",
+      "acceptanceCriteria": [
+        "Subscribe to round_state changes; when count(is_active=true) reaches 0, host triggers next_round server action",
+        "next_round action: updates players.total_score += score_this_round, increments rooms.current_round, calls start_round again — OR transitions room to ENDED if current_round >= max_rounds",
+        "Show scoreboard interlude UI between rounds: 'รอผู้เล่นคนอื่น...' while some are still active, then ranked list when all finished",
+        "Use tabular-nums for score column, Bebas font",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 15,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-016",
+      "title": "Build final results screen",
+      "description": "As a player, when the game ends I see a final scoreboard with the winner highlighted.",
+      "acceptanceCriteria": [
+        "Create app/room/[code]/results.tsx matching docs/PLAN.md Screen 4: light --canvas background, 'FINAL SCORE' Anton 56px, ranked tile list, '🎉 {name} ชนะ!' winner banner",
+        "Confetti animation (use canvas-confetti or similar) on mount, disabled if prefers-reduced-motion",
+        "'เล่นรอบใหม่' button: host-only action that resets rooms.status='LOBBY', current_round=0, clears round_state and round_events, players.total_score=0",
+        "'ออกจากห้อง' button navigates to /",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 16,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-017",
+      "title": "Add connection-status banner with reconnect via localStorage",
+      "description": "As a player whose phone briefly drops connection, I want a clear banner and an automatic resume.",
+      "acceptanceCriteria": [
+        "Create components/connection-status.tsx rendering pulse banner '🔴 กำลังเชื่อมต่อ...' top of screen when supabase realtime channel is not SUBSCRIBED",
+        "Mounted globally in app/room/[code]/page.tsx",
+        "On reconnect: re-fetch room + players + round_state using stored player_id from localStorage",
+        "After 30s offline, show modal 'เชื่อมต่อไม่ได้ — กลับหน้าหลัก?' with confirm button",
+        "aria-live='assertive' on banner",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 17,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-018",
+      "title": "Add Vitest unit tests (room-code, scoring, game-store)",
+      "description": "As a developer, I want unit tests covering pure logic.",
+      "acceptanceCriteria": [
+        "Configure vitest in package.json + vitest.config.ts",
+        "lib/__tests__/room-code.test.ts: generateRoomCode produces 6 chars, no ambiguous chars, createRoomWithRetry retries on unique violation up to 5x then throws",
+        "lib/__tests__/scoring.test.ts: covers position 1→score=N, position N→score=1, position N+1→score=0 for N=score_positions",
+        "lib/__tests__/game-store.test.ts: setRoom/setPlayers update state, persist player_id to localStorage on first read",
+        "All tests pass via `bun run test`",
+        "Typecheck passes"
+      ],
+      "priority": 18,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-019",
+      "title": "Add Playwright E2E: lobby + full-game specs",
+      "description": "As a developer, I want golden-path E2E coverage of lobby join and one complete game.",
+      "acceptanceCriteria": [
+        "Configure playwright.config.ts targeting localhost:3000 with 2 browser contexts for multiplayer simulation",
+        "e2e/lobby.spec.ts: host creates room → second context joins via code → both see each other's chips with tag colors",
+        "e2e/full-game.spec.ts: 2 players, host starts game, each guesses correctly in round 1, round ends, round 2 starts, max_rounds reached → results screen shows winner",
+        "All specs pass via `bunx playwright test`",
+        "Typecheck passes"
+      ],
+      "priority": 19,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-020",
+      "title": "Add Playwright E2E: race-guess (CRITICAL concurrency test)",
+      "description": "As a developer, I need to prove submit_guess is race-safe — two players guessing simultaneously must get distinct positions.",
+      "acceptanceCriteria": [
+        "e2e/race-guess.spec.ts: 3 players join, host starts; programmatically fire submit_guess from 2 contexts at the same instant (Promise.all with no delay)",
+        "Assert: positions returned are distinct integers (1 and 2), no duplicates",
+        "Run 5 iterations to catch flakes",
+        "All specs pass",
+        "Typecheck passes"
+      ],
+      "priority": 20,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-021",
+      "title": "Add Playwright E2E: foul + reconnect specs",
+      "description": "As a developer, I want coverage of the foul flow and the localStorage-resume flow.",
+      "acceptanceCriteria": [
+        "e2e/foul.spec.ts: player guesses an obviously wrong name; assert is_active=false in DB, FOUL overlay appeared, score_this_round=0",
+        "e2e/reconnect.spec.ts: player joins, page is reloaded mid-round; assert player resumes with same player_id from localStorage and same round_state row (still active or already-decided)",
+        "All specs pass",
+        "Typecheck passes"
+      ],
+      "priority": 21,
+      "passes": false,
+      "notes": ""
+    }
+  ]
+}
