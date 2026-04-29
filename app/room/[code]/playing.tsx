@@ -77,6 +77,7 @@ export function Playing() {
   return (
     <NameCard
       me={me}
+      roomId={room.id}
       round={currentRound}
       maxRounds={maxRounds}
       myRoundState={myRow}

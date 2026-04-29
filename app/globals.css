@@ -90,6 +90,24 @@
   --font-hero: var(--font-bebas);
   --font-display: var(--font-anton);
   --font-body: var(--font-plex-thai);
+
+  /* Stadium Energy — animations */
+  --animate-hb-shake: hb-shake 400ms ease-in-out;
+  --animate-hb-flash: hb-flash 600ms ease-out forwards;
+}
+
+@keyframes hb-shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-8px); }
+  40% { transform: translateX(8px); }
+  60% { transform: translateX(-6px); }
+  80% { transform: translateX(6px); }
+}
+
+@keyframes hb-flash {
+  0% { opacity: 0; }
+  20% { opacity: 1; }
+  100% { opacity: 0; }
 }
 
 :root {

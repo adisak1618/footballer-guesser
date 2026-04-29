@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react"
 import type { Player, RoundState } from "@/lib/types"
 import { TurnOverlay } from "@/components/turn-overlay"
+import { GuessModal } from "@/components/guess-modal"
 
 const TAG_BG: Record<number, string> = {
   1: "bg-tag-red",
@@ -26,24 +27,30 @@ const TAG_TEXT: Record<number, string> = {
   8: "text-on-dark",
 }
 
+const FEEDBACK_DURATION_MS = 600
+
+type FeedbackKind = "success" | "foul"
+
 interface NameCardProps {
   me: Player
+  roomId: string
   round: number
   maxRounds: number
   myRoundState: RoundState | null
-  onGuess?: () => void
   onScores?: () => void
 }
 
 export function NameCard({
   me,
+  roomId,
   round,
   maxRounds,
   myRoundState,
-  onGuess,
   onScores,
 }: NameCardProps) {
   const [overlayOpen, setOverlayOpen] = useState(false)
+  const [guessOpen, setGuessOpen] = useState(false)
+  const [feedback, setFeedback] = useState<FeedbackKind | null>(null)
 
   useEffect(() => {
     let sentinel: WakeLockSentinel | null = null
@@ -74,6 +81,12 @@ export function NameCard({
     }
   }, [])
 
+  useEffect(() => {
+    if (!feedback) return
+    const timer = window.setTimeout(() => setFeedback(null), FEEDBACK_DURATION_MS)
+    return () => window.clearTimeout(timer)
+  }, [feedback])
+
   if (!myRoundState) {
     return (
       <main className="relative flex min-h-[100dvh] w-full flex-col items-center justify-center bg-ink px-6 text-center">
@@ -87,6 +100,7 @@ export function NameCard({
   const upperName = myRoundState.assigned_name.toUpperCase()
 
   if (!myRoundState.is_active) {
+    const score = myRoundState.score_this_round ?? 0
     return (
       <main
         role="img"
@@ -99,21 +113,32 @@ export function NameCard({
         <span className="font-hero text-[96px] leading-[0.95] tracking-[2px] text-on-dark-muted opacity-60 line-through min-[375px]:text-[144px]">
           {upperName}
         </span>
-        <span className="mt-8 inline-flex items-center justify-center rounded-2xl border border-error/40 bg-error/15 px-8 py-3 font-display text-[28px] uppercase tracking-[2px] text-error">
-          OUT
-        </span>
+        {score > 0 ? (
+          <span className="mt-8 inline-flex items-center justify-center rounded-2xl border border-success/40 bg-success/15 px-8 py-3 font-display text-[28px] uppercase tracking-[2px] text-success tabular-nums">
+            +{score}
+          </span>
+        ) : (
+          <span className="mt-8 inline-flex items-center justify-center rounded-2xl border border-error/40 bg-error/15 px-8 py-3 font-display text-[28px] uppercase tracking-[2px] text-error">
+            OUT
+          </span>
+        )}
       </main>
     )
   }
 
-  function handleGuess() {
+  function handleGuessTap() {
     setOverlayOpen(false)
-    onGuess?.()
+    setGuessOpen(true)
   }
 
-  function handleScores() {
+  function handleScoresTap() {
     setOverlayOpen(false)
     onScores?.()
+  }
+
+  function handleGuessResult({ correct }: { correct: boolean; score: number }) {
+    setGuessOpen(false)
+    setFeedback(correct ? "success" : "foul")
   }
 
   return (
@@ -121,7 +146,9 @@ export function NameCard({
       <main
         role="img"
         aria-label="ชื่อของคุณซ่อนอยู่ — หันจอให้เพื่อนเห็นเพื่อเริ่มเล่น"
-        className={`relative flex min-h-[100dvh] w-full select-none flex-col items-center justify-center overflow-hidden px-6 text-center ${tagBg} ${tagText}`}
+        className={`relative flex min-h-[100dvh] w-full select-none flex-col items-center justify-center overflow-hidden px-6 text-center ${tagBg} ${tagText} ${
+          feedback === "foul" ? "motion-safe:animate-hb-shake" : ""
+        }`}
       >
         <p className="absolute left-4 top-4 text-xs font-semibold uppercase tracking-[0.5px] opacity-80">
           Round {round}/{maxRounds}
@@ -142,9 +169,36 @@ export function NameCard({
       {overlayOpen ? (
         <TurnOverlay
           onCancel={() => setOverlayOpen(false)}
-          onGuess={handleGuess}
-          onScores={handleScores}
+          onGuess={handleGuessTap}
+          onScores={handleScoresTap}
         />
+      ) : null}
+      {guessOpen ? (
+        <GuessModal
+          roomId={roomId}
+          roundNumber={round}
+          playerId={me.player_id}
+          onCancel={() => setGuessOpen(false)}
+          onResult={handleGuessResult}
+        />
+      ) : null}
+      {feedback === "success" ? (
+        <div
+          role="status"
+          aria-label="ทายถูก"
+          className="pointer-events-none fixed inset-0 z-40 bg-success/70 motion-safe:animate-hb-flash motion-reduce:opacity-70"
+        />
+      ) : null}
+      {feedback === "foul" ? (
+        <div
+          role="status"
+          aria-label="Foul"
+          className="pointer-events-none fixed inset-0 z-40 flex items-center justify-center bg-error/85 motion-safe:animate-hb-flash motion-reduce:opacity-85"
+        >
+          <span className="font-display text-[64px] uppercase tracking-[6px] text-on-dark min-[375px]:text-[96px]">
+            FOUL
+          </span>
+        </div>
       ) : null}
     </>
   )
