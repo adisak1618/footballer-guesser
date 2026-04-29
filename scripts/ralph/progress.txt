@@ -1,0 +1,25 @@
+# Ralph Progress Log
+Started: Thu 30 Apr 2026 02:54:51 +07
+---
+
+## Codebase Patterns
+- Migrations live in `supabase/migrations/NNNN_*.sql`. Apply locally with `bunx supabase db reset` (re-runs every migration from scratch — keep them idempotent or order-correct).
+- All client writes go through Postgres SECURITY DEFINER functions. RLS only grants SELECT to `anon`; never add INSERT/UPDATE/DELETE policies for `anon`.
+- Realtime: any new table the client subscribes to must be added to `supabase_realtime` publication via `alter publication supabase_realtime add table <name>;` inside the migration that creates it.
+- Use `bun` / `bunx` (not npm). `bunx tsc --noEmit` for typecheck, `bun run lint` for lint.
+- Local Postgres: `PGPASSWORD=postgres psql -h 127.0.0.1 -p 54322 -U postgres -d postgres` for ad-hoc verification queries.
+- The schema in `docs/PLAN.md` line 105 has `index(category)` inside the table body — that is pseudocode, not valid PG. Use a separate `create index ... on football_players(category);` statement.
+
+---
+
+## 2026-04-30 - US-001
+- Implemented: `supabase/migrations/0001_init.sql` — full schema (rooms, players, round_state, round_positions, round_events, football_players), `room_status` and `event_type` enums, RLS SELECT-only policies for anon on all 6 tables, realtime publication membership for rooms/players/round_state/round_events, unique (name, category) on football_players + a category index.
+- Files changed: `supabase/migrations/0001_init.sql` (new).
+- Verified: `bunx supabase db reset` applied cleanly; `\dt` shows 6 tables; `pg_policies` shows 6 anon SELECT policies; `pg_publication_tables` confirms 4 tables on `supabase_realtime`. `bunx tsc --noEmit` clean.
+- **Learnings for future iterations:**
+  - PLAN.md's schema block uses `index(category)` shorthand inside the table — emit a separate `CREATE INDEX` instead.
+  - The `supabase_realtime` publication already exists in a fresh Supabase project; just `ALTER PUBLICATION ... ADD TABLE`.
+  - Functions (submit_guess, create_room, join_room, start_round) are deliberately deferred to US-002 — do NOT add them to 0001_init.sql.
+  - football_players got a `unique (name, category)` constraint up front so US-003's seed can use `ON CONFLICT (name, category) DO NOTHING` for idempotency.
+  - RLS without any write policy = anon writes are denied by default. That is the desired behavior; do not add `for insert/update to anon` policies later.
+---
