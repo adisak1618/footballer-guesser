@@ -34,6 +34,22 @@ export async function startGameAsHost(page: Page): Promise<void> {
   await startButton.click()
 }
 
+export async function setRoundsViaUI(
+  page: Page,
+  rounds: number,
+): Promise<void> {
+  const input = page.locator("#lobby-rounds")
+  await expect(input).toBeVisible({ timeout: 15_000 })
+  await input.fill(String(rounds))
+  await input.blur()
+  const save = page.getByTestId("lobby-settings-save")
+  await expect(save).toBeEnabled({ timeout: 5_000 })
+  await save.click()
+  await expect(save).toContainText(/บันทึกแล้ว|Save settings/, {
+    timeout: 10_000,
+  })
+}
+
 export async function submitGuessFromCard(
   page: Page,
   guess: string,

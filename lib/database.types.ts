@@ -93,9 +93,11 @@ export type Database = {
       rooms: {
         Row: {
           category: string
+          category_locked: boolean
           code: string
           created_at: string | null
           current_round: number | null
+          effective_score_positions: number | null
           host_player_id: string | null
           id: string
           max_rounds: number
@@ -104,9 +106,11 @@ export type Database = {
         }
         Insert: {
           category?: string
+          category_locked?: boolean
           code: string
           created_at?: string | null
           current_round?: number | null
+          effective_score_positions?: number | null
           host_player_id?: string | null
           id?: string
           max_rounds: number
@@ -115,9 +119,11 @@ export type Database = {
         }
         Update: {
           category?: string
+          category_locked?: boolean
           code?: string
           created_at?: string | null
           current_round?: number | null
+          effective_score_positions?: number | null
           host_player_id?: string | null
           id?: string
           max_rounds?: number
@@ -286,6 +292,16 @@ export type Database = {
           position: number
           score: number
         }[]
+      }
+      update_room_settings: {
+        Args: {
+          p_category: string
+          p_host_player_id: string
+          p_max_rounds: number
+          p_room_id: string
+          p_score_positions: number
+        }
+        Returns: undefined
       }
     }
     Enums: {

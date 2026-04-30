@@ -2,6 +2,19 @@
 
 All notable changes to Headball are documented here. Format loosely based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versioning per [SemVer](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- Lobby host settings panel: rounds stepper (1-20), Top-N stepper (1..player_count-1), category dropdown. Host commits via Save; guests see a read-only mirror that updates over Realtime. Settings become read-only once the game enters PLAYING and persist across rematch. Category locks once any round has been played.
+- `update_room_settings` Postgres function (`SECURITY DEFINER`) with host check, status=LOBBY guard, range validation, top-N clamp against player count, and category-locked guard. RLS still blocks direct table writes — all settings flow through this RPC.
+- Phase 1 scoring guard: `start_game` and `next_round` now compute `rooms.effective_score_positions = LEAST(score_positions, player_count - 1)` so 2-player rooms no longer hand the loser any "trophy" points (was 3/2 with default top-N=3; now 1/0). Recomputed on every round start to handle mid-game disconnects.
+- E2E spec `e2e/lobby-settings.spec.ts` covering host edit → guest mirror via Realtime and non-host disabled state.
+
+### Changed
+- `e2e/full-game.spec.ts` drives `max_rounds` via the new lobby settings UI instead of the `setMaxRounds` admin helper. 2-player score expectations updated for the Phase 1 guard (Host 2 vs Guest 0 over 2 rounds).
+- `submit_guess` now reads `COALESCE(effective_score_positions, score_positions)` so legacy rooms created before this migration continue to score correctly.
+- `docs/PLAN.md` Screen 2 (Lobby) layout now documents the settings panel; "Multiple categories" removed from the "Not in scope" list (Phase 2 unblocks it).
+
 ## [0.1.0-alpha.1] - 2026-04-30
 
 First playable MVP. Built autonomously overnight via Ralph (21 user stories, 21 commits). Expect bugs — this is **alpha**.
