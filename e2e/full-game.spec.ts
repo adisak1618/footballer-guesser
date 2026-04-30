@@ -51,11 +51,19 @@ test("two players play a full game and see the winner on the results screen", as
     const hostName1 = await getAssignedNameForDisplayName(code, "Host", 1)
     const guestName1 = await getAssignedNameForDisplayName(code, "Guest", 1)
 
-    // Host guesses first. With Phase 1 guard active and 2 players, effective
-    // score_positions = LEAST(default 3, 2-1) = 1 — only position 1 scores
-    // (1 pt) and position 2 gets 0. After submit, host sees the inter-round
-    // scoreboard waiting on the remaining player.
+    // Host guesses first. With Phase 1 scoring guard active and 2 players,
+    // effective_score_positions = LEAST(default 3, 2-1) = 1, so position 1
+    // scores +1 pt and position 2 scores 0. The GuessResult screen surfaces
+    // that score + the assigned name; we tap to skip so the spec doesn't
+    // wait the full 8s auto-advance, then the inter-round scoreboard appears.
     await submitGuessFromCard(hostPage, hostName1)
+    const correctResult = hostPage.getByRole("status", { name: "ทายถูก" })
+    await expect(correctResult).toBeVisible({ timeout: 10_000 })
+    await expect(correctResult.getByText(hostName1)).toBeVisible()
+    await expect(
+      hostPage.locator('[aria-label="คะแนนรอบนี้ +1 pts"]'),
+    ).toBeVisible()
+    await hostPage.getByLabel("ข้ามไปสกอร์บอร์ด").click()
     await expect(hostPage.getByText(/รอผู้เล่นคนอื่น/)).toBeVisible({
       timeout: 10_000,
     })
@@ -72,6 +80,10 @@ test("two players play a full game and see the winner on the results screen", as
     const guestName2 = await getAssignedNameForDisplayName(code, "Guest", 2)
 
     await submitGuessFromCard(hostPage, hostName2)
+    const correctResult2 = hostPage.getByRole("status", { name: "ทายถูก" })
+    await expect(correctResult2).toBeVisible({ timeout: 10_000 })
+    await expect(correctResult2.getByText(hostName2)).toBeVisible()
+    await correctResult2.getByLabel("ข้ามไปสกอร์บอร์ด").click()
     await expect(hostPage.getByText(/รอผู้เล่นคนอื่น/)).toBeVisible({
       timeout: 10_000,
     })

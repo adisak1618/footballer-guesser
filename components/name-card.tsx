@@ -99,33 +99,6 @@ export function NameCard({
   const tagText = TAG_TEXT[me.join_order] ?? "text-on-dark"
   const upperName = myRoundState.assigned_name.toUpperCase()
 
-  if (!myRoundState.is_active) {
-    const score = myRoundState.score_this_round ?? 0
-    return (
-      <main
-        role="img"
-        aria-label="คุณออกจากรอบนี้แล้ว"
-        className="relative flex min-h-[100dvh] w-full select-none flex-col items-center justify-center overflow-hidden bg-surface px-6 text-center"
-      >
-        <p className="absolute left-4 top-4 text-xs font-semibold uppercase tracking-[0.5px] text-on-dark-muted">
-          Round {round}/{maxRounds}
-        </p>
-        <span className="font-hero text-[96px] leading-[0.95] tracking-[2px] text-on-dark-muted opacity-60 line-through min-[375px]:text-[144px]">
-          {upperName}
-        </span>
-        {score > 0 ? (
-          <span className="mt-8 inline-flex items-center justify-center rounded-2xl border border-success/40 bg-success/15 px-8 py-3 font-display text-[28px] uppercase tracking-[2px] text-success tabular-nums">
-            +{score}
-          </span>
-        ) : (
-          <span className="mt-8 inline-flex items-center justify-center rounded-2xl border border-error/40 bg-error/15 px-8 py-3 font-display text-[28px] uppercase tracking-[2px] text-error">
-            OUT
-          </span>
-        )}
-      </main>
-    )
-  }
-
   function handleGuessTap() {
     setOverlayOpen(false)
     setGuessOpen(true)

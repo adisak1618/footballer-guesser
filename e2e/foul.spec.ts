@@ -55,16 +55,40 @@ test("wrong guess marks player inactive with FOUL overlay and zero score", async
     await guessModal.locator("#guess-input").fill("ZZZ_NOT_A_REAL_PLAYER_ZZZ")
     await guessModal.getByRole("button", { name: /ส่งคำตอบ/ }).click()
 
-    // FOUL overlay flashes for ~600ms after the modal closes. The hb-flash
-    // keyframe ends at opacity 0 with `forwards`, so toBeVisible races the
-    // animation; toBeAttached just checks the element exists in the DOM, which
-    // is sufficient proof the foul UI rendered.
-    await expect(hostPage.locator('[aria-label="Foul"]')).toBeAttached({
-      timeout: 5_000,
-    })
+    // The persistent GuessResult (foul) screen replaces the BIG NAME card
+    // when round_state.is_active flips to false. It reveals the assigned
+    // name, shows 0 pts, and exposes a tap-to-skip. (The previous brief
+    // FOUL flash overlay in name-card.tsx is no longer the verifying surface
+    // — GuessResult is.)
+    const foulResult = hostPage.getByRole("status", { name: "ทายผิด" })
+    await expect(foulResult).toBeVisible({ timeout: 10_000 })
+    await expect(foulResult.getByLabel("คะแนนรอบนี้ 0 pts")).toBeVisible()
+    await expect(foulResult.getByText("รอเล่นใหม่ในรอบหน้า")).toBeVisible()
 
-    // Player transitions to the inter-round scoreboard with the waiting copy
-    // (guest is still active in round 1).
+    // The host's assigned-name reveal must also be visible inside the foul
+    // result (the round_state row's assigned_name).
+    const roomIdForName = await getRoomIdByCode(code)
+    const sbForName = adminClient()
+    const { data: hostPlayerForName } = await sbForName
+      .from("players")
+      .select("player_id")
+      .eq("room_id", roomIdForName)
+      .eq("display_name", "Host")
+      .maybeSingle()
+    if (!hostPlayerForName) throw new Error("host player not found")
+    const { data: rsForName } = await sbForName
+      .from("round_state")
+      .select("assigned_name")
+      .eq("room_id", roomIdForName)
+      .eq("player_id", hostPlayerForName.player_id)
+      .eq("round_number", 1)
+      .maybeSingle()
+    if (!rsForName) throw new Error("round_state not found for assigned_name check")
+    await expect(foulResult.getByText(rsForName.assigned_name)).toBeVisible()
+
+    // Tap to skip → scoreboard appears with the waiting copy (guest still
+    // playing).
+    await foulResult.getByLabel("ข้ามไปสกอร์บอร์ด").click()
     await expect(hostPage.getByText(/รอผู้เล่นคนอื่น/)).toBeVisible({
       timeout: 10_000,
     })

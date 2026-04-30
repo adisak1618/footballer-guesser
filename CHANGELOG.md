@@ -9,11 +9,17 @@ All notable changes to Headball are documented here. Format loosely based on [Ke
 - `update_room_settings` Postgres function (`SECURITY DEFINER`) with host check, status=LOBBY guard, range validation, top-N clamp against player count, and category-locked guard. RLS still blocks direct table writes — all settings flow through this RPC.
 - Phase 1 scoring guard: `start_game` and `next_round` now compute `rooms.effective_score_positions = LEAST(score_positions, player_count - 1)` so 2-player rooms no longer hand the loser any "trophy" points (was 3/2 with default top-N=3; now 1/0). Recomputed on every round start to handle mid-game disconnects.
 - E2E spec `e2e/lobby-settings.spec.ts` covering host edit → guest mirror via Realtime and non-host disabled state.
+- Transient `GuessResult` screen (Correct/Foul paired counterparts) between guess submission and the inter-round scoreboard. Anton 88px headline, Bebas 96px score, IBM Plex Thai body. Reveals the assigned name + points earned + new total. Auto-advances after 8s; tap to skip. `prefers-reduced-motion: reduce` disables the pop-in animation; static layout intact. (#2)
 
 ### Changed
 - `e2e/full-game.spec.ts` drives `max_rounds` via the new lobby settings UI instead of the `setMaxRounds` admin helper. 2-player score expectations updated for the Phase 1 guard (Host 2 vs Guest 0 over 2 rounds).
 - `submit_guess` now reads `COALESCE(effective_score_positions, score_positions)` so legacy rooms created before this migration continue to score correctly.
 - `docs/PLAN.md` Screen 2 (Lobby) layout now documents the settings panel; "Multiple categories" removed from the "Not in scope" list (Phase 2 unblocks it).
+- `app/room/[code]/playing.tsx` now routes `NameCard → GuessResult → RoundScoreboard` for the inactive-this-round branch. Reload mid-result is gated by a per-(round, player) localStorage flag and skips directly to the scoreboard. Realtime round-advance preempts the result with an instant cut to the next NameCard. (#2)
+- Foul (red) variant of `GuessResult` puts the player's total-score pill in the top-right slot (no rank pill, since fouled players have no rank). (#2)
+
+### Removed
+- Dead `is_active=false` OUT/+N branch from `components/name-card.tsx` (the routing in `playing.tsx` now sends inactive players to `GuessResult`, never to that branch). (#2)
 
 ## [0.1.0-alpha.1] - 2026-04-30
 

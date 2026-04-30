@@ -1,13 +1,73 @@
 "use client"
 
-import { useEffect, useRef } from "react"
+import { useEffect, useRef, useState } from "react"
 import type { RealtimeChannel } from "@supabase/supabase-js"
 import { supabase } from "@/lib/supabase"
 import { useGameStore } from "@/lib/game-store"
 import type { RoundState } from "@/lib/types"
 import { NameCard } from "@/components/name-card"
 import { RoundScoreboard } from "@/components/round-scoreboard"
+import {
+  GuessResult,
+  guessResultSeenStorageKey,
+} from "@/components/guess-result"
 import { nextRoundAction } from "@/app/actions/next-round"
+
+interface InactiveBranchProps {
+  myRow: RoundState
+  totalScore: number
+  round: number
+  maxRounds: number
+  activeRemaining: number
+  myPlayerId: string
+  // Scoreboard needs the full players list.
+  scoreboard: React.ReactNode
+}
+
+function readSeenFlag(roundStateId: string, playerId: string): boolean {
+  if (typeof window === "undefined") return false
+  return !!window.localStorage.getItem(
+    guessResultSeenStorageKey(roundStateId, playerId),
+  )
+}
+
+// Rendered when the current player is INACTIVE for this round. Mounted with
+// `key={myRow.id}` so each new round-state row gets a fresh result-vs-scoreboard
+// decision (no setState-in-effect needed to reset).
+function InactiveBranch({
+  myRow,
+  totalScore,
+  round,
+  maxRounds,
+  scoreboard,
+}: InactiveBranchProps) {
+  const [skipped, setSkipped] = useState(() =>
+    readSeenFlag(myRow.id, myRow.player_id),
+  )
+
+  if (skipped) return <>{scoreboard}</>
+
+  const isCorrect = (myRow.score_this_round ?? 0) > 0
+  return (
+    <GuessResult
+      mode={isCorrect ? "correct" : "foul"}
+      assignedName={myRow.assigned_name}
+      scoreThisRound={myRow.score_this_round ?? 0}
+      totalScore={totalScore}
+      round={round}
+      maxRounds={maxRounds}
+      onSkip={() => {
+        if (typeof window !== "undefined") {
+          window.localStorage.setItem(
+            guessResultSeenStorageKey(myRow.id, myRow.player_id),
+            "1",
+          )
+        }
+        setSkipped(true)
+      }}
+    />
+  )
+}
 
 export function Playing() {
   const room = useGameStore((s) => s.room)
@@ -115,12 +175,23 @@ export function Playing() {
   }
 
   return (
-    <RoundScoreboard
-      currentRound={currentRound}
+    <InactiveBranch
+      key={myRow.id}
+      myRow={myRow}
+      totalScore={me.total_score ?? 0}
+      round={currentRound}
       maxRounds={maxRounds}
-      players={players}
       activeRemaining={activeRemaining}
       myPlayerId={me.player_id}
+      scoreboard={
+        <RoundScoreboard
+          currentRound={currentRound}
+          maxRounds={maxRounds}
+          players={players}
+          activeRemaining={activeRemaining}
+          myPlayerId={me.player_id}
+        />
+      }
     />
   )
 }
