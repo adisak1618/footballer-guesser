@@ -43,6 +43,13 @@ function mapPgError(error: PgError | null | undefined): string {
       return "หมวดหมู่ถูกล็อกหลังเริ่มเกมรอบแรก"
     case "P0012":
       return "Top-N เกินจำนวนผู้เล่นที่อนุญาต"
+    case "PGRST202":
+    case "42883":
+      // Function does not exist in PostgREST cache or Postgres — almost
+      // always means the 0007 migration was not applied to the local DB
+      // (e.g. someone ran `supabase db reset` from a worktree that doesn't
+      // have it). Fail loud so the next person debugging this gets a hint.
+      return "ฟังก์ชัน update_room_settings ไม่พบ — ตรวจสอบว่า migration 0007 ถูกใช้ ('bunx supabase migration up --local')"
     default:
       return "บันทึกการตั้งค่าไม่สำเร็จ ลองใหม่"
   }
@@ -67,6 +74,11 @@ export async function updateRoomSettingsAction(
   })
 
   if (error) {
+    if (process.env.NODE_ENV !== "production") {
+      console.error(
+        `update_room_settings RPC failed [${error.code ?? "no-code"}]: ${error.message ?? ""}`,
+      )
+    }
     return { ok: false, error: mapPgError(error) }
   }
   return { ok: true }

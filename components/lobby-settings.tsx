@@ -94,7 +94,7 @@ export function LobbySettings({
       if (!result.ok) {
         setError(result.error)
         setDraftRounds(maxRounds)
-        setDraftTopN(scorePositions)
+        setDraftTopN(Math.min(scorePositions, maxTopN))
         setDraftCategory(category)
         return
       }
