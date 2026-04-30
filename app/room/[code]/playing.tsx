@@ -12,6 +12,7 @@ import {
   guessResultSeenStorageKey,
 } from "@/components/guess-result"
 import { nextRoundAction } from "@/app/actions/next-round"
+import { shouldTriggerNextRound } from "@/lib/round-trigger"
 
 interface InactiveBranchProps {
   myRow: RoundState
@@ -78,6 +79,14 @@ export function Playing() {
 
   const roomId = room?.id ?? null
   const triggeredRoundRef = useRef<number | null>(null)
+  // Gate the next-round trigger on a fresh refetch within THIS mount. Without
+  // this, the host's first render in game 2 inherits stale round_state from
+  // game 1 (still in the Zustand store because no subscription was active
+  // during ENDED/LOBBY), which makes round 1 of game 2 look "already over"
+  // and burns triggeredRoundRef on a no-op next_round call. The legitimate
+  // round-1-end trigger is then suppressed by the ref guard, stalling game 2
+  // on the round-1 scoreboard. (issue #7)
+  const [roundStateLoaded, setRoundStateLoaded] = useState(false)
 
   useEffect(() => {
     if (!roomId) return
@@ -92,6 +101,7 @@ export function Playing() {
         .eq("room_id", roomId!)
       if (!active) return
       setRoundState((refreshed ?? []) as RoundState[])
+      setRoundStateLoaded(true)
     }
 
     async function load() {
@@ -148,11 +158,20 @@ export function Playing() {
 
   useEffect(() => {
     if (!room || !me) return
-    if (!roundOver || !isHost) return
-    if (triggeredRoundRef.current === currentRound) return
+    if (
+      !shouldTriggerNextRound({
+        roundStateLoaded,
+        roundOver,
+        isHost,
+        triggeredRound: triggeredRoundRef.current,
+        currentRound,
+      })
+    ) {
+      return
+    }
     triggeredRoundRef.current = currentRound
     void nextRoundAction({ roomId: room.id, hostPlayerId: me.player_id })
-  }, [room, me, roundOver, isHost, currentRound])
+  }, [room, me, roundStateLoaded, roundOver, isHost, currentRound])
 
   if (!room || !me) {
     return (
