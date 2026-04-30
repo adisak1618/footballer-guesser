@@ -94,6 +94,7 @@
   /* Stadium Energy — animations */
   --animate-hb-shake: hb-shake 400ms ease-in-out;
   --animate-hb-flash: hb-flash 600ms ease-out forwards;
+  --animate-hb-pop: hb-pop 600ms cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 @keyframes hb-shake {
@@ -108,6 +109,12 @@
   0% { opacity: 0; }
   20% { opacity: 1; }
   100% { opacity: 0; }
+}
+
+@keyframes hb-pop {
+  0% { transform: scale(0.3); opacity: 0; }
+  60% { transform: scale(1.15); }
+  100% { transform: scale(1); opacity: 1; }
 }
 
 :root {
