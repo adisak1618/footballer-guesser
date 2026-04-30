@@ -8,6 +8,42 @@ Mobile multiplayer game ทายชื่อนักฟุตบอลบน�
 - **State**: Zustand client store, Supabase as source of truth
 - **Validation**: Zod schemas for all form input
 - **Tests**: Vitest (unit) + Playwright (E2E) — Supabase local Docker for integration
+- **Package manager**: Bun (use `bun add`, `bunx`, `bun run` — never `npm`/`yarn`/`pnpm`)
+
+## Local development
+
+Full human-facing instructions live in `README.md`. Quick agent reference:
+
+**First-time setup** (assumes Docker Desktop is running):
+
+```bash
+bun install
+bunx supabase start            # local Postgres + Realtime + Studio (Docker)
+bunx supabase db reset         # apply migrations + seed 100 PL players
+cp .env.example .env.local     # then paste values from `bunx supabase status`
+bun run dev                    # http://localhost:3000
+```
+
+**Daily run** (after first-time setup): `bunx supabase start && bun run dev`.
+
+**Quality checks** before committing:
+
+```bash
+bunx tsc --noEmit              # typecheck
+bun run lint                   # eslint
+bunx vitest run                # 21 unit tests
+bunx playwright test           # 5 E2E specs (needs Supabase running)
+```
+
+**Supabase Studio**: <http://127.0.0.1:54323> — direct SQL access while the stack is up.
+
+**Ports**: 54321 (API), 54322 (Postgres), 54323 (Studio). If any are in use, `bunx supabase stop --all` then retry.
+
+**Docker not running** is the #1 cause of `supabase start` failures. Don't try to start Docker yourself — ask the user to open Docker Desktop and retry.
+
+**Env vars**: `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` must be in `.env.local`. Restart `bun run dev` after changing them — Next caches env at boot.
+
+**E2E specs run serially** (`workers: 1`) because they share the local Postgres. Don't change this.
 
 ## Key Files
 
