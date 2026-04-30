@@ -124,10 +124,11 @@ test(`submit_guess hands out distinct positions under concurrent guesses (x${ITE
       `iter ${i}: expected distinct positions [1,2], got [${r1.position}, ${r2.position}]`,
     ).toEqual([1, 2])
 
-    // Scores follow score_positions=3 → first=3, second=2.
+    // Scores follow effective_score_positions = LEAST(score_positions=3,
+    // player_count - 1 = 2) = 2 → first=2, second=1 under the Phase 1 guard.
     expect(
       [r1.score, r2.score].sort((a, b) => a - b),
-      `iter ${i}: expected scores [2,3]`,
-    ).toEqual([2, 3])
+      `iter ${i}: expected scores [1,2]`,
+    ).toEqual([1, 2])
   }
 })

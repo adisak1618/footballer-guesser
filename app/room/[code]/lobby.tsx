@@ -4,6 +4,7 @@ import { useState, useTransition } from "react"
 import Link from "next/link"
 import { startGameAction } from "@/app/actions/start-game"
 import { useGameStore } from "@/lib/game-store"
+import { LobbySettings } from "@/components/lobby-settings"
 
 const TAG_BG: Record<number, string> = {
   1: "bg-tag-red",
@@ -105,6 +106,17 @@ export function Lobby({ code }: { code: string }) {
               : "📋 แตะเพื่อ copy"}
         </p>
       </section>
+
+      <LobbySettings
+        roomId={room.id}
+        hostPlayerId={room.host_player_id ?? null}
+        isHost={isHost}
+        playerCount={players.length}
+        maxRounds={room.max_rounds}
+        scorePositions={room.score_positions}
+        category={room.category}
+        categoryLocked={room.category_locked ?? false}
+      />
 
       <section className="flex flex-1 flex-col gap-3">
         <h2 className="font-display text-[28px] uppercase leading-none tracking-[0.3px] text-on-dark">
