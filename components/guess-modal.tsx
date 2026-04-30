@@ -1,13 +1,45 @@
 "use client"
 
-import { useEffect, useRef, useState, useTransition } from "react"
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  useTransition,
+} from "react"
 import { guessTextSchema } from "@/lib/schemas"
+import { findPrefixMatches } from "@/lib/player-names"
 import {
   submitGuessAction,
   type SubmitGuessActionResult,
 } from "@/app/actions/submit-guess"
 
 const SPINNER_MIN_MS = 200
+const CHIPS_MIN_LENGTH = 4
+const CHIPS_MAX = 3
+
+function subscribeReducedMotion(callback: () => void): () => void {
+  const mq = window.matchMedia("(prefers-reduced-motion: reduce)")
+  mq.addEventListener("change", callback)
+  return () => mq.removeEventListener("change", callback)
+}
+
+function getReducedMotionSnapshot(): boolean {
+  return window.matchMedia("(prefers-reduced-motion: reduce)").matches
+}
+
+function getReducedMotionServerSnapshot(): boolean {
+  return false
+}
+
+function usePrefersReducedMotion(): boolean {
+  return useSyncExternalStore(
+    subscribeReducedMotion,
+    getReducedMotionSnapshot,
+    getReducedMotionServerSnapshot,
+  )
+}
 
 interface GuessModalProps {
   roomId: string
@@ -30,6 +62,13 @@ export function GuessModal({
   const [showSpinner, setShowSpinner] = useState(false)
   const [isPending, startTransition] = useTransition()
   const inputRef = useRef<HTMLInputElement>(null)
+  const reducedMotion = usePrefersReducedMotion()
+
+  const chipSuggestions = useMemo(() => {
+    if (reducedMotion) return []
+    if (text.trim().length < CHIPS_MIN_LENGTH) return []
+    return findPrefixMatches(text, CHIPS_MAX)
+  }, [text, reducedMotion])
 
   useEffect(() => {
     queueMicrotask(() => inputRef.current?.focus())
@@ -156,6 +195,30 @@ export function GuessModal({
             <p id="guess-error" role="alert" className="text-sm text-error">
               {fieldError}
             </p>
+          ) : null}
+          {chipSuggestions.length > 0 ? (
+            <ul
+              aria-live="polite"
+              aria-label="คำแนะนำชื่อ"
+              className="flex flex-wrap gap-1.5 pt-1"
+            >
+              {chipSuggestions.map((name) => (
+                <li key={name}>
+                  <button
+                    type="button"
+                    disabled={isPending}
+                    onClick={() => {
+                      setText(name)
+                      if (fieldError) setFieldError(null)
+                      inputRef.current?.focus()
+                    }}
+                    className="rounded-full border border-hairline bg-surface-elevated px-3 py-1 font-body text-[13px] text-on-dark hover:border-goal disabled:opacity-60"
+                  >
+                    {name}
+                  </button>
+                </li>
+              ))}
+            </ul>
           ) : null}
         </div>
 

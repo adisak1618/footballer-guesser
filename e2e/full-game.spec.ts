@@ -6,7 +6,41 @@ import {
   startGameAsHost,
   submitGuessFromCard,
 } from "./_helpers/flow"
-import { getAssignedNameForDisplayName } from "./_helpers/admin"
+import {
+  adminClient,
+  getAssignedNameForDisplayName,
+  getRoomIdByCode,
+  setMaxRounds,
+} from "./_helpers/admin"
+
+// Mutate one player's assigned_name for the round so we can stage a
+// known-typo scenario without depending on whichever name the seed shuffle
+// happened to pick.
+async function overrideAssignedName(
+  code: string,
+  displayName: string,
+  roundNumber: number,
+  assignedName: string,
+): Promise<void> {
+  const sb = adminClient()
+  const roomId = await getRoomIdByCode(code)
+  const { data: player, error: playerErr } = await sb
+    .from("players")
+    .select("player_id")
+    .eq("room_id", roomId)
+    .eq("display_name", displayName)
+    .maybeSingle()
+  if (playerErr || !player) {
+    throw new Error(`player ${displayName} not found: ${playerErr?.message}`)
+  }
+  const { error } = await sb
+    .from("round_state")
+    .update({ assigned_name: assignedName })
+    .eq("room_id", roomId)
+    .eq("player_id", player.player_id)
+    .eq("round_number", roundNumber)
+  if (error) throw new Error(`overrideAssignedName failed: ${error.message}`)
+}
 
 async function waitForRound(page: Page, round: number, max: number) {
   await expect(page.getByText(`Round ${round}/${max}`).first()).toBeVisible({
@@ -111,6 +145,64 @@ test("two players play a full game and see the winner on the results screen", as
       hostPage.getByRole("button", { name: /เล่นรอบใหม่/ }),
     ).toBeVisible()
     await expect(guestPage.getByText("รอ host เริ่มเกมใหม่")).toBeVisible()
+  } finally {
+    await hostCtx.close()
+    await guestCtx.close()
+  }
+})
+
+// Issue #3: server-side fuzzy match (levenshtein <= 2 over NFD-stripped names)
+// accepts spelling slips. Stage assigned name "Steven Gerrard" and submit
+// "Steven Gerrand" — distance 1, must be accepted as correct.
+test("fuzzy match accepts typo within levenshtein 2", async ({ browser }) => {
+  const hostCtx = await browser.newContext()
+  const hostPage = await hostCtx.newPage()
+  const guestCtx = await browser.newContext()
+  const guestPage = await guestCtx.newPage()
+
+  try {
+    const code = await createRoom(hostPage, "Host")
+    await joinRoom(guestPage, code, "Guest")
+    await setMaxRounds(code, 2)
+    await startGameAsHost(hostPage)
+
+    await expect(hostPage.getByText("Round 1/2").first()).toBeVisible({
+      timeout: 20_000,
+    })
+
+    // Pin the host's assigned name so the typo "Gerrand" is unambiguously
+    // 1 edit from "Gerrard" (within the <= 2 threshold).
+    await overrideAssignedName(code, "Host", 1, "Steven Gerrard")
+
+    await submitGuessFromCard(hostPage, "Steven Gerrand")
+
+    // Accepted as correct → host transitions to inter-round scoreboard
+    // (FOUL would have shown the foul overlay instead).
+    await expect(hostPage.getByText(/รอผู้เล่นคนอื่น/)).toBeVisible({
+      timeout: 10_000,
+    })
+    await expect(hostPage.locator('[aria-label="Foul"]')).toHaveCount(0)
+
+    // DB invariant: GUESS_OK was logged with the typo'd guess text.
+    const sb = adminClient()
+    const roomId = await getRoomIdByCode(code)
+    const { data: hostPlayer } = await sb
+      .from("players")
+      .select("player_id")
+      .eq("room_id", roomId)
+      .eq("display_name", "Host")
+      .maybeSingle()
+    if (!hostPlayer) throw new Error("host player not found")
+
+    const { data: events } = await sb
+      .from("round_events")
+      .select("type, guess_text")
+      .eq("room_id", roomId)
+      .eq("player_id", hostPlayer.player_id)
+      .eq("round_number", 1)
+    const okEvents = (events ?? []).filter((e) => e.type === "GUESS_OK")
+    expect(okEvents.length).toBeGreaterThanOrEqual(1)
+    expect(okEvents[0].guess_text).toBe("Steven Gerrand")
   } finally {
     await hostCtx.close()
     await guestCtx.close()
