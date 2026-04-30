@@ -1,5 +1,9 @@
 import { defineConfig, devices } from "@playwright/test"
 
+// Port override lets parallel pm-dev worktrees run their own dev server.
+const PORT = process.env.PORT ?? "3000"
+const BASE_URL = `http://localhost:${PORT}`
+
 export default defineConfig({
   testDir: "./e2e",
   timeout: 60_000,
@@ -9,7 +13,7 @@ export default defineConfig({
   retries: 0,
   reporter: process.env.CI ? "github" : "list",
   use: {
-    baseURL: "http://localhost:3000",
+    baseURL: BASE_URL,
     trace: "retain-on-failure",
     headless: true,
     viewport: { width: 414, height: 896 },
@@ -21,8 +25,8 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: "bun run dev",
-    url: "http://localhost:3000",
+    command: `PORT=${PORT} bun run dev`,
+    url: BASE_URL,
     reuseExistingServer: true,
     timeout: 180_000,
     stdout: "ignore",
