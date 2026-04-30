@@ -7,7 +7,7 @@ import {
 import { setMaxRounds } from "./_helpers/admin"
 
 // Chip-interaction spec for the guess modal:
-// - chips render only when input length >= 4
+// - chips render only when input length >= 2
 // - tapping a chip replaces input text and does NOT auto-submit
 
 test("guess modal chips: render gating + tap-fills-no-submit", async ({
@@ -48,12 +48,12 @@ test("guess modal chips: render gating + tap-fills-no-submit", async ({
     const input = guessModal.locator("#guess-input")
     const chipList = guessModal.getByRole("list", { name: "คำแนะนำชื่อ" })
 
-    // 3 chars → no chip row (under the 4-char gate).
-    await input.fill("ger")
+    // 1 char → no chip row (under the 2-char gate).
+    await input.fill("g")
     await expect(chipList).toHaveCount(0)
 
-    // 4 chars → chips appear (Steven Gerrard is in the seed list).
-    await input.fill("gerr")
+    // 2 chars → chips appear (Steven Gerrard is in the seed list).
+    await input.fill("ge")
     await expect(chipList).toBeVisible({ timeout: 5_000 })
     const chipButton = chipList.getByRole("button", { name: "Steven Gerrard" })
     await expect(chipButton).toBeVisible()
@@ -64,7 +64,7 @@ test("guess modal chips: render gating + tap-fills-no-submit", async ({
     await expect(guessModal).toBeVisible()
 
     // Sanity: drop below threshold → chips hidden again.
-    await input.fill("st")
+    await input.fill("s")
     await expect(chipList).toHaveCount(0)
   } finally {
     await hostCtx.close()

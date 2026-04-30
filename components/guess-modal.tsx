@@ -16,8 +16,8 @@ import {
 } from "@/app/actions/submit-guess"
 
 const SPINNER_MIN_MS = 200
-const CHIPS_MIN_LENGTH = 4
-const CHIPS_MAX = 3
+const CHIPS_MIN_LENGTH = 2
+const CHIPS_MAX = 5
 
 function subscribeReducedMotion(callback: () => void): () => void {
   const mq = window.matchMedia("(prefers-reduced-motion: reduce)")

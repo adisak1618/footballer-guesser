@@ -12,10 +12,10 @@ All notable changes to Headball are documented here. Format loosely based on [Ke
 - Transient `GuessResult` screen (Correct/Foul paired counterparts) between guess submission and the inter-round scoreboard. Anton 88px headline, Bebas 96px score, IBM Plex Thai body. Reveals the assigned name + points earned + new total. Auto-advances after 8s; tap to skip. `prefers-reduced-motion: reduce` disables the pop-in animation; static layout intact. (#2)
 - Guess input typo tolerance (issue #3, Option C):
   - `lib/player-names.ts` + `data/premier-league.ts` — bundled 100-name list with `findPrefixMatches(input, max=3)` (word-prefix, case-insensitive, plain — diacritic strip is server-only).
-  - `components/guess-modal.tsx` — up to 3 neutral chip suggestions below the input after 4+ chars; tapping a chip fills the input without auto-submitting. Chips suppressed under `prefers-reduced-motion: reduce` via `useSyncExternalStore`.
+  - `components/guess-modal.tsx` — up to 5 neutral chip suggestions below the input after 2+ chars; tapping a chip fills the input without auto-submitting. Chips suppressed under `prefers-reduced-motion: reduce` via `useSyncExternalStore`.
   - Migration `0008_fuzzy_match.sql` — adds `fuzzystrmatch` + `unaccent` extensions, switches `submit_guess` to `levenshtein(lower(trim(unaccent(...))), lower(trim(unaccent(...)))) <= 2` while preserving the `COALESCE(effective_score_positions, score_positions)` Phase 1 guard from 0007. Forgives one or two-letter typos and missing diacritics; rejects distinct real names.
   - Vitest coverage: `lib/__tests__/player-names.test.ts` (prefix hit, case-insensitive, empty, max cap, default-max, no-match, name-count parity).
-  - Playwright coverage: new `e2e/chip-suggestions.spec.ts` (4-char gating, tap-fills-no-submit, reduced-motion suppression), extended `e2e/full-game.spec.ts` (typo accept), extended `e2e/foul.spec.ts` (Pele vs Gerrard still fouls).
+  - Playwright coverage: new `e2e/chip-suggestions.spec.ts` (2-char gating, tap-fills-no-submit, reduced-motion suppression), extended `e2e/full-game.spec.ts` (typo accept), extended `e2e/foul.spec.ts` (Pele vs Gerrard still fouls).
 
 ### Changed
 - `e2e/full-game.spec.ts` drives `max_rounds` via the new lobby settings UI instead of the `setMaxRounds` admin helper. 2-player score expectations updated for the Phase 1 guard (Host 2 vs Guest 0 over 2 rounds).
