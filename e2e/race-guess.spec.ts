@@ -2,7 +2,11 @@ import { test, expect } from "@playwright/test"
 import { randomUUID } from "node:crypto"
 import { createClient, type SupabaseClient } from "@supabase/supabase-js"
 import type { Database } from "@/lib/database.types"
-import { getAssignedNameByPlayerId, getRoomIdByCode } from "./_helpers/admin"
+import {
+  getAssignedNameByPlayerId,
+  getRoomIdByCode,
+  getRoundStateForPlayer,
+} from "./_helpers/admin"
 
 // Concurrency property test: when two players submit a correct guess at the
 // same instant, submit_guess MUST hand out distinct positions (1 and 2) — never
@@ -131,4 +135,79 @@ test(`submit_guess hands out distinct positions under concurrent guesses (x${ITE
       `iter ${i}: expected scores [1,2]`,
     ).toEqual([1, 2])
   }
+})
+
+// Issue #8 regression guard: 2-player room with Top-N=1 (score_positions=1).
+// Player A guesses correctly first → score=1. Player B guesses correctly
+// second → score=0 (didn't make Top-N). Both must be marked is_correct=true
+// in round_state so the client renders the Correct (+0 pts) variant, NOT
+// the Foul screen. Pre-fix, the client routed off score_this_round > 0 and
+// mislabeled Player B as Foul.
+test("Top-N=1 with 2 players: late-correct guess is is_correct=true with score=0", async () => {
+  const setup = newAnonClient()
+  const hostPlayerId = randomUUID()
+  const guestPlayerId = randomUUID()
+
+  const { data: createData, error: createErr } = await setup.rpc("create_room", {
+    p_max_rounds: 5,
+    p_score_positions: 1, // Top-N=1
+    p_host_name: "HostT1",
+    p_host_player_id: hostPlayerId,
+  })
+  if (createErr || !createData || createData.length === 0) {
+    throw new Error(`create_room failed: ${createErr?.message}`)
+  }
+  const code = createData[0].code
+
+  const { error: joinErr } = await setup.rpc("join_room", {
+    p_code: code,
+    p_player_id: guestPlayerId,
+    p_display_name: "GuestT1",
+  })
+  if (joinErr) throw new Error(`join_room failed: ${joinErr.message}`)
+
+  const roomId = await getRoomIdByCode(code)
+
+  const { error: startErr } = await setup.rpc("start_game", {
+    p_room_id: roomId,
+    p_host_player_id: hostPlayerId,
+  })
+  if (startErr) throw new Error(`start_game failed: ${startErr.message}`)
+
+  const hostName = await getAssignedNameByPlayerId(roomId, hostPlayerId, 1)
+  const guestName = await getAssignedNameByPlayerId(roomId, guestPlayerId, 1)
+
+  // Sequential guesses (not concurrent) — host first, guest second. Both
+  // submit the correct answer for their own assigned name.
+  const r1 = await submitGuess(setup, {
+    roomId,
+    roundNumber: 1,
+    playerId: hostPlayerId,
+    guess: hostName,
+  })
+  const r2 = await submitGuess(setup, {
+    roomId,
+    roundNumber: 1,
+    playerId: guestPlayerId,
+    guess: guestName,
+  })
+
+  expect(r1.correct, "host guessed correctly").toBe(true)
+  expect(r2.correct, "guest guessed correctly").toBe(true)
+
+  // Top-N=1 with 2 players: effective_score_positions = LEAST(1, 1) = 1.
+  // Position 1 → score=1, position 2 → score=0.
+  expect(r1.score, "first correct guess scores 1 pt").toBe(1)
+  expect(r2.score, "second correct guess scores 0 pts (didn't make Top-N)").toBe(0)
+
+  // The actual fix: round_state.is_correct must be true for BOTH players,
+  // even though Player B scored 0. Pre-fix this column did not exist and
+  // the client routed off score=0, which it conflated with Foul.
+  const hostRow = await getRoundStateForPlayer(roomId, hostPlayerId, 1)
+  const guestRow = await getRoundStateForPlayer(roomId, guestPlayerId, 1)
+
+  expect(hostRow.is_correct, "host round_state.is_correct=true").toBe(true)
+  expect(hostRow.score_this_round).toBe(1)
+  expect(guestRow.is_correct, "guest round_state.is_correct=true (NOT foul)").toBe(true)
+  expect(guestRow.score_this_round).toBe(0)
 })

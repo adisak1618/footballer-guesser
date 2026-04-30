@@ -11,6 +11,7 @@ import {
   GuessResult,
   guessResultSeenStorageKey,
 } from "@/components/guess-result"
+import { selectGuessResultMode } from "@/lib/guess-result-mode"
 import { nextRoundAction } from "@/app/actions/next-round"
 import { shouldTriggerNextRound } from "@/lib/round-trigger"
 
@@ -48,10 +49,13 @@ function InactiveBranch({
 
   if (skipped) return <>{scoreboard}</>
 
-  const isCorrect = (myRow.score_this_round ?? 0) > 0
+  const mode = selectGuessResultMode(
+    myRow.is_correct,
+    myRow.score_this_round,
+  )
   return (
     <GuessResult
-      mode={isCorrect ? "correct" : "foul"}
+      mode={mode}
       assignedName={myRow.assigned_name}
       scoreThisRound={myRow.score_this_round ?? 0}
       totalScore={totalScore}

@@ -4,6 +4,7 @@ import {
   GuessResult,
   guessResultSeenStorageKey,
 } from "@/components/guess-result"
+import { selectGuessResultMode } from "@/lib/guess-result-mode"
 
 describe("GuessResult", () => {
   const baseProps = {
@@ -147,6 +148,77 @@ describe("GuessResult", () => {
       })
       expect(onSkip).toHaveBeenCalledTimes(1)
       vi.useRealTimers()
+    })
+  })
+
+  describe("correct_zero mode (correct guess but did not make Top-N)", () => {
+    it("renders the +0 pts variant with the 'too slow' headline and Correct layout", () => {
+      render(
+        <GuessResult
+          {...baseProps}
+          mode="correct_zero"
+          scoreThisRound={0}
+          totalScore={4}
+        />,
+      )
+      expect(screen.getByText("ทายถูก แต่ช้าไป")).toBeInTheDocument()
+      // Did NOT see the wrong-guess headline.
+      expect(screen.queryByText("ทายผิด")).toBeNull()
+      // Same Correct rank/layout: green '+' prefix on the 0, no Foul total-score pill.
+      expect(screen.getByLabelText("คะแนนรอบนี้ +0 pts")).toBeInTheDocument()
+      expect(screen.queryByLabelText(/คะแนนรวมของคุณ/)).toBeNull()
+      // Reuses the Correct waiting copy, not the Foul one.
+      expect(screen.getByText("รอผู้เล่นคนอื่น...")).toBeInTheDocument()
+      expect(screen.getByText("คะแนนรวม: 4 pts")).toBeInTheDocument()
+    })
+
+    it("auto-advances after 8s like the other modes", () => {
+      vi.useFakeTimers()
+      const onSkip = vi.fn()
+      render(
+        <GuessResult
+          {...baseProps}
+          mode="correct_zero"
+          scoreThisRound={0}
+          totalScore={4}
+          autoAdvanceMs={8000}
+          onSkip={onSkip}
+        />,
+      )
+      act(() => {
+        vi.advanceTimersByTime(8000)
+      })
+      expect(onSkip).toHaveBeenCalledTimes(1)
+      vi.useRealTimers()
+    })
+  })
+
+  describe("selectGuessResultMode (regression guard for issue #8)", () => {
+    it("returns 'correct' when is_correct=true AND points>0", () => {
+      expect(selectGuessResultMode(true, 1)).toBe("correct")
+      expect(selectGuessResultMode(true, 3)).toBe("correct")
+    })
+
+    it("returns 'correct_zero' when is_correct=true AND points=0 (the bug)", () => {
+      // This is the exact scenario from issue #8: 2-player room, Top-N=1,
+      // Player B guesses correctly but late → score=0. Must NOT be Foul.
+      expect(selectGuessResultMode(true, 0)).toBe("correct_zero")
+    })
+
+    it("returns 'foul' on a wrong guess regardless of score", () => {
+      expect(selectGuessResultMode(false, 0)).toBe("foul")
+    })
+
+    it("does NOT key off score alone (the regression)", () => {
+      // Score=0 with is_correct=true must NOT collapse to Foul. This is the
+      // assertion that locks in the fix from the old `score_this_round > 0`
+      // selector, which would have returned 'foul' here.
+      expect(selectGuessResultMode(true, 0)).not.toBe("foul")
+    })
+
+    it("falls back to 'foul' on null/undefined is_correct (defensive)", () => {
+      expect(selectGuessResultMode(null, 0)).toBe("foul")
+      expect(selectGuessResultMode(undefined, 0)).toBe("foul")
     })
   })
 

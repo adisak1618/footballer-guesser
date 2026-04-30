@@ -205,6 +205,7 @@ export type Database = {
           final_position: number | null
           id: string
           is_active: boolean | null
+          is_correct: boolean | null
           player_id: string
           room_id: string | null
           round_number: number
@@ -215,6 +216,7 @@ export type Database = {
           final_position?: number | null
           id?: string
           is_active?: boolean | null
+          is_correct?: boolean | null
           player_id: string
           room_id?: string | null
           round_number: number
@@ -225,6 +227,7 @@ export type Database = {
           final_position?: number | null
           id?: string
           is_active?: boolean | null
+          is_correct?: boolean | null
           player_id?: string
           room_id?: string | null
           round_number?: number

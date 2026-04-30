@@ -439,6 +439,41 @@ Assignment: by `join_order` (Player 1 = red, etc.) — deterministic so re-joins
 - Pulses subtle 2-second cycle
 - Slides up on reconnect
 
+## Result Screens
+
+The transient post-guess screen (`<GuessResult>`) routes off `round_state.is_correct` (DB row), NOT off `score_this_round`. Three visual variants share the same shell — radial overlay, big icon, big headline, divider, "คะแนนรอบนี้" pill, and the assigned-name reveal — and differ only in headline copy, accent color, icon, and the top-right pill.
+
+### Correct (`is_correct=true` AND `score_this_round>0`)
+- Headline: **"ทายถูก!"** (Bebas Neue 88px, `text-success`)
+- Icon: 🎉 with `motion-safe:animate-hb-pop`
+- Accent: `text-success` (#16a34a)
+- Score pill: `+N pts` (green `+` prefix)
+- Top-right slot: empty (rank is implicit in the +N)
+- Wait copy: "รอผู้เล่นคนอื่น..." + "คะแนนรวม: N pts"
+
+### Correct — no points (didn't make Top-N) (`is_correct=true` AND `score_this_round=0`)
+Reuses the regular Correct layout — same green accent, same `motion-safe:animate-hb-pop` icon, same Correct waiting copy ("รอผู้เล่นคนอื่น..." + "คะแนนรวม: N pts"). The ONLY differences from Correct:
+- Headline: **"ทายถูก แต่ช้าไป"** (TENTATIVE Thai copy — flag for human review before merge)
+- Score pill: `+0 pts` (still green `+` prefix, same positive style as `+N pts`)
+
+This variant fires when a player guessed the right name but a faster opponent already claimed all the Top-N slots. They guessed correctly — they just didn't score. Visually staying inside the Correct family is intentional: it tells the player "you got the answer, you just lost the race" rather than "you were wrong."
+
+### Foul (`is_correct=false`)
+- Headline: **"ทายผิด"** (Bebas Neue 88px, `text-goal`)
+- Icon: 😩 (no animation)
+- Accent: `text-goal` (#e63946)
+- Score pill: `0 pts` (no `+` prefix)
+- Top-right slot: total-score pill `{totalScore} pts` (goal color)
+- Wait copy: "รอเล่นใหม่ในรอบหน้า" + "ผู้เล่นคนอื่นยังเล่นต่ออยู่"
+
+### Shared behavior
+- 8s auto-advance via `setTimeout`, identical across all three variants
+- Tap anywhere skips to the scoreboard
+- `localStorage` key `headball_last_result_seen_<roundStateId>_<playerId>` debounces on subsequent renders so the screen does not re-show after a refresh
+
+### Error / fallback (`is_correct` missing/null)
+The `selectGuessResultMode()` helper falls back to **Foul** if `is_correct` is null or undefined. This is a defensive choice: if the DB ever fails to write the boolean, showing Foul is closer to the conservative outcome than falsely celebrating a guess.
+
 ## Decisions Log
 
 | Date | Decision | Rationale |
@@ -449,6 +484,7 @@ Assignment: by `join_order` (Player 1 = red, etc.) — deterministic so re-joins
 | 2026-04-30 | No mascot/illustration system | Player names ARE the content; illustrations would compete |
 | 2026-04-30 | 8-color player tag palette | Each player ≤8 in MVP scope; deterministic by join_order |
 | 2026-04-30 | IBM Plex Thai Looped + Sarabun fallback | Best Thai script legibility on small screens |
+| 2026-04-30 | Correct-zero variant stays in Correct family | Issue #8: a non-top-N correct guess must not visually collapse to Foul. Same green accent + `+0 pts` pill, only the headline changes. |
 
 ## Don'ts
 
