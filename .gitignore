@@ -59,3 +59,6 @@ supabase/.branches/
 # Playwright
 /playwright-report/
 /test-results/
+
+# Ralph runtime scratch
+scripts/ralph/.last-branch
