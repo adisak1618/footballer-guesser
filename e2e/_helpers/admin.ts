@@ -81,6 +81,27 @@ export async function getAssignedNameForDisplayName(
   return rs.assigned_name
 }
 
+export async function getRoundStateForPlayer(
+  roomId: string,
+  playerId: string,
+  roundNumber: number,
+): Promise<{ is_correct: boolean | null; score_this_round: number | null }> {
+  const sb = adminClient()
+  const { data, error } = await sb
+    .from("round_state")
+    .select("is_correct, score_this_round")
+    .eq("room_id", roomId)
+    .eq("player_id", playerId)
+    .eq("round_number", roundNumber)
+    .maybeSingle()
+  if (error || !data) {
+    throw new Error(
+      `round_state for player ${playerId} round ${roundNumber} not found: ${error?.message}`,
+    )
+  }
+  return data
+}
+
 export async function getAssignedNameByPlayerId(
   roomId: string,
   playerId: string,

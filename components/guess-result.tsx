@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 
-export type GuessResultMode = "correct" | "foul"
+export type GuessResultMode = "correct" | "correct_zero" | "foul"
 
 const AUTO_ADVANCE_MS = 8000
 
@@ -45,10 +45,15 @@ export function GuessResult({
     onSkip()
   }
 
-  const isCorrect = mode === "correct"
+  const isCorrect = mode === "correct" || mode === "correct_zero"
   const accent = isCorrect ? "text-success" : "text-goal"
   const dividerBg = isCorrect ? "bg-success/50" : "bg-goal/50"
-  const headline = isCorrect ? "ทายถูก!" : "ทายผิด"
+  const headline =
+    mode === "correct"
+      ? "ทายถูก!"
+      : mode === "correct_zero"
+        ? "ทายถูก แต่ช้าไป"
+        : "ทายผิด"
   const icon = isCorrect ? "🎉" : "😩"
   const scoreLabel = "คะแนนรอบนี้"
   const waitHeadline = isCorrect ? "รอผู้เล่นคนอื่น..." : "รอเล่นใหม่ในรอบหน้า"
