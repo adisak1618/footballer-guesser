@@ -3,7 +3,18 @@
 import { z } from "zod"
 import { createSupabaseServerClient } from "@/lib/supabase-server"
 
-const ALLOWED_CATEGORIES = ["premier-league"] as const
+const ALLOWED_CATEGORIES = [
+  "premier-league",
+  "premier-league-alumni",
+  "liverpool",
+  "english",
+  "brazilian",
+  "real-and-chelsea",
+  "goalkeepers",
+  "legends",
+] as const
+
+const ALLOWED_DIFFICULTIES = ["easy", "medium", "hard"] as const
 
 const inputSchema = z.object({
   roomId: z.uuid("รหัสห้องไม่ถูกต้อง"),
@@ -19,6 +30,7 @@ const inputSchema = z.object({
     .min(1, "Top-N ต้อง ≥ 1")
     .max(8, "Top-N ต้อง ≤ 8"),
   category: z.enum(ALLOWED_CATEGORIES, "หมวดหมู่ไม่ถูกต้อง"),
+  difficulty: z.enum(ALLOWED_DIFFICULTIES, "ระดับความยากไม่ถูกต้อง"),
 })
 
 export type UpdateRoomSettingsActionInput = z.input<typeof inputSchema>
@@ -71,6 +83,7 @@ export async function updateRoomSettingsAction(
     p_max_rounds: parsed.data.maxRounds,
     p_score_positions: parsed.data.scorePositions,
     p_category: parsed.data.category,
+    p_difficulty: parsed.data.difficulty,
   })
 
   if (error) {

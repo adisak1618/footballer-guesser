@@ -192,6 +192,7 @@ export type Database = {
           code: string
           created_at: string | null
           current_round: number | null
+          difficulty: string
           effective_score_positions: number | null
           host_player_id: string | null
           id: string
@@ -205,6 +206,7 @@ export type Database = {
           code: string
           created_at?: string | null
           current_round?: number | null
+          difficulty?: string
           effective_score_positions?: number | null
           host_player_id?: string | null
           id?: string
@@ -218,6 +220,7 @@ export type Database = {
           code?: string
           created_at?: string | null
           current_round?: number | null
+          difficulty?: string
           effective_score_positions?: number | null
           host_player_id?: string | null
           id?: string
@@ -400,6 +403,7 @@ export type Database = {
       update_room_settings: {
         Args: {
           p_category: string
+          p_difficulty: string
           p_host_player_id: string
           p_max_rounds: number
           p_room_id: string

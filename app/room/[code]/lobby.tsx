@@ -116,6 +116,7 @@ export function Lobby({ code }: { code: string }) {
         scorePositions={room.score_positions}
         category={room.category}
         categoryLocked={room.category_locked ?? false}
+        difficulty={room.difficulty ?? "medium"}
       />
 
       <section className="flex flex-1 flex-col gap-3">

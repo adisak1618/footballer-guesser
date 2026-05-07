@@ -4,13 +4,31 @@ import { useState, useTransition } from "react"
 import { updateRoomSettingsAction } from "@/app/actions/update-room-settings"
 
 const CATEGORY_OPTIONS = [
-  { value: "premier-league", label: "Premier League" },
+  { value: "premier-league",        label: "พรีเมียร์ลีก" },
+  { value: "liverpool",             label: "ลิเวอร์พูล" },
+  { value: "english",               label: "นักเตะอังกฤษ" },
+  { value: "brazilian",             label: "นักเตะบราซิล" },
+  { value: "real-and-chelsea",      label: "เคยเล่นให้เรอัลและเชลซี" },
+  { value: "goalkeepers",           label: "ผู้รักษาประตู" },
+  { value: "legends",               label: "ตำนาน" },
 ] as const
 
 type CategoryValue = (typeof CATEGORY_OPTIONS)[number]["value"]
 
 function isCategoryValue(value: string): value is CategoryValue {
   return CATEGORY_OPTIONS.some((opt) => opt.value === value)
+}
+
+const DIFFICULTY_OPTIONS = [
+  { value: "easy",   label: "ง่าย",   hint: "Top 50 ที่คนรู้จักดี" },
+  { value: "medium", label: "กลาง",   hint: "Top 100 รวม" },
+  { value: "hard",   label: "ยาก",    hint: "ลึกขึ้น (อันดับ 101+)" },
+] as const
+
+type DifficultyValue = (typeof DIFFICULTY_OPTIONS)[number]["value"]
+
+function isDifficultyValue(value: string): value is DifficultyValue {
+  return DIFFICULTY_OPTIONS.some((opt) => opt.value === value)
 }
 
 const MIN_ROUNDS = 1
@@ -25,6 +43,7 @@ interface LobbySettingsProps {
   scorePositions: number
   category: string
   categoryLocked: boolean
+  difficulty: string
 }
 
 export function LobbySettings({
@@ -36,6 +55,7 @@ export function LobbySettings({
   scorePositions,
   category,
   categoryLocked,
+  difficulty,
 }: LobbySettingsProps) {
   const maxTopN = Math.max(playerCount - 1, 1)
 
@@ -48,6 +68,8 @@ export function LobbySettings({
   const [lastMaxTopN, setLastMaxTopN] = useState(maxTopN)
   const [draftCategory, setDraftCategory] = useState(category)
   const [lastSyncedCategory, setLastSyncedCategory] = useState(category)
+  const [draftDifficulty, setDraftDifficulty] = useState(difficulty)
+  const [lastSyncedDifficulty, setLastSyncedDifficulty] = useState(difficulty)
   const [error, setError] = useState<string | null>(null)
   const [savedTick, setSavedTick] = useState(false)
   const [isPending, startTransition] = useTransition()
@@ -68,11 +90,16 @@ export function LobbySettings({
     setLastMaxTopN(maxTopN)
     setDraftTopN(Math.min(scorePositions, maxTopN))
   }
+  if (lastSyncedDifficulty !== difficulty) {
+    setLastSyncedDifficulty(difficulty)
+    setDraftDifficulty(difficulty)
+  }
 
   const dirty =
     draftRounds !== maxRounds ||
     draftTopN !== scorePositions ||
-    draftCategory !== category
+    draftCategory !== category ||
+    draftDifficulty !== difficulty
 
   function handleSave() {
     if (!hostPlayerId) return
@@ -80,9 +107,14 @@ export function LobbySettings({
       setError("หมวดหมู่ไม่ถูกต้อง")
       return
     }
+    if (!isDifficultyValue(draftDifficulty)) {
+      setError("ระดับความยากไม่ถูกต้อง")
+      return
+    }
     setError(null)
     setSavedTick(false)
     const safeCategory = draftCategory
+    const safeDifficulty = draftDifficulty
     startTransition(async () => {
       const result = await updateRoomSettingsAction({
         roomId,
@@ -90,12 +122,14 @@ export function LobbySettings({
         maxRounds: draftRounds,
         scorePositions: draftTopN,
         category: safeCategory,
+        difficulty: safeDifficulty,
       })
       if (!result.ok) {
         setError(result.error)
         setDraftRounds(maxRounds)
         setDraftTopN(Math.min(scorePositions, maxTopN))
         setDraftCategory(category)
+        setDraftDifficulty(difficulty)
         return
       }
       setSavedTick(true)
@@ -252,6 +286,39 @@ export function LobbySettings({
           หมวดหมู่ถูกล็อกหลังเริ่มเกมรอบแรก
         </p>
       ) : null}
+
+      <div
+        className="flex flex-col gap-2"
+        data-testid="lobby-settings-difficulty"
+      >
+        <span className="text-sm font-semibold tracking-[0.2px] text-on-dark">
+          ระดับความยาก
+        </span>
+        <div className="flex gap-2">
+          {DIFFICULTY_OPTIONS.map((opt) => {
+            const active = draftDifficulty === opt.value
+            return (
+              <button
+                key={opt.value}
+                type="button"
+                aria-pressed={active}
+                disabled={!isHost || isPending}
+                onClick={() => setDraftDifficulty(opt.value)}
+                className={
+                  active
+                    ? "flex-1 rounded-lg border border-goal bg-goal/20 px-3 py-2 text-sm font-semibold text-on-dark transition-colors disabled:opacity-60"
+                    : "flex-1 rounded-lg border border-hairline bg-surface px-3 py-2 text-sm font-semibold text-on-dark-muted transition-colors active:bg-surface-elevated disabled:opacity-40"
+                }
+              >
+                {opt.label}
+              </button>
+            )
+          })}
+        </div>
+        <p className="text-xs text-on-dark-muted">
+          {DIFFICULTY_OPTIONS.find((o) => o.value === draftDifficulty)?.hint}
+        </p>
+      </div>
 
       {error ? (
         <p
