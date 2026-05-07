@@ -8,7 +8,11 @@
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",
-    "e2e": "playwright test"
+    "e2e": "playwright test",
+    "seed:fetch": "bun run scripts/fetch-wikidata.ts",
+    "seed:build": "bun run scripts/build-seed.ts",
+    "seed:sql": "bun run scripts/seed-to-sql.ts",
+    "seed:all": "bun run seed:fetch && bun run seed:build && bun run seed:sql"
   },
   "dependencies": {
     "@base-ui/react": "^1.4.1",

@@ -34,23 +34,118 @@ export type Database = {
   }
   public: {
     Tables: {
-      football_players: {
+      categories: {
         Row: {
-          category: string
-          id: string
-          name: string
+          label_en: string
+          label_th: string
+          query: Json
+          slug: string
         }
         Insert: {
-          category: string
-          id?: string
-          name: string
+          label_en: string
+          label_th: string
+          query: Json
+          slug: string
         }
         Update: {
-          category?: string
-          id?: string
-          name?: string
+          label_en?: string
+          label_th?: string
+          query?: Json
+          slug?: string
         }
         Relationships: []
+      }
+      category_players: {
+        Row: {
+          category_slug: string
+          player_id: string
+        }
+        Insert: {
+          category_slug: string
+          player_id: string
+        }
+        Update: {
+          category_slug?: string
+          player_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "category_players_category_slug_fkey"
+            columns: ["category_slug"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["slug"]
+          },
+          {
+            foreignKeyName: "category_players_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "football_players"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      football_players: {
+        Row: {
+          aliases: string[]
+          birth_date: string | null
+          career_goals: number | null
+          difficulty_tier: number
+          id: string
+          name: string
+          name_th: string | null
+          nationalities: string[]
+          position: string | null
+          sitelinks: number
+        }
+        Insert: {
+          aliases?: string[]
+          birth_date?: string | null
+          career_goals?: number | null
+          difficulty_tier: number
+          id: string
+          name: string
+          name_th?: string | null
+          nationalities?: string[]
+          position?: string | null
+          sitelinks?: number
+        }
+        Update: {
+          aliases?: string[]
+          birth_date?: string | null
+          career_goals?: number | null
+          difficulty_tier?: number
+          id?: string
+          name?: string
+          name_th?: string | null
+          nationalities?: string[]
+          position?: string | null
+          sitelinks?: number
+        }
+        Relationships: []
+      }
+      player_clubs: {
+        Row: {
+          club_name: string
+          player_id: string
+        }
+        Insert: {
+          club_name: string
+          player_id: string
+        }
+        Update: {
+          club_name?: string
+          player_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "player_clubs_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "football_players"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       players: {
         Row: {
@@ -260,6 +355,9 @@ export type Database = {
           player_id: string
         }[]
       }
+      daitch_mokotoff: { Args: { "": string }; Returns: string[] }
+      dmetaphone: { Args: { "": string }; Returns: string }
+      dmetaphone_alt: { Args: { "": string }; Returns: string }
       join_room: {
         Args: { p_code: string; p_display_name: string; p_player_id: string }
         Returns: {
@@ -275,6 +373,7 @@ export type Database = {
         Args: { p_host_player_id: string; p_room_id: string }
         Returns: undefined
       }
+      soundex: { Args: { "": string }; Returns: string }
       start_game: {
         Args: { p_host_player_id: string; p_room_id: string }
         Returns: undefined
@@ -296,6 +395,8 @@ export type Database = {
           score: number
         }[]
       }
+      text_soundex: { Args: { "": string }; Returns: string }
+      unaccent: { Args: { "": string }; Returns: string }
       update_room_settings: {
         Args: {
           p_category: string

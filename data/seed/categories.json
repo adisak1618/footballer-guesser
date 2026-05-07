@@ -1,0 +1,113 @@
+{
+  "version": 1,
+  "categories": [
+    {
+      "slug": "premier-league-alumni",
+      "label_th": "เคยเล่นในพรีเมียร์ลีก",
+      "label_en": "Played for a Premier League big-six club",
+      "query": {
+        "any": [
+          {
+            "field": "clubs_named",
+            "op": "contains",
+            "value": "Liverpool F.C."
+          },
+          {
+            "field": "clubs_named",
+            "op": "contains",
+            "value": "Manchester United F.C."
+          },
+          {
+            "field": "clubs_named",
+            "op": "contains",
+            "value": "Arsenal F.C."
+          },
+          {
+            "field": "clubs_named",
+            "op": "contains",
+            "value": "Chelsea F.C."
+          },
+          {
+            "field": "clubs_named",
+            "op": "contains",
+            "value": "Manchester City F.C."
+          },
+          {
+            "field": "clubs_named",
+            "op": "contains",
+            "value": "Tottenham Hotspur F.C."
+          }
+        ]
+      }
+    },
+    {
+      "slug": "liverpool",
+      "label_th": "เคยเล่นให้ลิเวอร์พูล",
+      "label_en": "Played for Liverpool",
+      "query": {
+        "field": "clubs_named",
+        "op": "contains",
+        "value": "Liverpool F.C."
+      }
+    },
+    {
+      "slug": "english",
+      "label_th": "นักเตะอังกฤษ",
+      "label_en": "English nationality",
+      "query": {
+        "field": "nationalities",
+        "op": "contains",
+        "value": "United Kingdom"
+      }
+    },
+    {
+      "slug": "brazilian",
+      "label_th": "นักเตะบราซิล",
+      "label_en": "Brazilian nationality",
+      "query": {
+        "field": "nationalities",
+        "op": "contains",
+        "value": "Brazil"
+      }
+    },
+    {
+      "slug": "real-and-chelsea",
+      "label_th": "เคยเล่นให้ทั้งเรอัลและเชลซี",
+      "label_en": "Played for Real Madrid AND Chelsea",
+      "query": {
+        "all": [
+          {
+            "field": "clubs_named",
+            "op": "contains",
+            "value": "Real Madrid Club de Fútbol"
+          },
+          {
+            "field": "clubs_named",
+            "op": "contains",
+            "value": "Chelsea F.C."
+          }
+        ]
+      }
+    },
+    {
+      "slug": "goalkeepers",
+      "label_th": "ผู้รักษาประตู",
+      "label_en": "Goalkeepers",
+      "query": {
+        "field": "position",
+        "op": "eq",
+        "value": "GK"
+      }
+    },
+    {
+      "slug": "legends",
+      "label_th": "ตำนาน",
+      "label_en": "All-time legends (tier 1)",
+      "query": {
+        "field": "difficulty_tier",
+        "op": "eq",
+        "value": 1
+      }
+    }
+  ]
+}

@@ -62,3 +62,6 @@ supabase/.branches/
 
 # Ralph runtime scratch
 scripts/ralph/.last-branch
+
+# Wikidata raw fetches (regeneratable via `bun run seed:fetch`)
+/data/raw/
