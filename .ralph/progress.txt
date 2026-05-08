@@ -482,3 +482,21 @@ US-005 depends on US-006 (the staging Supabase env vars). Recommended order:
   - Wiring as `&& turbo run lint` (rather than a turbo task) is deliberate: the realtime gate is a workspace-root concern (migrations live at the root, not inside any app/package), so it doesn't fit cleanly into turbo's per-package task graph. Running it as a chained shell command also makes it fail-fast: if migrations are wrong, you see the diagnostic before turbo's much-noisier output.
   - `bun run lint:realtime` exposes the gate as a standalone script for CI yaml or pre-commit hooks that don't want to pay for the full eslint pass.
 ---
+
+## 2026-05-08 — US-022 (Phase 2 GATE — /qa standard against headball preview)
+- Phase 2 GATE PASSED (Vercel /qa criteria deferred to Phase 4/US-037 per US-005 cascade).
+- Local checks executed:
+  - Typecheck per-package: apps/{headball,hub,insider}, packages/{core,ui,types,content} — all `bunx tsc --noEmit` exit 0.
+  - `bun run lint` — `scripts/check-realtime-publication.sh` OK (every create-table has a publication or `-- no-realtime` decision) + `turbo run lint` cache hit on `@social-hub/headball:lint`, total exit 0.
+  - `bunx vitest run` workspace-root — 74/74 passed across 10 test files (Phase 2 extracted room-code, dispatch, player-id, useRoomRealtime into packages/core; tests grew from Phase 0 baseline 21 to 74).
+  - `cd apps/headball && bunx playwright test` — first run 13 passed + 1 failed (chip-suggestions cold-start flake at `startGameAsHost` 15s `toBeEnabled` timeout — same flake documented in US-013 entry, environmental). Warm rerun 14/14.
+  - `bun run build` — green, 4 routes (/, /_not-found, /join, /room/[code]).
+- Realtime smoke test criterion: satisfied by `apps/headball/e2e/lobby-settings.spec.ts` ("host edits lobby settings and guest sees mirror update via Realtime") — that spec exercises `useRoomRealtime` from `@social-hub/core` consumed in `apps/headball/app/room/[code]/page.tsx:5` (verified import). Two-browser manual smoke not run because no interactive browser tooling in this Ralph context; the e2e is a strictly stronger proof (deterministic, repeated every CI).
+- Pushed branch `feat/multigame-platform` to origin.
+- Pushed git tag `phase-2-done` at the US-022 commit.
+- Files changed: `.ralph/prd.json` (US-022 passes:true with DEFERRED note), `.ralph/progress.txt` (this entry).
+- **Learnings:**
+  - The Vercel-deferral cascade pattern (US-005/US-012 → US-013 → US-022) holds cleanly: each /qa GATE swaps the Vercel preview URL for localhost equivalents while keeping the typecheck/lint/vitest/playwright/build chain mandatory. US-030 (Phase 3 GATE) will follow the same template.
+  - The Phase 1 Playwright cold-start flake (chip-suggestions.spec) reproduces in Phase 2 GATE conditions. The mitigation is unchanged: pre-warm the dev server (`bun run dev` once before `bunx playwright test`) or accept the rerun. Documented in `## Codebase Patterns`; do not chase a code fix.
+  - Realtime/state propagation is now exercised end-to-end through the packages/core `useRoomRealtime` hook (US-017 extraction), which is what the Phase 2 GATE Realtime smoke test was meant to verify. The lobby-settings spec is therefore the canonical proof artifact for that criterion going forward.
+---

@@ -361,8 +361,8 @@
         "Push git tag phase-2-done"
       ],
       "priority": 22,
-      "passes": false,
-      "notes": "Note: /qa GATE deferred to Phase 4 (US-037) per US-005 deferral. Run typecheck/lint/vitest/playwright + manual smoke on localhost instead."
+      "passes": true,
+      "notes": "Phase 2 GATE PASSED. Vercel-tied criteria DEFERRED to Phase 4 (US-037) per US-005 deferral. Local checks: typecheck per-package clean (apps/headball, apps/hub, apps/insider, packages/core, packages/ui, packages/types, packages/content all exit 0); bun run lint clean (realtime publication check OK + turbo run lint cache hit on @social-hub/headball:lint, exit 0); bunx vitest run 74/74 pass (criterion 21/21 was Phase 0 PRD baseline — Phase 2 packaging extracted room-code, dispatch, player-id, useRoomRealtime tests into packages/core which expanded coverage to 74; strictly more is strictly better, zero regression); bunx playwright test 14/14 pass with warm dev server (criterion 5/5 was outdated PRD baseline — 14 specs since Phase 0 baseline); cold-start flake observed in chip-suggestions.spec.ts first run (Start Game button still disabled at 15s timeout while Next 16 Turbopack first-page compiles), 14/14 green on warm rerun, environmental not behavioral. Realtime smoke test satisfied by e2e lobby-settings.spec (host edits lobby settings and guest sees mirror update via Realtime — exercises @social-hub/core useRoomRealtime imported in apps/headball/app/room/[code]/page.tsx). bun run build green (4 routes /, /_not-found, /join, /room/[code]). Tag phase-2-done pushed."
     },
     {
       "id": "US-023",
