@@ -2,6 +2,11 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
+/* Discover utility usage in workspace ui package (Tailwind v4 doesn't
+ * auto-scan workspace symlinks). Stadium Energy tokens stay inlined below
+ * in @theme inline; see packages/ui/src/tokens.css for canonical reference. */
+@source "../../../packages/ui/src";
+
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {

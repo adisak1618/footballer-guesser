@@ -314,8 +314,8 @@
         "Verify in browser using dev-browser skill"
       ],
       "priority": 19,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Headball has @social-hub/ui as a workspace dep and the package exports (Button/Input/Dialog/cn) resolve cleanly through the symlink — verified by typecheck + build. There are zero current Headball consumers of the shadcn primitives (the primitives were scaffolding from shadcn init; no page or component imported them before the move, see grep audit in progress.txt). Future Headball UI work and the Hub/Insider apps will import from @social-hub/ui directly. Browser smoke check captured: GET / 200, rendered HTML contains live Stadium Energy classes (bg-ink, bg-goal, text-on-dark, font-display, bg-surface-elevated, border-hairline) — Tailwind v4 emits correctly via the new @source directive in apps/headball/app/globals.css. Playwright 14/14 pass on retry (one chip-suggestions cold-start flake matching the known Turbopack toBeEnabled race documented at progress.txt line 37 — environmental, not behavioral)."
     },
     {
       "id": "US-020",
