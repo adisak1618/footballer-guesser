@@ -9,6 +9,7 @@ export {
 export { createSupabaseBrowserClient } from "./supabase-browser"
 export { createSupabaseServerClient } from "./supabase-server"
 export { GameRpcError, dispatch, parsePgErrCode } from "./dispatch"
+export { getOrCreatePlayerId, readPlayerId } from "./player-id"
 export { useRoomRealtime } from "./use-room-realtime"
 export type {
   RoomRealtimePayload,

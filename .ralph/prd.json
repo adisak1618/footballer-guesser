@@ -296,8 +296,8 @@
         "Typecheck passes"
       ],
       "priority": 18,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Implemented packages/core/src/player-id.ts with namespace param. Headball game-store now wraps the core helper with the \"headball\" namespace; PLAYER_ID_STORAGE_KEY remains exported for back-compat with existing tests."
     },
     {
       "id": "US-019",
