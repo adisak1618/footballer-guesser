@@ -444,3 +444,16 @@ US-005 depends on US-006 (the staging Supabase env vars). Recommended order:
 - Note on shadcn primitives consumer surface: at this point in the codebase, NO Headball page or component imports Button/Input/Dialog. The shadcn files were scaffolding only. The relocation is mechanical; "renders identically" is satisfied by construction (zero behavior delta) and confirmed by passing build + e2e + dev smoke. Future games (Insider, Hub) and Headball-side refactors will start consuming `@social-hub/ui` directly.
 - **Learnings:** see Codebase Patterns at top — added 4 new entries on Tailwind v4 source discovery, Stadium Energy duplication contract, packages/ui peer-dep convention, and the vitest tsx-parsing quirk.
 ---
+
+## 2026-05-08 — US-020 (Phase 2.7 — packages/types with cross-game types only)
+- Replaced `export {};` stub in `packages/types/src/index.ts` with cross-game shape: `Room`, `Player`, `GameType`, `RoomStatus`.
+- Defined types as standalone interfaces / string unions (NOT pulled from `Database`) — `apps/headball/lib/database.types.ts` stays put per T-6 / Phase 2 Non-Goals.
+- `apps/headball/lib/types.ts` untouched: Headball-narrow types (RoundState, FootballPlayer, CreateRoomArgs, etc.) continue to derive from the local Database type.
+- Verified: `bunx tsc --noEmit` passes from each of the 7 workspace packages (packages/{core,ui,types,content}, apps/{hub,insider,headball}). Tested import resolution with a temp probe `apps/hub/types-probe.ts` (since removed) — all four exports type-check cleanly through the `@social-hub/types` alias.
+- Files changed: `packages/types/src/index.ts`.
+- **Learnings:**
+  - **Cross-game type extraction discipline (FR-2.3):** when extracting a "shared" Room/Player type, define the COMMON columns only — game-specific fields (Headball's `category`, `score_positions`, `total_score`, `current_round`; Insider's future `round_phase`) stay in each app's `lib/types.ts`. Cross-game `Room` = id, code, status, host_player_id, created_at. Cross-game `Player` = id, room_id, player_id, display_name, join_order, connected.
+  - **Don't import from `Database` in packages/types yet:** doing so would couple the cross-game package to Headball's local `database.types.ts` (which is the canonical generated artifact through Phase 3). Standalone interface declarations decouple packages/types from the schema regeneration cycle. Phase 3 will revisit this when migrations land for Insider tables.
+  - **`RoomStatus` is a hand-maintained string union** (`"LOBBY" | "PLAYING" | "ENDED"`) here, kept in sync with the Postgres enum `room_status`. After Phase 3 regenerates database.types.ts and (optionally) promotes it into packages/types, this can collapse to `Database["public"]["Enums"]["room_status"]`. For now, the duplication is intentional and the values are validated against the existing enum.
+  - **`GameType` string union seeds future routing:** `"headball" | "insider"` matches the planned `apps/<game>/` directories and will eventually drive subdomain routing (Phase 4 Hub → Phase 5 Insider). Add new entries here when a new game is scaffolded; the union is the single source of truth for "what games does this platform know about".
+---
