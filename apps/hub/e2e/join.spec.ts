@@ -66,6 +66,28 @@ test.describe("/join — lookup-room dispatcher (US-035)", () => {
     await expect(errorRegion).toContainText(/Room not found/i)
   })
 
+  test("typing a code for an ENDED room surfaces banner-error 'This room ended' (US-036)", async ({
+    page,
+  }) => {
+    const ENDED_CODE = "ENDXYZ"
+    await deleteRoomByCode(ENDED_CODE)
+    await insertRoom({ code: ENDED_CODE, gameType: "headball", status: "ENDED" })
+
+    try {
+      await page.goto("/join")
+      const cta = page.getByRole("button", { name: /JOIN GAME/i })
+      await page.locator('[data-slot="slot-input-cell"]').first().focus()
+      await page.keyboard.type(ENDED_CODE)
+      await expect(cta).toBeEnabled()
+      await cta.click()
+
+      const errorRegion = page.locator('[data-slot="join-error"]')
+      await expect(errorRegion).toContainText(/This room ended/i)
+    } finally {
+      await deleteRoomByCode(ENDED_CODE)
+    }
+  })
+
   test("error banner space (24px) is reserved above the CTA", async ({
     page,
   }) => {

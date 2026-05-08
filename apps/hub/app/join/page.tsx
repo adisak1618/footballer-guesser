@@ -34,10 +34,13 @@ export default function JoinPage() {
       const raw = err instanceof Error ? err.message : ""
       const message = raw.includes("Room not found")
         ? "ห้องไม่พบ / Room not found"
-        : raw.includes("Invalid room code") ||
-            raw.includes("รหัสห้องไม่ถูกต้อง")
-          ? "รหัสห้องไม่ถูกต้อง / Invalid room code"
-          : "เกิดข้อผิดพลาด / Something went wrong"
+        : raw.includes("This room ended") ||
+            raw.includes("ห้องนี้จบแล้ว")
+          ? "ห้องนี้จบแล้ว / This room ended"
+          : raw.includes("Invalid room code") ||
+              raw.includes("รหัสห้องไม่ถูกต้อง")
+            ? "รหัสห้องไม่ถูกต้อง / Invalid room code"
+            : "เกิดข้อผิดพลาด / Something went wrong"
       setError(message)
       setSubmitting(false)
     }
@@ -80,9 +83,20 @@ export default function JoinPage() {
           type="submit"
           disabled={!isReady || submitting}
           aria-busy={submitting}
-          className="mt-6 inline-flex min-h-[52px] w-full items-center justify-center rounded-md bg-goal px-6 font-display text-[18px] font-semibold leading-none tracking-[1px] text-on-dark uppercase transition-colors duration-150 hover:bg-goal-active active:translate-y-[1px] disabled:cursor-not-allowed disabled:bg-goal-disabled disabled:opacity-80"
+          className="mt-6 inline-flex min-h-[52px] w-full items-center justify-center gap-3 rounded-md bg-goal px-6 font-display text-[18px] font-semibold leading-none tracking-[1px] text-on-dark uppercase transition-colors duration-150 hover:bg-goal-active active:translate-y-[1px] disabled:cursor-not-allowed disabled:bg-goal-disabled disabled:opacity-80"
         >
-          {submitting ? "LOADING…" : "JOIN GAME →"}
+          {submitting ? (
+            <>
+              <span
+                data-slot="join-spinner"
+                aria-hidden="true"
+                className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-on-dark/40 border-t-on-dark"
+              />
+              <span>LOADING…</span>
+            </>
+          ) : (
+            "JOIN GAME →"
+          )}
         </button>
       </form>
     </main>

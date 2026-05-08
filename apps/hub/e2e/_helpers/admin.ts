@@ -27,12 +27,13 @@ export function adminClient(): SupabaseClient {
 export async function insertRoom(opts: {
   code: string
   gameType: "headball" | "insider"
+  status?: "LOBBY" | "PLAYING" | "ENDED"
 }): Promise<void> {
   const sb = adminClient()
   const { error } = await sb.from("rooms").insert({
     code: opts.code,
     game_type: opts.gameType,
-    status: "LOBBY",
+    status: opts.status ?? "LOBBY",
     max_rounds: 5,
     score_positions: 3,
     category: "premier-league",

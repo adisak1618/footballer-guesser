@@ -71,6 +71,26 @@ describe("lookupRoom", () => {
     expect(e.context).toMatchObject({ rpc: "lookup_room", args: { code: "ZZZZZZ" } })
   })
 
+  it("throws GameRpcError with code 'ROOM_ENDED' when the room status is ENDED", async () => {
+    mockMaybeSingle.mockResolvedValue({
+      data: { game_type: "headball", status: "ENDED" },
+      error: null,
+    })
+
+    let caught: unknown = null
+    try {
+      await lookupRoom("ABCDEF")
+    } catch (err) {
+      caught = err
+    }
+
+    expect(caught).toBeInstanceOf(GameRpcError)
+    const e = caught as GameRpcError
+    expect(e.code).toBe("ROOM_ENDED")
+    expect(e.message).toMatch(/This room ended/i)
+    expect(e.context).toMatchObject({ rpc: "lookup_room", args: { code: "ABCDEF" } })
+  })
+
   it("throws GameRpcError with code 'INVALID_CODE' when the code length is wrong", async () => {
     let caught: unknown = null
     try {

@@ -59,5 +59,13 @@ export async function lookupRoom(rawCode: string): Promise<LookupRoomResult> {
   }
 
   const row = data as { game_type: string; status: string }
+
+  if (row.status === "ENDED") {
+    throw new GameRpcError("ROOM_ENDED", "ห้องนี้จบแล้ว / This room ended", {
+      rpc: "lookup_room",
+      args: { code },
+    })
+  }
+
   return { gameType: row.game_type as GameType, code }
 }

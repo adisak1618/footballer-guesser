@@ -598,8 +598,8 @@
         "Verify in browser using dev-browser skill"
       ],
       "priority": 36,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Implemented in commit. Files: apps/hub/app/actions/lookup-room.ts (ROOM_ENDED branch), apps/hub/app/join/page.tsx (ENDED message + spinner), apps/hub/e2e/_helpers/admin.ts (status param), apps/hub/e2e/join.spec.ts (+ENDED case), apps/hub/e2e/screenshot-us036.spec.ts. Browser verification via Playwright screenshots at .ralph/screenshots/US-036-{empty,error-notfound,error-ended}.png. All vitest (103/103) and hub e2e (4/4) green. Loading spinner is rendered via aria-busy button with animate-spin span when submitting; verified by e2e test that clicks the button and observes the resulting error banner (the submitting state had to be active for that flow)."
     },
     {
       "id": "US-037",
