@@ -3,21 +3,70 @@
 import { useState, useTransition } from "react"
 import { updateRoomSettingsAction } from "@/app/actions/update-room-settings"
 
-const CATEGORY_OPTIONS = [
-  { value: "premier-league",        label: "พรีเมียร์ลีก" },
-  { value: "liverpool",             label: "ลิเวอร์พูล" },
-  { value: "english",               label: "นักเตะอังกฤษ" },
-  { value: "brazilian",             label: "นักเตะบราซิล" },
-  { value: "real-and-chelsea",      label: "เคยเล่นให้เรอัลและเชลซี" },
-  { value: "goalkeepers",           label: "ผู้รักษาประตู" },
-  { value: "legends",               label: "ตำนาน" },
-] as const
+// Categories grouped for <optgroup>. Slugs must match data/seed/categories.json
+// AND ALLOWED_CATEGORIES in app/actions/update-room-settings.ts.
+//
+// We declare the flat (slug → Thai label) table first as `as const` so the
+// CategoryValue union narrows precisely, then declare the visual grouping
+// separately referencing those slugs.
+const CATEGORY_LABELS = {
+  "worldwide-stars":      "ดาวดังระดับโลก",
+  "premier-league":       "พรีเมียร์ลีก",
+  "la-liga":              "ลาลีกา",
+  "serie-a":              "กัลโช่ เซเรียอา",
+  "bundesliga":           "บุนเดสลีกา",
+  "ligue-1":              "ลีกเอิง",
+  "liverpool":            "ลิเวอร์พูล",
+  "man-united":           "แมนเชสเตอร์ ยูไนเต็ด",
+  "arsenal":              "อาร์เซนอล",
+  "chelsea":              "เชลซี",
+  "man-city":             "แมนเชสเตอร์ ซิตี้",
+  "tottenham":            "ท็อตแนม",
+  "real-madrid":          "เรอัล มาดริด",
+  "barcelona":            "บาร์เซโลน่า",
+  "atletico":             "แอตเลติโก้ มาดริด",
+  "juventus":             "ยูเวนตุส",
+  "ac-milan":             "เอซี มิลาน",
+  "inter":                "อินเตอร์ มิลาน",
+  "bayern":               "บาเยิร์น มิวนิค",
+  "dortmund":             "ดอร์ทมุนด์",
+  "psg":                  "ปารีส แซงต์-แชร์กแมง",
+  "real-and-barca":       "เรอัล + บาร์ซ่า",
+  "milan-and-inter":      "มิลาน + อินเตอร์",
+  "arsenal-and-tottenham":"อาร์เซนอล + ท็อตแนม",
+  "united-and-city":      "แมนยู + แมนซิตี้",
+  "real-and-atletico":    "เรอัล + แอตเลติโก้",
+  "real-and-chelsea":     "เรอัล + เชลซี",
+  "english":              "อังกฤษ",
+  "brazilian":            "บราซิล",
+  "argentinian":          "อาร์เจนตินา",
+  "french":               "ฝรั่งเศส",
+  "german":               "เยอรมัน",
+  "spanish":              "สเปน",
+  "italian":              "อิตาลี",
+  "goalkeepers":          "ผู้รักษาประตู",
+  "legends":              "ตำนาน",
+} as const
 
-type CategoryValue = (typeof CATEGORY_OPTIONS)[number]["value"]
+type CategoryValue = keyof typeof CATEGORY_LABELS
 
 function isCategoryValue(value: string): value is CategoryValue {
-  return CATEGORY_OPTIONS.some((opt) => opt.value === value)
+  return value in CATEGORY_LABELS
 }
+
+type CategoryGroup = {
+  label: string
+  values: readonly CategoryValue[]
+}
+
+const CATEGORY_GROUPS: readonly CategoryGroup[] = [
+  { label: "แนะนำ",                values: ["worldwide-stars"] },
+  { label: "ลีก",                  values: ["premier-league", "la-liga", "serie-a", "bundesliga", "ligue-1"] },
+  { label: "สโมสร",                values: ["liverpool", "man-united", "arsenal", "chelsea", "man-city", "tottenham", "real-madrid", "barcelona", "atletico", "juventus", "ac-milan", "inter", "bayern", "dortmund", "psg"] },
+  { label: "เคยเล่นให้ทั้งสองทีม",   values: ["real-and-barca", "milan-and-inter", "arsenal-and-tottenham", "united-and-city", "real-and-atletico", "real-and-chelsea"] },
+  { label: "ทีมชาติ",               values: ["english", "brazilian", "argentinian", "french", "german", "spanish", "italian"] },
+  { label: "พิเศษ",                 values: ["goalkeepers", "legends"] },
+]
 
 const DIFFICULTY_OPTIONS = [
   { value: "easy",   label: "ง่าย",   hint: "Top 50 ที่คนรู้จักดี" },
@@ -272,12 +321,16 @@ export function LobbySettings({
           disabled={!isHost || categoryLocked || isPending}
           value={draftCategory}
           onChange={(e) => setDraftCategory(e.target.value)}
-          className="h-10 min-w-[180px] rounded-lg border border-hairline bg-surface px-3 text-sm font-semibold text-on-dark outline-none focus:border-on-dark-soft disabled:opacity-60"
+          className="h-10 min-w-[200px] max-w-[260px] rounded-lg border border-hairline bg-surface px-3 text-sm font-semibold text-on-dark outline-none focus:border-on-dark-soft disabled:opacity-60"
         >
-          {CATEGORY_OPTIONS.map((opt) => (
-            <option key={opt.value} value={opt.value}>
-              {opt.label}
-            </option>
+          {CATEGORY_GROUPS.map((group) => (
+            <optgroup key={group.label} label={group.label}>
+              {group.values.map((slug) => (
+                <option key={slug} value={slug}>
+                  {CATEGORY_LABELS[slug]}
+                </option>
+              ))}
+            </optgroup>
           ))}
         </select>
       </div>

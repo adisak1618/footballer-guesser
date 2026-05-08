@@ -2,19 +2,10 @@
 
 import { z } from "zod"
 import { createSupabaseServerClient } from "@/lib/supabase-server"
-
-const ALLOWED_CATEGORIES = [
-  "premier-league",
-  "premier-league-alumni",
-  "liverpool",
-  "english",
-  "brazilian",
-  "real-and-chelsea",
-  "goalkeepers",
-  "legends",
-] as const
-
-const ALLOWED_DIFFICULTIES = ["easy", "medium", "hard"] as const
+import {
+  ALLOWED_CATEGORIES,
+  ALLOWED_DIFFICULTIES,
+} from "@/lib/categories"
 
 const inputSchema = z.object({
   roomId: z.uuid("รหัสห้องไม่ถูกต้อง"),

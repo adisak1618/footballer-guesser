@@ -93,8 +93,10 @@ test("rematch preserves lobby settings and advances rounds in game 2", async ({
     await expect(guestPage.locator("#lobby-rounds")).toHaveValue("2")
 
     // Category select reflects the locked-after-game-1 value.
+    // Default is 'worldwide-stars' (per migration 0012); host did not change
+    // it before starting game 1, so that's what gets locked in.
     await expect(hostPage.locator("#lobby-category")).toHaveValue(
-      "premier-league",
+      "worldwide-stars",
     )
     // Once any round has been played, category select is disabled (locked).
     await expect(hostPage.locator("#lobby-category")).toBeDisabled()

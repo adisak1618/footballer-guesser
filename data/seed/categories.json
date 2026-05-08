@@ -1,10 +1,17 @@
 {
-  "version": 1,
+  "version": 2,
   "categories": [
     {
-      "slug": "premier-league-alumni",
-      "label_th": "เคยเล่นในพรีเมียร์ลีก",
-      "label_en": "Played for any 2025-26 Premier League club",
+      "slug": "worldwide-stars",
+      "label_th": "ดาวดังระดับโลก",
+      "label_en": "Worldwide stars (sitelinks ≥ 100)",
+      "query": { "field": "sitelinks", "op": "gte", "value": 100 }
+    },
+
+    {
+      "slug": "premier-league",
+      "label_th": "พรีเมียร์ลีก",
+      "label_en": "Premier League (any 2025-26 club)",
       "query": {
         "any": [
           { "field": "clubs_named", "op": "contains", "value": "Liverpool F.C." },
@@ -31,73 +38,220 @@
       }
     },
     {
-      "slug": "liverpool",
-      "label_th": "เคยเล่นให้ลิเวอร์พูล",
-      "label_en": "Played for Liverpool",
+      "slug": "la-liga",
+      "label_th": "ลาลีกา",
+      "label_en": "La Liga (any 2025-26 club)",
       "query": {
-        "field": "clubs_named",
-        "op": "contains",
-        "value": "Liverpool F.C."
+        "any": [
+          { "field": "clubs_named", "op": "contains", "value": "Real Madrid Club de Fútbol" },
+          { "field": "clubs_named", "op": "contains", "value": "Futbol Club Barcelona" },
+          { "field": "clubs_named", "op": "contains", "value": "Atlético Madrid" },
+          { "field": "clubs_named", "op": "contains", "value": "AD Almería" },
+          { "field": "clubs_named", "op": "contains", "value": "Athletic Club" },
+          { "field": "clubs_named", "op": "contains", "value": "Club Atlético Osasuna" },
+          { "field": "clubs_named", "op": "contains", "value": "Deportivo Alavés" },
+          { "field": "clubs_named", "op": "contains", "value": "Elche CF" },
+          { "field": "clubs_named", "op": "contains", "value": "Getafe CF" },
+          { "field": "clubs_named", "op": "contains", "value": "Girona FC" },
+          { "field": "clubs_named", "op": "contains", "value": "Levante UD" },
+          { "field": "clubs_named", "op": "contains", "value": "RC Celta de Vigo" },
+          { "field": "clubs_named", "op": "contains", "value": "RCD Espanyol de Barcelona" },
+          { "field": "clubs_named", "op": "contains", "value": "RCD Mallorca" },
+          { "field": "clubs_named", "op": "contains", "value": "Rayo Vallecano" },
+          { "field": "clubs_named", "op": "contains", "value": "Real Betis Balompié" },
+          { "field": "clubs_named", "op": "contains", "value": "Real Oviedo" },
+          { "field": "clubs_named", "op": "contains", "value": "Real Sociedad" },
+          { "field": "clubs_named", "op": "contains", "value": "Sevilla FC" },
+          { "field": "clubs_named", "op": "contains", "value": "Valencia CF" },
+          { "field": "clubs_named", "op": "contains", "value": "Villarreal CF" }
+        ]
       }
     },
     {
-      "slug": "english",
-      "label_th": "นักเตะอังกฤษ",
-      "label_en": "English nationality",
+      "slug": "serie-a",
+      "label_th": "กัลโช่ เซเรียอา",
+      "label_en": "Serie A (any 2025-26 club)",
       "query": {
-        "field": "nationalities",
-        "op": "contains",
-        "value": "United Kingdom"
+        "any": [
+          { "field": "clubs_named", "op": "contains", "value": "AC Milan" },
+          { "field": "clubs_named", "op": "contains", "value": "Inter Milan" },
+          { "field": "clubs_named", "op": "contains", "value": "Juventus FC" },
+          { "field": "clubs_named", "op": "contains", "value": "ACF Fiorentina" },
+          { "field": "clubs_named", "op": "contains", "value": "AS Roma" },
+          { "field": "clubs_named", "op": "contains", "value": "Atalanta BC" },
+          { "field": "clubs_named", "op": "contains", "value": "Bologna F.C. 1909" },
+          { "field": "clubs_named", "op": "contains", "value": "Cagliari Calcio" },
+          { "field": "clubs_named", "op": "contains", "value": "Como 1907" },
+          { "field": "clubs_named", "op": "contains", "value": "Genoa CFC" },
+          { "field": "clubs_named", "op": "contains", "value": "Hellas Verona FC" },
+          { "field": "clubs_named", "op": "contains", "value": "Parma Calcio 1913" },
+          { "field": "clubs_named", "op": "contains", "value": "Pisa SC" },
+          { "field": "clubs_named", "op": "contains", "value": "SS Lazio" },
+          { "field": "clubs_named", "op": "contains", "value": "SSC Napoli" },
+          { "field": "clubs_named", "op": "contains", "value": "Torino FC" },
+          { "field": "clubs_named", "op": "contains", "value": "US Cremonese" },
+          { "field": "clubs_named", "op": "contains", "value": "US Lecce" },
+          { "field": "clubs_named", "op": "contains", "value": "US Sassuolo Calcio" },
+          { "field": "clubs_named", "op": "contains", "value": "Udinese Calcio" }
+        ]
       }
     },
     {
-      "slug": "brazilian",
-      "label_th": "นักเตะบราซิล",
-      "label_en": "Brazilian nationality",
+      "slug": "bundesliga",
+      "label_th": "บุนเดสลีกา",
+      "label_en": "Bundesliga (any 2025-26 club)",
       "query": {
-        "field": "nationalities",
-        "op": "contains",
-        "value": "Brazil"
+        "any": [
+          { "field": "clubs_named", "op": "contains", "value": "FC Bayern Munich" },
+          { "field": "clubs_named", "op": "contains", "value": "Borussia Dortmund" },
+          { "field": "clubs_named", "op": "contains", "value": "1. FC Heidenheim 1846" },
+          { "field": "clubs_named", "op": "contains", "value": "1. FC Köln" },
+          { "field": "clubs_named", "op": "contains", "value": "1. FC Union Berlin" },
+          { "field": "clubs_named", "op": "contains", "value": "1. FSV Mainz 05" },
+          { "field": "clubs_named", "op": "contains", "value": "Bayer 04 Leverkusen" },
+          { "field": "clubs_named", "op": "contains", "value": "Borussia Mönchengladbach" },
+          { "field": "clubs_named", "op": "contains", "value": "Eintracht Frankfurt" },
+          { "field": "clubs_named", "op": "contains", "value": "FC St. Pauli" },
+          { "field": "clubs_named", "op": "contains", "value": "Hamburger SV" },
+          { "field": "clubs_named", "op": "contains", "value": "RB Leipzig" },
+          { "field": "clubs_named", "op": "contains", "value": "SC Freiburg" },
+          { "field": "clubs_named", "op": "contains", "value": "SV Werder Bremen" },
+          { "field": "clubs_named", "op": "contains", "value": "TSG 1899 Hoffenheim" },
+          { "field": "clubs_named", "op": "contains", "value": "VfB Stuttgart" },
+          { "field": "clubs_named", "op": "contains", "value": "VfL Wolfsburg" }
+        ]
+      }
+    },
+    {
+      "slug": "ligue-1",
+      "label_th": "ลีกเอิง",
+      "label_en": "Ligue 1 (any 2025-26 club)",
+      "query": {
+        "any": [
+          { "field": "clubs_named", "op": "contains", "value": "Paris Saint-Germain FC" },
+          { "field": "clubs_named", "op": "contains", "value": "AJ Auxerre" },
+          { "field": "clubs_named", "op": "contains", "value": "AS Monaco FC" },
+          { "field": "clubs_named", "op": "contains", "value": "Angers SCO" },
+          { "field": "clubs_named", "op": "contains", "value": "F.C. Lorient" },
+          { "field": "clubs_named", "op": "contains", "value": "FC Metz" },
+          { "field": "clubs_named", "op": "contains", "value": "FC Nantes" },
+          { "field": "clubs_named", "op": "contains", "value": "Le Havre AC" },
+          { "field": "clubs_named", "op": "contains", "value": "Lille OSC" },
+          { "field": "clubs_named", "op": "contains", "value": "OGC Nice" },
+          { "field": "clubs_named", "op": "contains", "value": "Olympique Lyonnais" },
+          { "field": "clubs_named", "op": "contains", "value": "Olympique de Marseille" },
+          { "field": "clubs_named", "op": "contains", "value": "Paris FC" },
+          { "field": "clubs_named", "op": "contains", "value": "R.C. Lens" },
+          { "field": "clubs_named", "op": "contains", "value": "RC Strasbourg Alsace" },
+          { "field": "clubs_named", "op": "contains", "value": "Stade Brestois 29" },
+          { "field": "clubs_named", "op": "contains", "value": "Stade Rennais F.C." },
+          { "field": "clubs_named", "op": "contains", "value": "Toulouse FC" }
+        ]
+      }
+    },
+
+    { "slug": "liverpool",   "label_th": "เคยเล่นให้ลิเวอร์พูล",     "label_en": "Played for Liverpool",          "query": { "field": "clubs_named", "op": "contains", "value": "Liverpool F.C." } },
+    { "slug": "man-united",  "label_th": "เคยเล่นให้แมนยู",         "label_en": "Played for Manchester United",  "query": { "field": "clubs_named", "op": "contains", "value": "Manchester United F.C." } },
+    { "slug": "arsenal",     "label_th": "เคยเล่นให้อาร์เซนอล",     "label_en": "Played for Arsenal",            "query": { "field": "clubs_named", "op": "contains", "value": "Arsenal F.C." } },
+    { "slug": "chelsea",     "label_th": "เคยเล่นให้เชลซี",        "label_en": "Played for Chelsea",            "query": { "field": "clubs_named", "op": "contains", "value": "Chelsea F.C." } },
+    { "slug": "man-city",    "label_th": "เคยเล่นให้แมนซิตี้",       "label_en": "Played for Manchester City",    "query": { "field": "clubs_named", "op": "contains", "value": "Manchester City F.C." } },
+    { "slug": "tottenham",   "label_th": "เคยเล่นให้ท็อตแนม",       "label_en": "Played for Tottenham",          "query": { "field": "clubs_named", "op": "contains", "value": "Tottenham Hotspur F.C." } },
+    { "slug": "real-madrid", "label_th": "เคยเล่นให้เรอัลมาดริด",    "label_en": "Played for Real Madrid",        "query": { "field": "clubs_named", "op": "contains", "value": "Real Madrid Club de Fútbol" } },
+    { "slug": "barcelona",   "label_th": "เคยเล่นให้บาร์ซ่า",       "label_en": "Played for Barcelona",          "query": { "field": "clubs_named", "op": "contains", "value": "Futbol Club Barcelona" } },
+    { "slug": "atletico",    "label_th": "เคยเล่นให้แอตเลติโก้",     "label_en": "Played for Atlético Madrid",    "query": { "field": "clubs_named", "op": "contains", "value": "Atlético Madrid" } },
+    { "slug": "juventus",    "label_th": "เคยเล่นให้ยูเวนตุส",       "label_en": "Played for Juventus",           "query": { "field": "clubs_named", "op": "contains", "value": "Juventus FC" } },
+    { "slug": "ac-milan",    "label_th": "เคยเล่นให้เอซี มิลาน",     "label_en": "Played for AC Milan",           "query": { "field": "clubs_named", "op": "contains", "value": "AC Milan" } },
+    { "slug": "inter",       "label_th": "เคยเล่นให้อินเตอร์ มิลาน",  "label_en": "Played for Inter Milan",        "query": { "field": "clubs_named", "op": "contains", "value": "Inter Milan" } },
+    { "slug": "bayern",      "label_th": "เคยเล่นให้บาเยิร์น",       "label_en": "Played for Bayern Munich",      "query": { "field": "clubs_named", "op": "contains", "value": "FC Bayern Munich" } },
+    { "slug": "dortmund",    "label_th": "เคยเล่นให้ดอร์ทมุนด์",     "label_en": "Played for Borussia Dortmund",  "query": { "field": "clubs_named", "op": "contains", "value": "Borussia Dortmund" } },
+    { "slug": "psg",         "label_th": "เคยเล่นให้เปแอสเช",       "label_en": "Played for Paris Saint-Germain","query": { "field": "clubs_named", "op": "contains", "value": "Paris Saint-Germain FC" } },
+
+    {
+      "slug": "real-and-barca",
+      "label_th": "เคยเล่นให้ทั้งเรอัลและบาร์ซ่า",
+      "label_en": "Played for BOTH Real Madrid AND Barcelona",
+      "query": {
+        "all": [
+          { "field": "clubs_named", "op": "contains", "value": "Real Madrid Club de Fútbol" },
+          { "field": "clubs_named", "op": "contains", "value": "Futbol Club Barcelona" }
+        ]
+      }
+    },
+    {
+      "slug": "milan-and-inter",
+      "label_th": "เคยเล่นให้ทั้งมิลานและอินเตอร์",
+      "label_en": "Played for BOTH AC Milan AND Inter Milan",
+      "query": {
+        "all": [
+          { "field": "clubs_named", "op": "contains", "value": "AC Milan" },
+          { "field": "clubs_named", "op": "contains", "value": "Inter Milan" }
+        ]
+      }
+    },
+    {
+      "slug": "arsenal-and-tottenham",
+      "label_th": "เคยเล่นให้ทั้งอาร์เซนอลและท็อตแนม",
+      "label_en": "Played for BOTH Arsenal AND Tottenham",
+      "query": {
+        "all": [
+          { "field": "clubs_named", "op": "contains", "value": "Arsenal F.C." },
+          { "field": "clubs_named", "op": "contains", "value": "Tottenham Hotspur F.C." }
+        ]
+      }
+    },
+    {
+      "slug": "united-and-city",
+      "label_th": "เคยเล่นให้ทั้งแมนยูและแมนซิตี้",
+      "label_en": "Played for BOTH Manchester United AND Manchester City",
+      "query": {
+        "all": [
+          { "field": "clubs_named", "op": "contains", "value": "Manchester United F.C." },
+          { "field": "clubs_named", "op": "contains", "value": "Manchester City F.C." }
+        ]
+      }
+    },
+    {
+      "slug": "real-and-atletico",
+      "label_th": "เคยเล่นให้ทั้งเรอัลและแอตเลติโก้",
+      "label_en": "Played for BOTH Real Madrid AND Atlético Madrid",
+      "query": {
+        "all": [
+          { "field": "clubs_named", "op": "contains", "value": "Real Madrid Club de Fútbol" },
+          { "field": "clubs_named", "op": "contains", "value": "Atlético Madrid" }
+        ]
       }
     },
     {
       "slug": "real-and-chelsea",
       "label_th": "เคยเล่นให้ทั้งเรอัลและเชลซี",
-      "label_en": "Played for Real Madrid AND Chelsea",
+      "label_en": "Played for BOTH Real Madrid AND Chelsea",
       "query": {
         "all": [
-          {
-            "field": "clubs_named",
-            "op": "contains",
-            "value": "Real Madrid Club de Fútbol"
-          },
-          {
-            "field": "clubs_named",
-            "op": "contains",
-            "value": "Chelsea F.C."
-          }
+          { "field": "clubs_named", "op": "contains", "value": "Real Madrid Club de Fútbol" },
+          { "field": "clubs_named", "op": "contains", "value": "Chelsea F.C." }
         ]
       }
     },
+
+    { "slug": "english",      "label_th": "นักเตะอังกฤษ",     "label_en": "English nationality",     "query": { "field": "nationalities", "op": "contains", "value": "United Kingdom" } },
+    { "slug": "brazilian",    "label_th": "นักเตะบราซิล",     "label_en": "Brazilian nationality",   "query": { "field": "nationalities", "op": "contains", "value": "Brazil" } },
+    { "slug": "argentinian",  "label_th": "นักเตะอาร์เจนตินา", "label_en": "Argentinian nationality", "query": { "field": "nationalities", "op": "contains", "value": "Argentina" } },
+    { "slug": "french",       "label_th": "นักเตะฝรั่งเศส",    "label_en": "French nationality",      "query": { "field": "nationalities", "op": "contains", "value": "France" } },
+    { "slug": "german",       "label_th": "นักเตะเยอรมัน",    "label_en": "German nationality",      "query": { "field": "nationalities", "op": "contains", "value": "Germany" } },
+    { "slug": "spanish",      "label_th": "นักเตะสเปน",      "label_en": "Spanish nationality",     "query": { "field": "nationalities", "op": "contains", "value": "Spain" } },
+    { "slug": "italian",      "label_th": "นักเตะอิตาลี",     "label_en": "Italian nationality",     "query": { "field": "nationalities", "op": "contains", "value": "Italy" } },
+
     {
       "slug": "goalkeepers",
       "label_th": "ผู้รักษาประตู",
       "label_en": "Goalkeepers",
-      "query": {
-        "field": "position",
-        "op": "eq",
-        "value": "GK"
-      }
+      "query": { "field": "position", "op": "eq", "value": "GK" }
     },
     {
       "slug": "legends",
       "label_th": "ตำนาน",
       "label_en": "All-time legends (tier 1)",
-      "query": {
-        "field": "difficulty_tier",
-        "op": "eq",
-        "value": 1
-      }
+      "query": { "field": "difficulty_tier", "op": "eq", "value": 1 }
     }
   ]
 }
