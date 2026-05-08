@@ -77,3 +77,84 @@ Started: 2026-05-08
   - `jsx` belongs in base (set to `preserve` for Next apps). React-only library packages don't render JSX in src yet, so `preserve` doesn't hurt them; if a package later needs `react-jsx` for tests, override locally.
   - The wildcard `paths` mapping `@social-hub/*` → `packages/*/src/index.ts` only resolves bare-package imports (`@social-hub/core`), not deep imports (`@social-hub/core/foo`). That matches D3's "barrel-export only" rule.
 ---
+
+## 2026-05-08 — US-005 (Phase 0.5 — Create three Vercel projects with rootDirectory mapping) — PAUSE: manual work required
+
+This story requires Vercel dashboard work that the autonomous agent cannot perform. The Ralph loop is pausing on US-005 until the maintainer completes the steps below and manually flips `passes: true` in `.ralph/prd.json`.
+
+### What the maintainer must do
+
+**1. Create three Vercel projects** (https://vercel.com/new → "Import Git Repository" → pick this repo, then repeat for each):
+
+| Project name | rootDirectory | Framework Preset | Install Command | Build Command | Output Directory |
+|---|---|---|---|---|---|
+| `social-hub-hub` | `apps/hub` | Next.js | `cd ../.. && bun install` | `cd ../.. && bunx turbo run build --filter=@social-hub/hub` | `apps/hub/.next` |
+| `social-hub-headball` | `apps/headball` | Next.js | `cd ../.. && bun install` | `cd ../.. && bunx turbo run build --filter=@social-hub/headball` | `apps/headball/.next` |
+| `social-hub-insider` | `apps/insider` | Next.js | `cd ../.. && bun install` | `cd ../.. && bunx turbo run build --filter=@social-hub/insider` | `apps/insider/.next` |
+
+For each project:
+- Set "Production Branch" to `main`. Preview deploys will fire from `feat/multigame-platform` automatically.
+- Node.js version: 22.x (or default 24.x — both fine).
+- Disable "Automatically expose System Environment Variables" if you prefer cleaner env scoping (optional).
+
+**Note on `social-hub-headball`:** the directory is currently empty (only `.gitkeep`) — the build will likely succeed with "No app to build" or fail soft. That's fine for Phase 0; Phase 1 (US-008+) populates it. If it errors, set the build command to `echo "headball not yet relocated, see Phase 1"` for now and revert once Phase 1 lands.
+
+**2. Add shared env vars to each of the three projects** (Project Settings → Environment Variables):
+
+The values come from the staging Supabase project (US-006). If US-006 is not yet done, **complete US-006 first** — that story creates the staging project and gives you the URL and anon key. Once you have them:
+
+| Variable | Value | Environments |
+|---|---|---|
+| `NEXT_PUBLIC_SUPABASE_URL` | `https://<staging-ref>.supabase.co` | Production, Preview, Development |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | (anon key from staging Supabase Settings → API) | Production, Preview, Development |
+
+Tip: `vercel env add NEXT_PUBLIC_SUPABASE_URL preview` from the CLI is faster than the dashboard once each project is linked locally with `vercel link`.
+
+**3. Trigger preview deploys**
+
+Push the current `feat/multigame-platform` branch (already pushed at HEAD `045dcd6`). Each Vercel project will fire a preview deploy automatically. Wait for all three to go green.
+
+Expected results:
+- **hub preview** → renders "Hub placeholder" text (from `apps/hub/app/page.tsx`).
+- **insider preview** → renders "Insider placeholder" text (from `apps/insider/app/page.tsx`).
+- **headball preview** → builds (empty app for now; may show 404 on `/` since `apps/headball` has no pages yet — that's expected for Phase 0).
+
+**4. Document preview URLs**
+
+Paste the three preview URLs into the PR description for `feat/multigame-platform` (or save them in `.ralph/preview-urls.txt` for now if no PR yet).
+
+**5. Flip the passes flag**
+
+When all three previews are green and env vars are set on all three projects, edit `.ralph/prd.json` and change US-005's `"passes": false` → `"passes": true`. Then re-trigger the Ralph loop and it will advance to US-006.
+
+### Why the agent cannot do this
+
+- The Vercel dashboard is gated by browser auth; even `vercel project add` from CLI requires the project to first be linked to a personal/team scope, and the staging Supabase keys (US-006) live in a place the agent can't fetch programmatically.
+- Per Ralph instructions ("Manual Operational Stories"), US-005 and US-006 are explicit pause points — the agent prints instructions and stops.
+
+### Order-of-operations note
+
+US-005 depends on US-006 (the staging Supabase env vars). Recommended order:
+1. Do US-006 first (create staging Supabase project, run `bunx supabase db push --linked`, copy URL + anon key).
+2. Then US-005 with those env values.
+3. Flip `passes: true` for both in `.ralph/prd.json`.
+4. Re-trigger Ralph; the next iteration will pick up US-007 (Phase 0 GATE).
+
+---
+
+## 2026-05-08 — US-006 (Phase 0.6 — Set up staging Supabase project T-5.C)
+- Maintainer manually created `headball-staging` Supabase project (region: SG, ref: aulxqfmtqbwffblhxkrx).
+- Maintainer ran `bunx supabase login`, `bunx supabase link --project-ref aulxqfmtqbwffblhxkrx` (with `SUPABASE_DB_PASSWORD` inline), `bunx supabase db push --linked` — applied all 12 migrations to staging.
+- Maintainer created local `.env.local` with `NEXT_PUBLIC_SUPABASE_URL` + `NEXT_PUBLIC_SUPABASE_ANON_KEY` (legacy JWT format — Headball's `lib/supabase.ts` and `lib/supabase-server.ts` both expect that exact var name).
+- Wrote `.env.local.example` with placeholder names only (no real values), three commented sections for local/staging/prod env options.
+- Added `!.env.local.example` exception to `.gitignore` so the example file IS tracked while real `.env.local` stays gitignored.
+- Wrote `supabase/migrations/README.md` documenting: local-vs-staging-vs-prod env model (T-5.C), how to add a migration, additive-only discipline (T-7), realtime publication discipline (A4), rollback posture.
+- Verified: `bunx tsc --noEmit` clean (no output), `.env.local.example` has no uncommented assignments (placeholders only).
+- US-006 acceptance criteria all met. Flipped passes:true.
+- Files changed: `.gitignore`, `.env.local.example` (new), `supabase/migrations/README.md` (new), `.ralph/prd.json`.
+- **Learnings:**
+  - The default Next.js `.gitignore` ignores `.env*` which also catches `.env.local.example`. Must add `!.env.local.example` exception explicitly so the example file commits while real values don't.
+  - Use the LEGACY JWT anon key (eyJhbGc...) not the new `sb_publishable_*` for now — Headball's existing code was developed against the JWT format. Migrating to publishable keys is a separate v2 hygiene pass.
+  - DB password belongs ONLY in: password manager + inline CLI invocations (`SUPABASE_DB_PASSWORD='...' bunx supabase ...`). Never in any `.env` file. Never in any deployed env var. Headball connects via REST/Realtime through the anon key — never needs direct Postgres password.
+  - The DB password was leaked into chat history during setup — needs rotation post-setup (Settings → Database → Reset database password in Supabase Dashboard).
+---
