@@ -264,8 +264,8 @@
         "Typecheck passes"
       ],
       "priority": 16,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "TDD red-green-refactor: 8 dispatch tests + 16 total core tests pass. Wrapper accepts SupabaseClient as first arg (matches packages/core convention from US-014/015 — Database generic stays at call site). dispatch returns row[0] when supabase yields an array (matches Postgres setof RETURNS), otherwise returns scalar/object data unchanged. parsePgErrCode reads error.code; falls back to 'UNKNOWN'. GameRpcError carries {rpc,args} as context for diagnostics. error-codes.md documents the PGAME01-09/10-49/50-89/90-99 ranges plus an UNKNOWN convention. Workspace-wide: 65/65 vitest pass; bunx tsc --noEmit clean in packages/core and apps/headball."
     },
     {
       "id": "US-017",

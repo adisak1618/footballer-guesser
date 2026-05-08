@@ -1,0 +1,62 @@
+# Game RPC Error Codes
+
+Per design doc decision **C1.B**, every Postgres function in the multi-game platform uses the convention:
+
+```sql
+raise exception 'pack not found: %', p_slug using errcode = 'PGAME01';
+```
+
+The `dispatch()` wrapper in `packages/core/src/dispatch.ts` parses the Supabase error's `code` field and throws a `GameRpcError` carrying:
+
+- `code` — the parsed PGAMExx code (or `"UNKNOWN"` if absent)
+- `message` — the original Postgres message
+- `context` — `{ rpc, args }` for debugging
+
+## Reserved code ranges
+
+| Range            | Owner                           |
+| ---------------- | ------------------------------- |
+| `PGAME01`–`PGAME09` | **Cross-game** (shared by all games) |
+| `PGAME10`–`PGAME49` | **Insider** (game-specific)      |
+| `PGAME50`–`PGAME89` | **Future games** (reserved)      |
+| `PGAME90`–`PGAME99` | **Reserved for platform-level errors** |
+
+> **Note on Postgres SQLSTATE conformance:** Postgres SQLSTATE codes are conventionally 5 chars. Migrations land in Phase 3+ and may map `PGAMExx` symbolically (e.g., embedding the code in the message) if Postgres rejects the literal 7-char string at apply time. The dispatch wrapper is agnostic — it returns whatever string lives in `error.code`.
+
+## Cross-game codes (PGAME01–PGAME09)
+
+| Code      | Meaning                                                          |
+| --------- | ---------------------------------------------------------------- |
+| `PGAME01` | Pack not found (content_packs lookup failed for the given slug). |
+| `PGAME02` | Round expired (a per-RPC time guard tripped — see T-2.A).        |
+| `PGAME03` | Player not authorized for this action.                           |
+| `PGAME04` | Room not found.                                                  |
+| `PGAME05` | Room state invalid for this action (e.g. not in `playing`).      |
+| `PGAME06` | Reserved.                                                        |
+| `PGAME07` | Reserved.                                                        |
+| `PGAME08` | Reserved.                                                        |
+| `PGAME09` | Reserved.                                                        |
+
+## Insider codes (PGAME10–PGAME49)
+
+Reserved for the Insider game (Phase 5). Specific assignments are made when the relevant migration lands. Examples planned:
+
+- `PGAME10` — not master (insider-specific role check)
+- `PGAME11` — already voted
+- `PGAME12` — vote target not in `eligible_voter_ids`
+- `PGAME13` — round phase mismatch (state machine guard, per C2.A)
+
+## Future games (PGAME50–PGAME89)
+
+Reserved blocks for games that ship after Insider. Assigned per-game when the game lands.
+
+## UNKNOWN
+
+If the Supabase error has no `code` field, `dispatch()` throws `GameRpcError` with `code = "UNKNOWN"`. Treat this as an unexpected backend or network condition; surface a generic Thai error message in the UI and log `error.context` for diagnostics.
+
+## Adding a new code
+
+1. Pick the next free slot in the appropriate range.
+2. Add the `raise exception ... using errcode = 'PGAMExx'` in the migration.
+3. Append a row to the table above with a one-line meaning.
+4. (Optional) Add a Thai user-facing message in the consuming app's error map.
