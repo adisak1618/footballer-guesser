@@ -3,22 +3,44 @@
 import * as React from "react"
 import { SlotInput } from "@social-hub/ui"
 import { ROOM_CODE_LENGTH } from "@social-hub/core"
+import { lookupRoom, type GameType } from "../actions/lookup-room"
 
-const HEADBALL_URL =
-  process.env.NEXT_PUBLIC_HEADBALL_URL ?? "http://localhost:3000"
+const GAME_URLS: Record<GameType, string> = {
+  headball:
+    process.env.NEXT_PUBLIC_HEADBALL_URL ?? "http://localhost:3000",
+  insider:
+    process.env.NEXT_PUBLIC_INSIDER_URL ?? "http://localhost:3002",
+}
 
 export default function JoinPage() {
   const [code, setCode] = React.useState("")
-  const [error] = React.useState<string | null>(null)
+  const [error, setError] = React.useState<string | null>(null)
+  const [submitting, setSubmitting] = React.useState(false)
   const isReady = code.length === ROOM_CODE_LENGTH
 
-  // US-034 hardcodes the Headball redirect target. US-035 replaces this with
-  // the lookup-room server action that queries `rooms.game_type` and routes
-  // to the correct subdomain (or surfaces a "room not found" banner-error).
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    if (!isReady) return
-    window.location.assign(`${HEADBALL_URL}/room/${code}`)
+    if (!isReady || submitting) return
+    setError(null)
+    setSubmitting(true)
+    try {
+      const result = await lookupRoom(code)
+      const target = GAME_URLS[result.gameType]
+      window.location.assign(`${target}/room/${result.code}`)
+    } catch (err) {
+      // Class identity (`instanceof GameRpcError`) is lost across the RSC
+      // server-action boundary, so match on the message text the action sets.
+      // Fallback covers redacted production errors and unexpected failures.
+      const raw = err instanceof Error ? err.message : ""
+      const message = raw.includes("Room not found")
+        ? "ห้องไม่พบ / Room not found"
+        : raw.includes("Invalid room code") ||
+            raw.includes("รหัสห้องไม่ถูกต้อง")
+          ? "รหัสห้องไม่ถูกต้อง / Invalid room code"
+          : "เกิดข้อผิดพลาด / Something went wrong"
+      setError(message)
+      setSubmitting(false)
+    }
   }
 
   return (
@@ -40,7 +62,7 @@ export default function JoinPage() {
 
         {/* 24px reserved error banner space (DESIGN.md banner-error pattern):
          * always rendered so layout doesn't shift when an error appears
-         * (US-035 will populate via lookup-room: room not found / room full). */}
+         * (lookup-room: room not found / invalid code / unknown error). */}
         <div
           data-slot="join-error"
           role="status"
@@ -56,10 +78,11 @@ export default function JoinPage() {
 
         <button
           type="submit"
-          disabled={!isReady}
+          disabled={!isReady || submitting}
+          aria-busy={submitting}
           className="mt-6 inline-flex min-h-[52px] w-full items-center justify-center rounded-md bg-goal px-6 font-display text-[18px] font-semibold leading-none tracking-[1px] text-on-dark uppercase transition-colors duration-150 hover:bg-goal-active active:translate-y-[1px] disabled:cursor-not-allowed disabled:bg-goal-disabled disabled:opacity-80"
         >
-          JOIN GAME →
+          {submitting ? "LOADING…" : "JOIN GAME →"}
         </button>
       </form>
     </main>

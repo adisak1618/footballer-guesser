@@ -582,8 +582,8 @@
         "Typecheck passes"
       ],
       "priority": 35,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "lookupRoom server action implemented at apps/hub/app/actions/lookup-room.ts. Validates 6-char ROOM_CODE_ALPHABET, queries rooms.game_type, throws GameRpcError ('INVALID_CODE' / 'ROOM_NOT_FOUND' / parsed pg errcode). 6 unit tests pass (apps/hub/app/actions/__tests__/lookup-room.test.ts). /join page wired to call lookupRoom and surface banner-error on failure (matches by err.message text since GameRpcError class identity is lost across the RSC server-action boundary). Hub e2e expanded to 7 specs (3 in join.spec.ts) — seeds + cleans up an ABCDEF room via the new e2e/_helpers/admin.ts service-role helper. Headball + workspace vitest still 102/102 green; hub typecheck + eslint clean."
     },
     {
       "id": "US-036",

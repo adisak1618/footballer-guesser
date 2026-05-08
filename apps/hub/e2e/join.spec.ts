@@ -1,61 +1,79 @@
 import { test, expect } from "@playwright/test"
+import { deleteRoomByCode, insertRoom } from "./_helpers/admin"
 
-// US-034 (Phase 4.3): /join page with slot-input + JOIN GAME CTA
-//
-// US-034 hardcodes the Headball redirect target — the actual lookup-room
-// server action lands in US-035. This spec asserts the full end-to-end
-// behavior: type a 6-char valid Headball code, click JOIN GAME, and the
-// browser navigates to a URL on the headball subdomain at /room/<code>.
-test("/join: typing 6-char code and clicking JOIN GAME redirects to headball /room/<code>", async ({
-  page,
-  context,
-}) => {
-  // The redirect target is on a different origin than the hub dev server.
-  // Stub it so Playwright captures the URL after navigation completes.
-  await context.route(/headball\..*\/room\/[A-Z0-9]{6}$/, (route) =>
-    route.fulfill({
-      status: 200,
-      contentType: "text/html",
-      body: "<html><head><title>Headball Room</title></head><body>headball room stub</body></html>",
-    }),
-  )
+// US-034 introduced /join with a hardcoded Headball redirect.
+// US-035 wires the lookup-room server action: the redirect target now comes
+// from `rooms.game_type` in Supabase, so the e2e seeds a row first.
+const TEST_CODE = "ABCDEF"
 
-  await page.goto("/join")
+test.describe("/join — lookup-room dispatcher (US-035)", () => {
+  test.beforeAll(async () => {
+    await deleteRoomByCode(TEST_CODE)
+    await insertRoom({ code: TEST_CODE, gameType: "headball" })
+  })
 
-  // Header is the Anton 56px "JOIN ROOM" title (bilingual subhead allowed)
-  await expect(page.getByRole("heading", { name: /JOIN ROOM/i })).toBeVisible()
+  test.afterAll(async () => {
+    await deleteRoomByCode(TEST_CODE)
+  })
 
-  // CTA exists and is disabled before any code entered
-  const cta = page.getByRole("button", { name: /JOIN GAME/i })
-  await expect(cta).toBeVisible()
-  await expect(cta).toBeDisabled()
+  test("typing a 6-char Headball code and clicking JOIN GAME redirects to headball /room/<code>", async ({
+    page,
+    context,
+  }) => {
+    // The redirect target is on a different origin than the hub dev server.
+    // Stub it so Playwright captures the URL after navigation completes.
+    await context.route(/headball\..*\/room\/[A-Z0-9]{6}$/, (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: "text/html",
+        body: "<html><head><title>Headball Room</title></head><body>headball room stub</body></html>",
+      }),
+    )
 
-  // Type a 6-char valid Headball room code (alphabet excludes I, O, 0, 1).
-  const code = "ABCDEF"
-  await page.locator('[data-slot="slot-input-cell"]').first().focus()
-  await page.keyboard.type(code)
+    await page.goto("/join")
 
-  // After 6 chars the CTA is enabled
-  await expect(cta).toBeEnabled()
+    await expect(page.getByRole("heading", { name: /JOIN ROOM/i })).toBeVisible()
 
-  await cta.click()
+    const cta = page.getByRole("button", { name: /JOIN GAME/i })
+    await expect(cta).toBeVisible()
+    await expect(cta).toBeDisabled()
 
-  // Redirect URL contains "headball." (subdomain) and "/room/<code>"
-  await page.waitForURL(/headball\..*\/room\/ABCDEF/, { timeout: 10_000 })
-  expect(page.url()).toContain("headball.")
-  expect(page.url()).toContain(`/room/${code}`)
-})
+    await page.locator('[data-slot="slot-input-cell"]').first().focus()
+    await page.keyboard.type(TEST_CODE)
 
-test("/join: error banner space (24px) is reserved above the CTA", async ({
-  page,
-}) => {
-  await page.goto("/join")
+    await expect(cta).toBeEnabled()
 
-  // The reserved error region is rendered (live region) so layout doesn't
-  // shift when an error message appears (room not found / room full).
-  const errorRegion = page.locator('[data-slot="join-error"]')
-  await expect(errorRegion).toBeAttached()
-  // Height is 24px (1.5rem / h-6 in tailwind).
-  const box = await errorRegion.boundingBox()
-  expect(box?.height).toBe(24)
+    await cta.click()
+
+    await page.waitForURL(/headball\..*\/room\/ABCDEF/, { timeout: 10_000 })
+    expect(page.url()).toContain("headball.")
+    expect(page.url()).toContain(`/room/${TEST_CODE}`)
+  })
+
+  test("typing an unseeded code surfaces banner-error 'Room not found'", async ({
+    page,
+  }) => {
+    await page.goto("/join")
+
+    const cta = page.getByRole("button", { name: /JOIN GAME/i })
+    // Use a code that exists in the alphabet but is not seeded.
+    await page.locator('[data-slot="slot-input-cell"]').first().focus()
+    await page.keyboard.type("ZZZZZZ")
+    await expect(cta).toBeEnabled()
+    await cta.click()
+
+    const errorRegion = page.locator('[data-slot="join-error"]')
+    await expect(errorRegion).toContainText(/Room not found/i)
+  })
+
+  test("error banner space (24px) is reserved above the CTA", async ({
+    page,
+  }) => {
+    await page.goto("/join")
+
+    const errorRegion = page.locator('[data-slot="join-error"]')
+    await expect(errorRegion).toBeAttached()
+    const box = await errorRegion.boundingBox()
+    expect(box?.height).toBe(24)
+  })
 })
