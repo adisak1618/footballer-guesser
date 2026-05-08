@@ -617,6 +617,19 @@ export type Database = {
           room_id: string
         }[]
       }
+      mark_correct_guess: {
+        Args: { p_player_id: string; p_room_id: string; p_round: number }
+        Returns: undefined
+      }
+      master_respond: {
+        Args: {
+          p_player_id: string
+          p_response: string
+          p_room_id: string
+          p_round: number
+        }
+        Returns: undefined
+      }
       next_round: {
         Args: { p_host_player_id: string; p_room_id: string }
         Returns: undefined

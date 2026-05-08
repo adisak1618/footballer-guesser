@@ -60,9 +60,9 @@ Reserved for the Insider game (Phase 5). Specific assignments are made when the 
 - `PGAME12` — only host can start round (host authorization on `start_insider_round`; bound by `0023_start_insider_round.sql`)
 - `PGAME13` — room not in lobby (LOBBY-status guard on `start_insider_round`; bound by `0023_start_insider_round.sql`)
 - `PGAME14` — fewer than 3 players (player-count gate on `start_insider_round`; bound by `0023_start_insider_round.sql`)
-- `PGAME15` — only master can respond (master-only authorization on `master_respond`; bound by `0024_master_respond.sql`)
-- `PGAME16` — phase != 'asking' (phase guard on `master_respond`; bound by `0024_master_respond.sql`)
-- `PGAME10`, `PGAME17`+ — unassigned. Future Insider RPCs (`mark_correct_guess`, `cast_vote`, …) will pick from the next free slots.
+- `PGAME15` — only master can perform this action (master-only authorization; bound by `0024_master_respond.sql` and shared by `0025_mark_correct_guess.sql`)
+- `PGAME16` — phase != 'asking' (phase guard for master-only RPCs that run during the asking phase; bound by `0024_master_respond.sql` and shared by `0025_mark_correct_guess.sql`)
+- `PGAME10`, `PGAME17`+ — unassigned. Future Insider RPCs (`cast_vote`, `advance_to_reveal`, `expire_round`, …) will pick from the next free slots.
 
 ## Future games (PGAME50–PGAME89)
 
