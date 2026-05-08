@@ -16,13 +16,27 @@ type League = "premier-league" | "la-liga" | "serie-a" | "bundesliga" | "ligue-1
 type Club = { qid: string; slug: string; name: string; league: League };
 
 const CLUBS: readonly Club[] = [
-  // Premier League
-  { qid: "Q1130849", slug: "liverpool",   name: "Liverpool F.C.",          league: "premier-league" },
-  { qid: "Q18656",   slug: "man-united",  name: "Manchester United F.C.",  league: "premier-league" },
-  { qid: "Q9617",    slug: "arsenal",     name: "Arsenal F.C.",            league: "premier-league" },
-  { qid: "Q9616",    slug: "chelsea",     name: "Chelsea F.C.",            league: "premier-league" },
-  { qid: "Q50602",   slug: "man-city",    name: "Manchester City F.C.",    league: "premier-league" },
-  { qid: "Q18741",   slug: "tottenham",   name: "Tottenham Hotspur F.C.",  league: "premier-league" },
+  // Premier League — current 2025-26 season (20 clubs)
+  { qid: "Q1130849", slug: "liverpool",       name: "Liverpool F.C.",                  league: "premier-league" },
+  { qid: "Q18656",   slug: "man-united",      name: "Manchester United F.C.",          league: "premier-league" },
+  { qid: "Q9617",    slug: "arsenal",         name: "Arsenal F.C.",                    league: "premier-league" },
+  { qid: "Q9616",    slug: "chelsea",         name: "Chelsea F.C.",                    league: "premier-league" },
+  { qid: "Q50602",   slug: "man-city",        name: "Manchester City F.C.",            league: "premier-league" },
+  { qid: "Q18741",   slug: "tottenham",       name: "Tottenham Hotspur F.C.",          league: "premier-league" },
+  { qid: "Q19568",   slug: "bournemouth",     name: "AFC Bournemouth",                 league: "premier-league" },
+  { qid: "Q18711",   slug: "aston-villa",     name: "Aston Villa F.C.",                league: "premier-league" },
+  { qid: "Q19571",   slug: "brentford",       name: "Brentford F.C.",                  league: "premier-league" },
+  { qid: "Q19453",   slug: "brighton",        name: "Brighton & Hove Albion F.C.",     league: "premier-league" },
+  { qid: "Q19458",   slug: "burnley",         name: "Burnley F.C.",                    league: "premier-league" },
+  { qid: "Q19467",   slug: "crystal-palace",  name: "Crystal Palace F.C.",             league: "premier-league" },
+  { qid: "Q5794",    slug: "everton",         name: "Everton F.C.",                    league: "premier-league" },
+  { qid: "Q18708",   slug: "fulham",          name: "Fulham F.C.",                     league: "premier-league" },
+  { qid: "Q1128631", slug: "leeds",           name: "Leeds United F.C.",               league: "premier-league" },
+  { qid: "Q18716",   slug: "newcastle",       name: "Newcastle United F.C.",           league: "premier-league" },
+  { qid: "Q19490",   slug: "nottingham",      name: "Nottingham Forest F.C.",          league: "premier-league" },
+  { qid: "Q18739",   slug: "sunderland",      name: "Sunderland A.F.C.",               league: "premier-league" },
+  { qid: "Q18747",   slug: "west-ham",        name: "West Ham United F.C.",            league: "premier-league" },
+  { qid: "Q19500",   slug: "wolves",          name: "Wolverhampton Wanderers F.C.",    league: "premier-league" },
   // La Liga
   { qid: "Q8682",    slug: "real-madrid", name: "Real Madrid CF",          league: "la-liga" },
   { qid: "Q7156",    slug: "barcelona",   name: "FC Barcelona",            league: "la-liga" },

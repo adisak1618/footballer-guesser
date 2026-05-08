@@ -4,39 +4,29 @@
     {
       "slug": "premier-league-alumni",
       "label_th": "เคยเล่นในพรีเมียร์ลีก",
-      "label_en": "Played for a Premier League big-six club",
+      "label_en": "Played for any 2025-26 Premier League club",
       "query": {
         "any": [
-          {
-            "field": "clubs_named",
-            "op": "contains",
-            "value": "Liverpool F.C."
-          },
-          {
-            "field": "clubs_named",
-            "op": "contains",
-            "value": "Manchester United F.C."
-          },
-          {
-            "field": "clubs_named",
-            "op": "contains",
-            "value": "Arsenal F.C."
-          },
-          {
-            "field": "clubs_named",
-            "op": "contains",
-            "value": "Chelsea F.C."
-          },
-          {
-            "field": "clubs_named",
-            "op": "contains",
-            "value": "Manchester City F.C."
-          },
-          {
-            "field": "clubs_named",
-            "op": "contains",
-            "value": "Tottenham Hotspur F.C."
-          }
+          { "field": "clubs_named", "op": "contains", "value": "Liverpool F.C." },
+          { "field": "clubs_named", "op": "contains", "value": "Manchester United F.C." },
+          { "field": "clubs_named", "op": "contains", "value": "Arsenal F.C." },
+          { "field": "clubs_named", "op": "contains", "value": "Chelsea F.C." },
+          { "field": "clubs_named", "op": "contains", "value": "Manchester City F.C." },
+          { "field": "clubs_named", "op": "contains", "value": "Tottenham Hotspur F.C." },
+          { "field": "clubs_named", "op": "contains", "value": "AFC Bournemouth" },
+          { "field": "clubs_named", "op": "contains", "value": "Aston Villa F.C." },
+          { "field": "clubs_named", "op": "contains", "value": "Brentford F.C." },
+          { "field": "clubs_named", "op": "contains", "value": "Brighton & Hove Albion F.C." },
+          { "field": "clubs_named", "op": "contains", "value": "Burnley F.C." },
+          { "field": "clubs_named", "op": "contains", "value": "Crystal Palace F.C." },
+          { "field": "clubs_named", "op": "contains", "value": "Everton F.C." },
+          { "field": "clubs_named", "op": "contains", "value": "Fulham F.C." },
+          { "field": "clubs_named", "op": "contains", "value": "Leeds United F.C." },
+          { "field": "clubs_named", "op": "contains", "value": "Newcastle United F.C." },
+          { "field": "clubs_named", "op": "contains", "value": "Nottingham Forest F.C." },
+          { "field": "clubs_named", "op": "contains", "value": "Sunderland A.F.C." },
+          { "field": "clubs_named", "op": "contains", "value": "West Ham United F.C." },
+          { "field": "clubs_named", "op": "contains", "value": "Wolverhampton Wanderers F.C." }
         ]
       }
     },

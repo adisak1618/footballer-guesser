@@ -337,6 +337,7 @@ async function main(): Promise<void> {
 
   // Always have a "premier-league" category to keep the existing
   // rooms.category default ('premier-league') working out of the box.
+  // Mirrors the 20 current PL clubs in fetch-wikidata.ts CLUBS array.
   if (!resolved.has("premier-league")) {
     const plClubs = [
       "Liverpool F.C.",
@@ -345,6 +346,20 @@ async function main(): Promise<void> {
       "Chelsea F.C.",
       "Manchester City F.C.",
       "Tottenham Hotspur F.C.",
+      "AFC Bournemouth",
+      "Aston Villa F.C.",
+      "Brentford F.C.",
+      "Brighton & Hove Albion F.C.",
+      "Burnley F.C.",
+      "Crystal Palace F.C.",
+      "Everton F.C.",
+      "Fulham F.C.",
+      "Leeds United F.C.",
+      "Newcastle United F.C.",
+      "Nottingham Forest F.C.",
+      "Sunderland A.F.C.",
+      "West Ham United F.C.",
+      "Wolverhampton Wanderers F.C.",
     ];
     const ids = players
       .filter((p) => p.clubs_named.some((c) => plClubs.includes(c)))
@@ -352,7 +367,7 @@ async function main(): Promise<void> {
     resolved.set("premier-league", ids);
     categoriesFile.categories.push({
       slug: "premier-league",
-      label_en: "Premier League (any big-six club)",
+      label_en: "Premier League (any 2025-26 club)",
       label_th: "พรีเมียร์ลีก",
       query: {
         any: plClubs.map((c) => ({ field: "clubs_named", op: "contains", value: c })),
