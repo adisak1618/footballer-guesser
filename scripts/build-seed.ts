@@ -1,7 +1,7 @@
 // Build the curated seed JSON from raw Wikidata dumps.
 // Run: bun run scripts/build-seed.ts
 //
-// Inputs:  data/raw/wikidata-*.json
+// Inputs:  data/raw/{league}/{club}.json  (nested by league)
 // Outputs: data/seed/players.json
 //          data/seed/categories.json   (regenerated only if missing)
 //          data/premier-league.ts      (client-side autocomplete dictionary)
@@ -128,14 +128,18 @@ function shouldKeep(row: SparqlBinding): boolean {
 // ---------- Pipeline ----------
 
 async function loadAllRaw(): Promise<SparqlBinding[]> {
-  const files = (await readdir(RAW_DIR)).filter((f) =>
-    f.startsWith("wikidata-") && f.endsWith(".json"),
-  );
+  // Walk one level deep: data/raw/{league}/{club}.json
   const allRows: SparqlBinding[] = [];
-  for (const file of files) {
-    const raw = await readFile(join(RAW_DIR, file), "utf8");
-    const parsed = JSON.parse(raw) as SparqlFile;
-    allRows.push(...parsed.results.bindings);
+  const entries = await readdir(RAW_DIR, { withFileTypes: true });
+  for (const entry of entries) {
+    if (!entry.isDirectory()) continue;
+    const leagueDir = join(RAW_DIR, entry.name);
+    const files = (await readdir(leagueDir)).filter((f) => f.endsWith(".json"));
+    for (const file of files) {
+      const raw = await readFile(join(leagueDir, file), "utf8");
+      const parsed = JSON.parse(raw) as SparqlFile;
+      allRows.push(...parsed.results.bindings);
+    }
   }
   return allRows;
 }

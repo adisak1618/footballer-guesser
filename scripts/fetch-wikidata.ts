@@ -12,24 +12,30 @@ import { fileURLToPath } from "node:url";
 const HERE = dirname(fileURLToPath(import.meta.url));
 const OUT_DIR = join(HERE, "..", "data", "raw");
 
-type Club = { qid: string; slug: string; name: string };
+type League = "premier-league" | "la-liga" | "serie-a" | "bundesliga" | "ligue-1";
+type Club = { qid: string; slug: string; name: string; league: League };
 
 const CLUBS: readonly Club[] = [
-  { qid: "Q1130849", slug: "liverpool",   name: "Liverpool F.C." },
-  { qid: "Q18656",   slug: "man-united",  name: "Manchester United F.C." },
-  { qid: "Q9617",    slug: "arsenal",     name: "Arsenal F.C." },
-  { qid: "Q9616",    slug: "chelsea",     name: "Chelsea F.C." },
-  { qid: "Q50602",   slug: "man-city",    name: "Manchester City F.C." },
-  { qid: "Q18741",   slug: "tottenham",   name: "Tottenham Hotspur F.C." },
-  { qid: "Q8682",    slug: "real-madrid", name: "Real Madrid CF" },
-  { qid: "Q7156",    slug: "barcelona",   name: "FC Barcelona" },
-  { qid: "Q8701",    slug: "atletico",    name: "Atlético Madrid" },
-  { qid: "Q1543",    slug: "ac-milan",    name: "AC Milan" },
-  { qid: "Q631",     slug: "inter",       name: "Inter Milan" },
-  { qid: "Q1422",    slug: "juventus",    name: "Juventus FC" },
-  { qid: "Q15789",   slug: "bayern",      name: "FC Bayern Munich" },
-  { qid: "Q41420",   slug: "dortmund",    name: "Borussia Dortmund" },
-  { qid: "Q483020",  slug: "psg",         name: "Paris Saint-Germain FC" },
+  // Premier League
+  { qid: "Q1130849", slug: "liverpool",   name: "Liverpool F.C.",          league: "premier-league" },
+  { qid: "Q18656",   slug: "man-united",  name: "Manchester United F.C.",  league: "premier-league" },
+  { qid: "Q9617",    slug: "arsenal",     name: "Arsenal F.C.",            league: "premier-league" },
+  { qid: "Q9616",    slug: "chelsea",     name: "Chelsea F.C.",            league: "premier-league" },
+  { qid: "Q50602",   slug: "man-city",    name: "Manchester City F.C.",    league: "premier-league" },
+  { qid: "Q18741",   slug: "tottenham",   name: "Tottenham Hotspur F.C.",  league: "premier-league" },
+  // La Liga
+  { qid: "Q8682",    slug: "real-madrid", name: "Real Madrid CF",          league: "la-liga" },
+  { qid: "Q7156",    slug: "barcelona",   name: "FC Barcelona",            league: "la-liga" },
+  { qid: "Q8701",    slug: "atletico",    name: "Atlético Madrid",         league: "la-liga" },
+  // Serie A
+  { qid: "Q1543",    slug: "ac-milan",    name: "AC Milan",                league: "serie-a" },
+  { qid: "Q631",     slug: "inter",       name: "Inter Milan",             league: "serie-a" },
+  { qid: "Q1422",    slug: "juventus",    name: "Juventus FC",             league: "serie-a" },
+  // Bundesliga
+  { qid: "Q15789",   slug: "bayern",      name: "FC Bayern Munich",        league: "bundesliga" },
+  { qid: "Q41420",   slug: "dortmund",    name: "Borussia Dortmund",       league: "bundesliga" },
+  // Ligue 1
+  { qid: "Q483020",  slug: "psg",         name: "Paris Saint-Germain FC",  league: "ligue-1" },
 ];
 
 const SPARQL_ENDPOINT = "https://query.wikidata.org/sparql";
@@ -90,7 +96,9 @@ async function main(): Promise<void> {
 
   let total = 0;
   for (const club of CLUBS) {
-    process.stdout.write(`[${club.slug.padEnd(12)}] fetching... `);
+    process.stdout.write(
+      `[${club.league.padEnd(14)} / ${club.slug.padEnd(12)}] fetching... `,
+    );
     const start = Date.now();
 
     try {
@@ -101,7 +109,9 @@ async function main(): Promise<void> {
       total += count;
       const dur = Date.now() - start;
 
-      const path = join(OUT_DIR, `wikidata-${club.slug}.json`);
+      const leagueDir = join(OUT_DIR, club.league);
+      await mkdir(leagueDir, { recursive: true });
+      const path = join(leagueDir, `${club.slug}.json`);
       await writeFile(path, JSON.stringify(data, null, 2));
       console.log(`${String(count).padStart(5)} rows  (${dur}ms)`);
     } catch (err) {
