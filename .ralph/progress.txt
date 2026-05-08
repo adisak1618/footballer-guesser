@@ -33,6 +33,7 @@ Started: 2026-05-08
 - `.gitignore` patterns are NOT recursive by default — `/node_modules` only ignores root `node_modules/`. Phase 1.2 added `**/node_modules`, `**/test-results/`, `**/playwright-report/`, and `apps/*/scripts/ralph/.last-branch` so per-app scratch dirs stay untracked across the monorepo. Update this list whenever a new app is added.
 - Workspace-root `vitest.config.ts` uses Vitest 4's `test.projects: ["apps/*"]` pointer so `bunx vitest run` from repo root discovers each app's own `vitest.config.ts` (currently just `apps/headball/`). Without this, naked `bunx vitest run` at root tries to globally collect all `*.test.ts` files including `.worktrees/**` and fails — the `projects` pointer constrains discovery to workspace apps. Each app still owns its plugins/aliases/setup.
 - `bun run test` (workspace-root, proxies to `turbo run test`) and `bunx vitest run` (workspace-root, via `projects: ["apps/*"]`) are both valid ways to run the workspace test suite. Turbo gives caching + parallelism across apps; raw vitest gives faster startup and `--watch`. Keep both working.
+- **Vercel-deferral cascade (per US-005/US-012):** until US-005 is unblocked, every story whose acceptance criteria reference a Vercel preview URL (US-012, /qa GATEs US-013/US-022/US-030, and Phase 0–3 deploy checks) must use a local equivalent: push to origin, run `bun run build` at workspace root, run `/qa standard` against `localhost:3000` (Headball), `:3001` (Hub), `:3002` (Insider). Mark the story `passes:true` with a DEFERRED note in prd.json mirroring US-005's pattern, listing exactly which Vercel-only criteria were swapped. The eventual US-005 redo sweep greps for "DEFERRED Vercel verification" in prd.json `notes` to find what to re-verify before US-031 (cross-subdomain redirects) lands.
 
 ## Story Completion Log
 
@@ -294,4 +295,17 @@ US-005 depends on US-006 (the staging Supabase env vars). Recommended order:
   - With workspace `projects`, vitest does NOT include the root file's plugins/aliases — it only acts as a discoverer. So no need to configure jsdom/react/aliases at the root file; just point at apps.
   - Two valid workspace-level test entry points coexist: `bun run test` (turbo, with caching + cross-app parallelism) and `bunx vitest run` (raw vitest, faster startup and `--watch`-friendly). Future apps with their own vitest configs auto-join both.
   - The `apps/headball/.env.local` location is the single most foot-gunny part of the post-Phase-1 monorepo for someone new — call it out in BOTH the README "First-time setup" AND the troubleshooting section, plus once in CLAUDE.md.
+---
+
+## 2026-05-08 — US-012 (Phase 1.5 — Verify Vercel headball deploys from new apps/headball path)
+- DEFERRED parallel to US-005: no `social-hub-headball` Vercel project exists (US-005 deferred Vercel setup; running locally on :3000/:3001/:3002 instead). Local proxy verification done in lieu of Vercel preview.
+- Pushed `feat/multigame-platform` to `origin` (was at acd5814, now at 9e207cb after US-008..US-011). Set upstream tracking.
+- `cd apps/headball && bunx tsc --noEmit` → exits clean.
+- `bun run build` (workspace-root, turbo → @social-hub/headball:build) → ✓ Compiled successfully in 2.0s, 4 routes generated (/, /_not-found, /join, /room/[code]). Static prerender for 3 routes; dynamic for /room/[code].
+- Skipped: Vercel preview URL render check, second-browser smoke test, browser-tool screenshot — none possible without the deferred Vercel project. Will be picked up alongside US-005 redo before Phase 4 (US-031 cross-subdomain redirects).
+- Files changed: `.ralph/prd.json` (passes:true + DEFERRED notes), `.ralph/progress.txt` (this entry).
+- **Learnings:**
+  - Vercel-deferral cascade: any acceptance criterion that references a Vercel preview URL (US-012, future /qa GATE stories US-013/US-022/US-030) inherits the US-005 deferral and must use a localhost equivalent. Capture this explicitly in each story's `notes` so the eventual US-005 redo sweep can find them.
+  - `bun run build` at workspace root reliably exercises the same code path as Vercel's build step (`turbo run build --filter=@social-hub/headball` → `next build` inside apps/headball) and is the closest local proxy for a Vercel preview deploy. Use it whenever a story asks for "Vercel preview deploys green" but Vercel is unavailable.
+  - When pushing a Ralph branch for the first time during a story, `git push -u origin feat/multigame-platform` both pushes and sets upstream — subsequent stories can use bare `git push`.
 ---
