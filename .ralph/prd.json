@@ -230,8 +230,8 @@
         "Typecheck passes"
       ],
       "priority": 14,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Moved lib/room-code.ts → packages/core/src/room-code.ts; made createRoomWithRetry generic on <TArgs, TResult> and untyped Database (FR-2.1: packages/core stays game-agnostic). headball passes its own CreateRoomArgs/CreateRoomResult at the call site. Workspace-root vitest.config.ts projects expanded to ['apps/*', 'packages/core']. Verified: bunx vitest run = 57/57 across 7 files (8 of those are now |@social-hub/core|), bunx tsc --noEmit clean in apps/headball + packages/core, bun run build green. Old apps/headball/lib/room-code.ts and __tests__/ entry deleted."
     },
     {
       "id": "US-015",

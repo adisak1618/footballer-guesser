@@ -1,6 +1,5 @@
 import { describe, expect, it, vi } from "vitest"
 import type { SupabaseClient } from "@supabase/supabase-js"
-import type { Database } from "@/lib/database.types"
 import {
   ROOM_CODE_ALPHABET,
   ROOM_CODE_LENGTH,
@@ -8,7 +7,7 @@ import {
   RoomCodeCollisionError,
   createRoomWithRetry,
   generateRoomCode,
-} from "@/lib/room-code"
+} from "../room-code"
 
 describe("generateRoomCode", () => {
   it("produces a 6-char string", () => {
@@ -33,7 +32,14 @@ describe("generateRoomCode", () => {
   })
 })
 
-type CreateRoomArgs = Parameters<typeof createRoomWithRetry>[1]
+type CreateRoomArgs = {
+  p_max_rounds: number
+  p_score_positions: number
+  p_host_name: string
+  p_host_player_id: string
+}
+
+type CreateRoomResult = { code: string; player_id: string }
 
 const validArgs: CreateRoomArgs = {
   p_max_rounds: 5,
@@ -43,7 +49,7 @@ const validArgs: CreateRoomArgs = {
 }
 
 function makeMockSupabase(rpcImpl: (name: string, args: unknown) => unknown) {
-  return { rpc: vi.fn(rpcImpl) } as unknown as SupabaseClient<Database>
+  return { rpc: vi.fn(rpcImpl) } as unknown as SupabaseClient
 }
 
 describe("createRoomWithRetry", () => {
@@ -52,7 +58,10 @@ describe("createRoomWithRetry", () => {
     const supabase = makeMockSupabase(() =>
       Promise.resolve({ data: [row], error: null }),
     )
-    const result = await createRoomWithRetry(supabase, validArgs)
+    const result = await createRoomWithRetry<CreateRoomArgs, CreateRoomResult>(
+      supabase,
+      validArgs,
+    )
     expect(result).toEqual(row)
     expect(supabase.rpc).toHaveBeenCalledTimes(1)
     expect(supabase.rpc).toHaveBeenCalledWith("create_room", validArgs)
@@ -62,9 +71,9 @@ describe("createRoomWithRetry", () => {
     const supabase = makeMockSupabase(() =>
       Promise.resolve({ data: null, error: { code: "23505", message: "dup" } }),
     )
-    await expect(createRoomWithRetry(supabase, validArgs)).rejects.toBeInstanceOf(
-      RoomCodeCollisionError,
-    )
+    await expect(
+      createRoomWithRetry<CreateRoomArgs, CreateRoomResult>(supabase, validArgs),
+    ).rejects.toBeInstanceOf(RoomCodeCollisionError)
     expect(supabase.rpc).toHaveBeenCalledTimes(ROOM_CODE_MAX_RETRIES)
   })
 
@@ -78,7 +87,10 @@ describe("createRoomWithRetry", () => {
       }
       return Promise.resolve({ data: [row], error: null })
     })
-    const result = await createRoomWithRetry(supabase, validArgs)
+    const result = await createRoomWithRetry<CreateRoomArgs, CreateRoomResult>(
+      supabase,
+      validArgs,
+    )
     expect(result).toEqual(row)
     expect(supabase.rpc).toHaveBeenCalledTimes(3)
   })
@@ -88,7 +100,9 @@ describe("createRoomWithRetry", () => {
     const supabase = makeMockSupabase(() =>
       Promise.resolve({ data: null, error }),
     )
-    await expect(createRoomWithRetry(supabase, validArgs)).rejects.toEqual(error)
+    await expect(
+      createRoomWithRetry<CreateRoomArgs, CreateRoomResult>(supabase, validArgs),
+    ).rejects.toEqual(error)
     expect(supabase.rpc).toHaveBeenCalledTimes(1)
   })
 
@@ -96,9 +110,9 @@ describe("createRoomWithRetry", () => {
     const supabase = makeMockSupabase(() =>
       Promise.resolve({ data: null, error: { code: "23505", message: "dup" } }),
     )
-    await expect(createRoomWithRetry(supabase, validArgs, 2)).rejects.toBeInstanceOf(
-      RoomCodeCollisionError,
-    )
+    await expect(
+      createRoomWithRetry<CreateRoomArgs, CreateRoomResult>(supabase, validArgs, 2),
+    ).rejects.toBeInstanceOf(RoomCodeCollisionError)
     expect(supabase.rpc).toHaveBeenCalledTimes(2)
   })
 })

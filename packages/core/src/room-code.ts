@@ -1,9 +1,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js"
-import type { Database } from "@/lib/database.types"
-import type { CreateRoomArgs, CreateRoomResult } from "@/lib/types"
 
 export const ROOM_CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
 export const ROOM_CODE_LENGTH = 6
+export const ROOM_CODE_MAX_RETRIES = 5
 
 export function generateRoomCode(): string {
   const bytes = new Uint8Array(ROOM_CODE_LENGTH)
@@ -16,7 +15,6 @@ export function generateRoomCode(): string {
 }
 
 const UNIQUE_VIOLATION_CODE = "23505"
-export const ROOM_CODE_MAX_RETRIES = 5
 
 export class RoomCodeCollisionError extends Error {
   constructor(message = "ไม่สามารถสร้างรหัสห้องได้ ลองอีกครั้ง") {
@@ -25,16 +23,19 @@ export class RoomCodeCollisionError extends Error {
   }
 }
 
-export async function createRoomWithRetry(
-  supabase: SupabaseClient<Database>,
-  args: CreateRoomArgs,
+export async function createRoomWithRetry<TArgs = unknown, TResult = unknown>(
+  supabase: SupabaseClient,
+  args: TArgs,
   maxRetries: number = ROOM_CODE_MAX_RETRIES,
-): Promise<CreateRoomResult> {
+): Promise<TResult> {
   let lastError: unknown = null
   for (let attempt = 0; attempt < maxRetries; attempt++) {
-    const { data, error } = await supabase.rpc("create_room", args)
+    const { data, error } = await supabase.rpc(
+      "create_room",
+      args as Record<string, unknown>,
+    )
     if (!error) {
-      const row = data?.[0]
+      const row = (data as TResult[] | null)?.[0]
       if (!row) throw new Error("create_room returned no row")
       return row
     }

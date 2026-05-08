@@ -1,7 +1,8 @@
 "use server"
 
 import { z } from "zod"
-import { createRoomWithRetry, RoomCodeCollisionError } from "@/lib/room-code"
+import { createRoomWithRetry, RoomCodeCollisionError } from "@social-hub/core"
+import type { CreateRoomArgs, CreateRoomResult } from "@/lib/types"
 import { displayNameSchema } from "@/lib/schemas"
 import { createSupabaseServerClient } from "@/lib/supabase-server"
 
@@ -30,12 +31,15 @@ export async function createRoomAction(
 
   try {
     const supabase = createSupabaseServerClient()
-    const result = await createRoomWithRetry(supabase, {
-      p_max_rounds: DEFAULT_MAX_ROUNDS,
-      p_score_positions: DEFAULT_SCORE_POSITIONS,
-      p_host_name: parsed.data.displayName,
-      p_host_player_id: parsed.data.playerId,
-    })
+    const result = await createRoomWithRetry<CreateRoomArgs, CreateRoomResult>(
+      supabase,
+      {
+        p_max_rounds: DEFAULT_MAX_ROUNDS,
+        p_score_positions: DEFAULT_SCORE_POSITIONS,
+        p_host_name: parsed.data.displayName,
+        p_host_player_id: parsed.data.playerId,
+      },
+    )
     return { ok: true, code: result.code, playerId: result.player_id }
   } catch (error) {
     if (error instanceof RoomCodeCollisionError) {
