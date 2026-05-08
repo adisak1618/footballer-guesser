@@ -31,6 +31,8 @@ Started: 2026-05-08
 - `apps/headball/.env.local` is required for `bunx playwright test` from `apps/headball/`. Next.js loads `.env.local` from its project directory (where `next.config.ts` lives), so it's NOT inherited from workspace root. The maintainer copies (or symlinks) workspace-root `.env.local` to `apps/headball/.env.local` after first checkout. Both are gitignored.
 - `postcss.config.mjs` stays at workspace root through Phase 1; PostCSS uses `postcss-load-config` which searches up the dir tree, so Tailwind v4 still works for `apps/headball/` even though the postcss config is one level above. Move it into `apps/headball/` only if a future per-app PostCSS config is needed.
 - `.gitignore` patterns are NOT recursive by default — `/node_modules` only ignores root `node_modules/`. Phase 1.2 added `**/node_modules`, `**/test-results/`, `**/playwright-report/`, and `apps/*/scripts/ralph/.last-branch` so per-app scratch dirs stay untracked across the monorepo. Update this list whenever a new app is added.
+- Workspace-root `vitest.config.ts` uses Vitest 4's `test.projects: ["apps/*"]` pointer so `bunx vitest run` from repo root discovers each app's own `vitest.config.ts` (currently just `apps/headball/`). Without this, naked `bunx vitest run` at root tries to globally collect all `*.test.ts` files including `.worktrees/**` and fails — the `projects` pointer constrains discovery to workspace apps. Each app still owns its plugins/aliases/setup.
+- `bun run test` (workspace-root, proxies to `turbo run test`) and `bunx vitest run` (workspace-root, via `projects: ["apps/*"]`) are both valid ways to run the workspace test suite. Turbo gives caching + parallelism across apps; raw vitest gives faster startup and `--watch`. Keep both working.
 
 ## Story Completion Log
 
@@ -273,4 +275,23 @@ US-005 depends on US-006 (the staging Supabase env vars). Recommended order:
   - `supabase/` MUST stay at workspace root through all phases — Insider and Hub will share the same Postgres + migrations + Realtime publications. Per A4, never split or duplicate `supabase/migrations/` per-app.
   - `bunx supabase db reset` from workspace root works regardless of current working directory because the Supabase CLI walks up looking for `supabase/config.toml`. Migrations apply against the linked local stack started by `bunx supabase start`.
   - The "no files matched pattern: supabase/seed.sql" warning is expected for this repo — Headball seeds Premier League players via migrations (0003 + 0010 replace_player_seed). Don't add a `supabase/seed.sql` file just to silence the warning.
+---
+
+## 2026-05-08 — US-011 (Phase 1.4 — Update CLAUDE.md and README for monorepo dev workflow)
+- Rewrote workspace-root `CLAUDE.md` to describe the monorepo: project structure tree (apps/, packages/, data/, supabase/, docs/, tasks/, .ralph/, tsconfig.base.json, turbo.json), `apps/headball/.env.local` requirement (Next loads .env.local from project dir), workspace-level vs per-package commands (typecheck per-package because no workspace-root tsconfig.json), workspace conventions section (path aliases, vitest array-form aliases, "adding a new app" checklist), and updated Key Files table to point at `apps/headball/...` paths.
+- Rewrote workspace-root `README.md` to match: monorepo intro, repo layout tree, env-var path now `apps/headball/.env.local`, workspace scripts table (dev/dev:all/dev:hub/dev:insider/build/build:all/lint/test/seed:all), per-app commands section (cd apps/headball && bunx tsc --noEmit / playwright test), Headball app layout block now scoped under `apps/headball/`, troubleshooting entry for "bunx tsc from root prints help text".
+- Added workspace-root `vitest.config.ts` with `test.projects: ["apps/*"]` so `bunx vitest run` from repo root discovers each app's vitest.config.ts. Without this, naked vitest from root tried to scan `.worktrees/**` and failed. With it, 57/57 tests pass from workspace root in 1.12s.
+- Verified each acceptance criterion:
+  - CLAUDE.md updated → yes, includes new dev/test commands and "Project structure" section.
+  - README.md updated → yes, "Repo layout" + "Workspace scripts" + "Per-app commands" sections describe the monorepo workflow.
+  - Workspace-level package.json `dev` already proxies to `turbo run dev --filter=@social-hub/headball` (existing from US-008) → confirmed.
+  - `bunx vitest run` from workspace root → 7 files / 57 tests passed (1.12s).
+  - `cd apps/headball && bunx tsc --noEmit` → exits clean.
+- `bun run test` (turbo proxy) → 57/57 still pass.
+- Files changed: `CLAUDE.md` (rewrite), `README.md` (rewrite), `vitest.config.ts` (new).
+- **Learnings:**
+  - Vitest 4 supports `test.projects: ["apps/*"]` at the workspace root as a "run each app's config" pointer. Each child config keeps its own plugins/aliases/setup. Lighter than maintaining a duplicated config at the root.
+  - With workspace `projects`, vitest does NOT include the root file's plugins/aliases — it only acts as a discoverer. So no need to configure jsdom/react/aliases at the root file; just point at apps.
+  - Two valid workspace-level test entry points coexist: `bun run test` (turbo, with caching + cross-app parallelism) and `bunx vitest run` (raw vitest, faster startup and `--watch`-friendly). Future apps with their own vitest configs auto-join both.
+  - The `apps/headball/.env.local` location is the single most foot-gunny part of the post-Phase-1 monorepo for someone new — call it out in BOTH the README "First-time setup" AND the troubleshooting section, plus once in CLAUDE.md.
 ---
