@@ -9,7 +9,11 @@
   ],
   "scripts": {
     "dev": "next dev",
+    "dev:all": "turbo run dev --parallel",
+    "dev:hub": "turbo run dev --filter=@social-hub/hub",
+    "dev:insider": "turbo run dev --filter=@social-hub/insider",
     "build": "next build",
+    "build:all": "turbo run build",
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",

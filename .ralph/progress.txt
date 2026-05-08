@@ -158,3 +158,28 @@ US-005 depends on US-006 (the staging Supabase env vars). Recommended order:
   - DB password belongs ONLY in: password manager + inline CLI invocations (`SUPABASE_DB_PASSWORD='...' bunx supabase ...`). Never in any `.env` file. Never in any deployed env var. Headball connects via REST/Realtime through the anon key — never needs direct Postgres password.
   - The DB password was leaked into chat history during setup — needs rotation post-setup (Settings → Database → Reset database password in Supabase Dashboard).
 ---
+
+## 2026-05-08 — US-005 (Phase 0.5 — DEFERRED to Phase 4) + per-app local dev wiring
+- User decision: skip Vercel project setup for now, run all 3 apps locally during Phases 0-3.
+- Per-app port mapping configured:
+  - Root Headball (current location, until Phase 1): http://localhost:3000
+  - apps/hub: http://localhost:3001 (set via `next dev -p 3001` in package.json)
+  - apps/insider: http://localhost:3002 (set via `next dev -p 3002` in package.json)
+- Root package.json got 3 new convenience scripts:
+  - `dev:all` → `turbo run dev --parallel` (runs all 3 in one terminal with multiplexed output)
+  - `dev:hub` → just hub
+  - `dev:insider` → just insider
+  - `build:all` → `turbo run build` (all packages)
+- Smoke test: each app responds HTTP 200 on its assigned port, Next.js 16.2.4 + Turbopack, ready in <300ms.
+- US-005 marked passes:true with explicit DEFERRED note pointing to US-031 / US-037 (Phase 4 entry) where Vercel becomes mandatory for cross-subdomain redirect testing.
+- Knock-on updates to early GATE stories (US-007, US-013, US-022, US-030):
+  - /qa GATE requirement removed for Phases 0-3 (Vercel preview URLs don't exist yet).
+  - Replaced with: typecheck + lint + vitest + playwright + manual local smoke. Sufficient for the regression risk in these phases (which are mostly mechanical relocations and additive schema changes — no Headball UI changes).
+  - /qa GATE re-enabled at Phase 4 (US-037) when Vercel must be set up.
+- Files changed: `apps/hub/package.json` (dev/start ports), `apps/insider/package.json` (dev/start ports), `package.json` (added dev:all + dev:hub + dev:insider + build:all), `.ralph/prd.json` (US-005 passes:true with DEFERRED note; US-007 acceptance criteria rewritten; US-013/022/030 notes added).
+- **Learnings:**
+  - Next.js 16 supports `next dev -p PORT` for per-app port. No need for env var (`PORT=...`) which can be brittle on Windows.
+  - `turbo run dev --parallel` multiplexes all running apps' output into a single terminal — perfect for local multi-app development. `bunx turbo run dev --filter=@social-hub/hub` to run a single app standalone.
+  - For Phase 1 (relocate Headball), root Headball at port 3000 will be retired and apps/headball will take over that port. Until then, root Headball stays on 3000 for backward compat with existing `bun run dev` muscle memory.
+  - Visual QA via /qa needs a hosted preview URL. Until Vercel is set up (Phase 4), gate stories rely on the existing test suite + manual eyeballing. That's the right tradeoff for early-phase mechanical changes.
+---
