@@ -6,6 +6,7 @@ Started: 2026-05-08
 
 ## Codebase Patterns
 
+- **Cross-subdomain redirect e2e pattern (per US-034):** when a hub-side flow redirects to a per-game subdomain (`http://headball.localhost:<port>/room/<code>`), Chromium resolves `*.localhost` to `127.0.0.1`, so the navigation lands back on the same dev server. The Playwright spec uses `context.route(/headball\..*\/room\/[A-Z0-9]{6}$/, route.fulfill(200))` to stub the cross-origin response, then `page.waitForURL(/headball\..*\/room\/<code>/)` and `expect(page.url()).toContain("headball.")`. The `NEXT_PUBLIC_HEADBALL_URL` (and `_INSIDER_URL`) env vars are set in `apps/hub/playwright.config.ts` `webServer.env` so the spawned dev server bundles the `headball.localhost:<port>` form. Reusable for US-035 (lookup-room) and any future hub-side cross-subdomain redirect tests.
 - Root `package.json` uses Bun workspaces (`apps/*`, `packages/*`). `apps/` and `packages/` dirs do not need to exist for `bun install` to succeed — empty globs are tolerated.
 - Existing Headball app code lives at repo root through Phase 0; Phase 1 relocates it to `apps/headball/`.
 - Turborepo v2 requires `packageManager` field in root `package.json` to resolve workspaces (currently `bun@1.1.29`).
@@ -718,4 +719,24 @@ US-005 depends on US-006 (the staging Supabase env vars). Recommended order:
   - **SlotInput is controlled-only:** consumers (apps/hub join page in US-034) own the value state via `useState` + Zod validation. The component does NOT track its own state — keeps the prop surface minimal, side-step ref-forwarding complexity, and matches the `@social-hub/ui` primitive pattern (Button, Input, Dialog all forward props, no internal state).
   - **`autoComplete="one-time-code"`:** room codes look enough like OTP codes that Safari/iOS will offer a "From Messages" suggestion. We accept this — pasting a 6-char code from any source goes through `normalize()` and is dropped if it doesn't match the alphabet. No extra validation needed.
   - **Trailing-empty truncation in onChange:** the `onChange(value)` payload is the contiguous prefix only, never an internally-padded string. After typing "AB" then deleting cell 1 → onChange fires with `"A"` (length 1), not `"A "` or `"A_"`. This matters for US-035's lookup-room server action which validates `value.length === 6` before hitting Supabase.
+---
+
+## 2026-05-09 — US-034 (Phase 4.4 — /join page with cross-subdomain redirect)
+- TDD-first: wrote `apps/hub/e2e/join.spec.ts` (2 tests: full type→click→redirect flow + 24px reserved error band). Confirmed both red, then implemented page.
+- Added `apps/hub/app/join/page.tsx`: `"use client"` page with Anton 56px JOIN ROOM header, bilingual subhead, `<SlotInput />` from `@social-hub/ui`, 24px reserved `data-slot="join-error"` live region, goal-red JOIN GAME CTA disabled until `code.length === ROOM_CODE_LENGTH`. On submit: `window.location.assign(\`${HEADBALL_URL}/room/${code}\`)` — hardcodes Headball; US-035 replaces this with the lookup-room server action that branches on `rooms.game_type`.
+- Added `NEXT_PUBLIC_HEADBALL_URL` + `NEXT_PUBLIC_INSIDER_URL` to `apps/hub/playwright.config.ts` `webServer.env` so the spawned Next dev server bundles a Headball URL whose host contains `headball.` (Chromium resolves `*.localhost` → 127.0.0.1, so navigation lands back on the same dev server with a different host header).
+- Added `apps/hub/e2e/screenshot-us034.spec.ts` to capture `.ralph/screenshots/US-034.png` for the "Verify in browser using dev-browser skill" criterion. Empty-input state captured (slot-input + disabled CTA + reserved 24px error band visible).
+- Verification:
+  - `bunx playwright test` → 5/5 passed (2 home + 2 join + 1 screenshot)
+  - `bunx tsc --noEmit` (apps/hub) → clean
+  - `bunx tsc --noEmit` (apps/headball) → clean
+  - `bunx vitest run` (workspace-root) → 96/96 passed across 16 files
+  - `bunx eslint app/join app/page.tsx e2e/join.spec.ts e2e/screenshot-us034.spec.ts` → exit 0
+- Files changed: `apps/hub/app/join/page.tsx` (new), `apps/hub/e2e/join.spec.ts` (new), `apps/hub/e2e/screenshot-us034.spec.ts` (new), `apps/hub/playwright.config.ts` (env block added), `.ralph/screenshots/US-034.png` (new).
+- **Learnings:**
+  - **Stub cross-subdomain redirects via `context.route(regex, fulfill)`:** the e2e asserts `redirect URL contains "headball."`, but there is no separate Headball dev server in this Ralph context. `context.route(/headball\..*\/room\/[A-Z0-9]{6}$/, route => route.fulfill({status:200, body:"<html>..."}))` intercepts the navigation before it hits the network, lets `page.waitForURL` capture the URL change, and avoids 404 noise from the hub dev server (which would otherwise serve a Next 404 for the unknown `/room/<code>` path on the same origin). Reusable for US-035 lookup-room flow tests and any future cross-game redirect.
+  - **Playwright `webServer.env` must mirror BOTH game URLs:** even though US-034 only redirects to Headball, the Insider env var is set in playwright.config.ts so the home.spec.ts assertion `gateBHref matches /^https?:\/\//` keeps passing under the e2e-spawned dev server. (Without it, the URL would be `undefined` because the env-var fallback only applies to the un-prefixed Insider URL test in another spec.)
+  - **`window.location.assign` over `<a href>` for cross-game CTA:** the JOIN GAME button is a real `<button type="submit">` (not an anchor) because (a) the destination is computed at click time from controlled state, and (b) US-035 will replace the assign call with an async server action `lookupRoom(code)` that may surface an inline error banner instead of redirecting. Anchor-with-href would have to be rewritten anyway in US-035.
+  - **Reserved error band is `h-6` (24px):** the `data-slot="join-error"` div is always rendered with `flex h-6 items-center` so it occupies layout space whether or not an error is shown — prevents CTA jump when US-035 surfaces "ROOM NOT FOUND". The e2e asserts `boundingBox().height === 24` so a future regression that drops the placeholder would fail loudly.
+  - **`autoFocus` on first SlotInput cell works in Playwright headless:** `page.goto("/join")` followed immediately by `page.keyboard.type("ABCDEF")` lands the chars correctly because the SlotInput's `autoFocus={i===0}` puts caret in cell 0 before the keystrokes arrive. No explicit `.focus()` needed in the spec, though we still call `.first().focus()` defensively to keep the test robust against future render-timing changes.
 ---

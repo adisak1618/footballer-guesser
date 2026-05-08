@@ -30,5 +30,13 @@ export default defineConfig({
     timeout: 180_000,
     stdout: "ignore",
     stderr: "pipe",
+    env: {
+      // The /join e2e asserts the cross-game redirect URL contains "headball.",
+      // so point Headball at a *.localhost subdomain (Chromium resolves
+      // *.localhost to 127.0.0.1, so the navigation lands back on this dev
+      // server but with a host header that satisfies the assertion).
+      NEXT_PUBLIC_HEADBALL_URL: `http://headball.localhost:${PORT}`,
+      NEXT_PUBLIC_INSIDER_URL: `http://insider.localhost:${PORT}`,
+    },
   },
 })
