@@ -897,3 +897,14 @@ US-005 depends on US-006 (the staging Supabase env vars). Recommended order:
   - **`set search_path = public` on SECURITY DEFINER:** every SECURITY DEFINER function gets `set search_path = public` in its declaration to defend against search_path-injection attacks (an attacker creating a malicious function in their schema and getting it picked up because the definer's session search_path differs from public). Apply to every future Insider/cross-game SECURITY DEFINER RPC.
   - **Calling a void RPC from supabase-js:** `supabase.rpc('fn', { p_room_id, p_round })` resolves to `{ data: null, error: null }` on success for `returns void` functions. Tests assert success via `expect(error).toBeNull()` or `expect(rpcCall()).resolves.toBeUndefined()` (when `callReconcile` ignores `data`). Reusable for `expire_round`, `advance_to_*` RPCs in upcoming Phase 5a stories.
 ---
+
+## 2026-05-09 02:20 — US-042 (Phase 5a.5 — get_my_insider_secret RPC)
+- Migration 0021_get_my_insider_secret.sql: SECURITY DEFINER SQL function `get_my_insider_secret(p_room_id uuid, p_round int, p_player_id uuid) returns text`. Joins game_insider_round + game_insider_roles, returns secret_value only when caller's role for the round is 'master' or 'insider'; commons / unknown / non-existent rounds get NULL (no error).
+- Test apps/insider/lib/__tests__/migration-0021-get-my-insider-secret.test.ts: 6 cases — master returns secret, insider returns secret, common returns NULL, stranger (no role row) returns NULL, non-existent round returns NULL, anon direct `select('secret_value')` still 42501 (defense-in-depth that 0021 doesn't relax 0017's column GRANT).
+- Files changed: supabase/migrations/0021_get_my_insider_secret.sql (new), apps/insider/lib/__tests__/migration-0021-get-my-insider-secret.test.ts (new).
+- Verification: `bunx supabase db reset` clean, vitest workspace-wide 137/137 pass, `bun run lint` green (realtime check OK + ESLint cached), insider tsc --noEmit clean.
+- **Learnings:**
+  - Used `language sql` instead of `plpgsql` since the body is a single SELECT — leaner and lets Postgres inline. SECURITY DEFINER + `set search_path = public` still apply to SQL functions identically.
+  - Function returns NULL (not raises) for unauthorized callers because Master/Insider clients call this on every secret refresh; making it error would force per-role branching on the client and produce noisy 4xx logs. NULL is the access-control signal.
+  - p_player_id is a parameter (not auth.uid()) because the project uses anonymous identity model (T-3) — every Insider RPC takes p_player_id explicitly. A caller who guesses someone else's UUID gains no power they didn't already have: that other player would have leaked the secret to them anyway if they were master/insider.
+---
