@@ -8,6 +8,10 @@ Started: 2026-05-08
 
 - Root `package.json` uses Bun workspaces (`apps/*`, `packages/*`). `apps/` and `packages/` dirs do not need to exist for `bun install` to succeed — empty globs are tolerated.
 - Existing Headball app code lives at repo root through Phase 0; Phase 1 relocates it to `apps/headball/`.
+- Turborepo v2 requires `packageManager` field in root `package.json` to resolve workspaces (currently `bun@1.1.29`).
+- Turbo v2 schema uses `tasks` (not `pipeline`) — see `turbo.json`. Build outputs include `.next/**` (excluding cache) and `dist/**` for libraries.
+- Bun 1.1.29 generates `bun.lockb` (binary), not `bun.lock` — turbo emits a harmless WARNING about parsing the lockfile but still functions; upgrading to Bun ≥1.1.42 (text lockfile) would silence it.
+- Pre-existing tech debt: root `bun run lint` reports thousands of errors (eslint scope issue / type-aware rules in deps) — predates Phase 0 work, not a regression. Phase 1 relocation will likely scope eslint to `apps/headball/` and reduce the surface.
 
 ## Story Completion Log
 
@@ -18,4 +22,21 @@ Started: 2026-05-08
 - **Learnings:**
   - Bun 1.1.29 accepts `workspaces` glob patterns even when no matching directories exist yet — useful for incremental scaffolding.
   - Next.js 16.2.4 starts in ~200ms with Turbopack; quick to spawn for smoke checks.
+---
+
+## 2026-05-08 — US-002 (Phase 0.2 — Add Turborepo with dev/build/lint/test pipelines)
+- Installed `turbo@2.9.10` as workspace-root devDependency via `bun add -d turbo`.
+- Added `packageManager: "bun@1.1.29"` to root `package.json` (turbo v2 hard-requires this to discover workspaces).
+- Created `turbo.json` with v2 `tasks` schema:
+  - `dev` — `cache: false`, `persistent: true`
+  - `build` — `dependsOn: ["^build"]`, `outputs: [".next/**", "!.next/cache/**", "dist/**"]`
+  - `lint` — `dependsOn: ["^build"]`
+  - `test` — `dependsOn: ["^build"]`, `outputs: ["coverage/**"]`
+- Verified: `bunx turbo run lint` exits 0 (0 packages in scope, expected — `apps/`/`packages/` still empty); `bunx vitest run` 57/57 pass; `bunx tsc --noEmit` clean.
+- Confirmed `bun run lint` was already failing on parent commit `8bdf3a1` via stash diff — pre-existing, not a regression.
+- Files changed: `package.json`, `turbo.json`, `bun.lockb`.
+- **Learnings:**
+  - First `bunx turbo run` against this repo errored with `Could not resolve workspaces -> Missing packageManager field`. Fixing that requires only adding `packageManager` to root `package.json`; turbo doesn't otherwise validate the version.
+  - Turbo prints a non-fatal WARNING about `bun.lock` not being found because Bun 1.1.29 still uses the binary `bun.lockb` format. Functional behavior is unaffected.
+  - `outputs` in `turbo.json` should explicitly exclude `.next/cache/**` to avoid shipping stale cache artifacts up to remote cache once that is enabled.
 ---
