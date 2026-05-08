@@ -551,8 +551,8 @@
         "Typecheck passes"
       ],
       "priority": 33,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Implemented as controlled component (value/onChange). 8 vitest tests in src/__tests__/slot-input.test.tsx cover render/auto-advance/uppercase/alphabet-rejection/backspace/paste/paste-filter/sequential-typing. Wired @vitejs/plugin-react + jsdom + @testing-library/{react,user-event,jest-dom} into packages/ui (vitest.config.ts + vitest.setup.ts). Typecheck clean (per-package tsc --noEmit), workspace lint clean."
     },
     {
       "id": "US-034",

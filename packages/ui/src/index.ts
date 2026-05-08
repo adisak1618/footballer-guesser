@@ -1,5 +1,6 @@
 export { Button, buttonVariants } from "./button"
 export { Input } from "./input"
+export { SlotInput, type SlotInputProps } from "./slot-input"
 export {
   Dialog,
   DialogClose,
