@@ -579,6 +579,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      advance_to_asking: {
+        Args: { p_player_id: string; p_room_id: string; p_round: number }
+        Returns: undefined
+      }
       create_room: {
         Args: {
           p_host_name: string
@@ -594,6 +598,10 @@ export type Database = {
       daitch_mokotoff: { Args: { "": string }; Returns: string[] }
       dmetaphone: { Args: { "": string }; Returns: string }
       dmetaphone_alt: { Args: { "": string }; Returns: string }
+      get_my_insider_secret: {
+        Args: { p_player_id: string; p_room_id: string; p_round: number }
+        Returns: string
+      }
       get_random_pack_item: {
         Args: { p_slug: string }
         Returns: {
