@@ -620,3 +620,19 @@ US-005 depends on US-006 (the staging Supabase env vars). Recommended order:
   - **`packages/types` is the canonical Database type home (per T-6 / FR-3.6):** after this story, `Database` and `Json` are re-exported from `@social-hub/types`. The hand-written domain types (`Room`, `Player`, `GameType`, `RoomStatus`) co-exist alongside the auto-generated `Database` import. App-side game-specific table types (e.g. headball's `Tables["round_state"]["Row"]`) still derive from `Database` but go through `@social-hub/types`. Future apps follow the same pattern — never import `Database` directly from a sibling app's lib dir.
   - **Regenerate cadence:** any migration that adds/alters a `public.*` table or `public.*` function must be followed by a regen of `packages/types/src/database.types.ts` in the same phase or the next Phase 3.x story. Phase 3 migrations 0013/0014/0015 are now reflected; the next regen trigger is whenever Insider Phase 5 adds round_phase / vote tables.
 ---
+
+## 2026-05-09T00:25Z — US-029 (Phase 3.7)
+- Implemented `packages/content` with two TS wrappers around the cross-game content layer:
+  - `getRandomPackItem(supabase, packSlug)` calls `dispatch()` for `get_random_pack_item` RPC, normalizes snake→camel, defaults missing `metadata` to `{}`.
+  - `listEnabledPacks(supabase)` selects from `content_packs` (table query, not RPC — no list RPC exists), wraps errors in `GameRpcError` via `parsePgErrCode` so failure shape matches dispatch's. Filters `enabled=true`, orders by `display_name`, omits `displayNameTh` when null.
+- Test-first: 7 vitest cases in `packages/content/src/__tests__/content.test.ts` covering both happy paths, metadata coercion, the PG001 unknown-pack error, list ordering, null TH name omission, empty result, supabase error path.
+- Wired `packages/content` into root `vitest.config.ts` `projects` array (next to packages/{core,ui}).
+- `bunx tsc --noEmit` passes from packages/{content,core} and apps/headball.
+- `bunx vitest run` from workspace root: 14 files / 87 tests passed.
+- Files changed: `packages/content/{package.json,src/index.ts,src/__tests__/content.test.ts,vitest.config.ts}`, root `vitest.config.ts`, `bun.lockb`.
+- **Learnings:**
+  - The base tsconfig path mapping `"@social-hub/*": ["packages/*/src/index.ts"]` is wildcard, so adding a new workspace package at `packages/<name>/` is automatically picked up — no per-package edit to `tsconfig.base.json` is needed. The acceptance criterion "add to workspace root tsconfig paths" is satisfied by the existing wildcard.
+  - For workspace packages whose tests share state with core helpers, mirror `packages/core/vitest.config.ts` (env=node, globals=true, include `src/**/*.test.ts`). New workspace projects MUST also be appended explicitly to root `vitest.config.ts` `projects` — vitest projects array does not glob into `packages/*` (current pattern lists each package individually).
+  - When a wrapper performs a table query rather than an RPC call, you can still satisfy "consistent error handling" by reusing `parsePgErrCode` + `GameRpcError` from `@social-hub/core`. Use a synthetic `rpc` label like `content_packs.select` in the context so the failure is traceable, and put the filter args (e.g. `{ enabled: true }`) in `args` for parity with dispatch's shape.
+  - To preserve `useRoomRealtime`-style consumer ergonomics, omit optional fields (`displayNameTh`) entirely when null instead of returning `null` — TS `optional ?: T` plays nicer with `undefined` than with explicit `null`.
+---
