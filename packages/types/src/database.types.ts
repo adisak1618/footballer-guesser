@@ -224,6 +224,7 @@ export type Database = {
           current_round: number | null
           difficulty: string
           effective_score_positions: number | null
+          game_type: string
           host_player_id: string | null
           id: string
           max_rounds: number
@@ -238,6 +239,7 @@ export type Database = {
           current_round?: number | null
           difficulty?: string
           effective_score_positions?: number | null
+          game_type?: string
           host_player_id?: string | null
           id?: string
           max_rounds: number
@@ -252,6 +254,7 @@ export type Database = {
           current_round?: number | null
           difficulty?: string
           effective_score_positions?: number | null
+          game_type?: string
           host_player_id?: string | null
           id?: string
           max_rounds?: number

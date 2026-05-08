@@ -516,8 +516,8 @@
         "Typecheck passes"
       ],
       "priority": 31,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Migration 0016 applied locally; staging apply DEFERRED pending US-006. Types regenerated. All 88 unit tests pass; headball + core typecheck clean."
     },
     {
       "id": "US-032",
