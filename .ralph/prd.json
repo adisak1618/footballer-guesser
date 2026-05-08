@@ -433,8 +433,8 @@
         "Typecheck passes"
       ],
       "priority": 26,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Seeded against local Supabase. Staging run (--target staging) DEFERRED until US-006 staging credentials are wired (manual dashboard work) — same pattern as US-005/006. Counts verified in DB: thai-food 40, movies-classic 30, th-celebrities 20, football-stars 30. content_packs rows present with handler=word_list. get_random_pack_item RPC returns items for both insider-thai-food and insider-football-stars."
     },
     {
       "id": "US-027",

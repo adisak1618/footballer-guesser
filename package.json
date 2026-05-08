@@ -20,7 +20,8 @@
     "seed:fetch": "bun run apps/headball/scripts/fetch-wikidata.ts",
     "seed:build": "bun run apps/headball/scripts/build-seed.ts",
     "seed:sql": "bun run apps/headball/scripts/seed-to-sql.ts",
-    "seed:all": "bun run seed:fetch && bun run seed:build && bun run seed:sql"
+    "seed:all": "bun run seed:fetch && bun run seed:build && bun run seed:sql",
+    "seed:insider": "bun run scripts/seed-insider-packs.ts"
   },
   "devDependencies": {
     "@types/node": "^20",
