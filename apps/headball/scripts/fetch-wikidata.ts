@@ -16,7 +16,8 @@ import { fileURLToPath } from "node:url";
 const FORCE = process.argv.includes("--force");
 
 const HERE = dirname(fileURLToPath(import.meta.url));
-const OUT_DIR = join(HERE, "..", "data", "raw");
+// scripts/ lives at apps/headball/scripts/ — workspace root is three levels up.
+const OUT_DIR = join(HERE, "..", "..", "..", "data", "raw");
 
 type League = "premier-league" | "la-liga" | "serie-a" | "bundesliga" | "ligue-1";
 type Club = { qid: string; slug: string; name: string; league: League };

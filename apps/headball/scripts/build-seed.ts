@@ -12,7 +12,8 @@ import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
-const ROOT = join(HERE, "..");
+// scripts/ lives at apps/headball/scripts/ — workspace root is three levels up.
+const ROOT = join(HERE, "..", "..", "..");
 const RAW_DIR = join(ROOT, "data", "raw");
 const SEED_DIR = join(ROOT, "data", "seed");
 const CLIENT_DICT_PATH = join(ROOT, "data", "premier-league.ts");

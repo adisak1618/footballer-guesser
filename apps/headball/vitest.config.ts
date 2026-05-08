@@ -11,8 +11,11 @@ export default defineConfig({
     setupFiles: ["./vitest.setup.ts"],
   },
   resolve: {
-    alias: {
-      "@": path.resolve(__dirname, "."),
-    },
+    alias: [
+      // Order matters — list more-specific patterns first so vitest doesn't
+      // match `@/data` against the generic `@` alias.
+      { find: /^@\/data\/(.*)$/, replacement: path.resolve(__dirname, "../../data/$1") },
+      { find: "@", replacement: path.resolve(__dirname, ".") },
+    ],
   },
 })

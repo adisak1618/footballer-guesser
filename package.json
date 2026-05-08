@@ -16,9 +16,9 @@
     "build:all": "turbo run build",
     "lint": "turbo run lint",
     "test": "turbo run test",
-    "seed:fetch": "bun run scripts/fetch-wikidata.ts",
-    "seed:build": "bun run scripts/build-seed.ts",
-    "seed:sql": "bun run scripts/seed-to-sql.ts",
+    "seed:fetch": "bun run apps/headball/scripts/fetch-wikidata.ts",
+    "seed:build": "bun run apps/headball/scripts/build-seed.ts",
+    "seed:sql": "bun run apps/headball/scripts/seed-to-sql.ts",
     "seed:all": "bun run seed:fetch && bun run seed:build && bun run seed:sql"
   },
   "devDependencies": {

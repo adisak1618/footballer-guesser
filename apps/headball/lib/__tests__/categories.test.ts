@@ -12,9 +12,10 @@ type CategoryDefinition = {
   query: unknown
 }
 
+// __dirname is apps/headball/lib/__tests__ — workspace root data/ is four levels up.
 const categoriesJson = JSON.parse(
   readFileSync(
-    join(__dirname, "..", "..", "data", "seed", "categories.json"),
+    join(__dirname, "..", "..", "..", "..", "data", "seed", "categories.json"),
     "utf8",
   ),
 ) as { version: number; categories: CategoryDefinition[] }
