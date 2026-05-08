@@ -95,12 +95,24 @@ for i in $(seq 1 $MAX_ITERATIONS); do
     OUTPUT=$(claude --dangerously-skip-permissions --print < "$SCRIPT_DIR/CLAUDE.md" 2>&1 | tee /dev/stderr) || true
   fi
   
-  # Check for completion signal
+  # Check for completion signal — VERIFIED variant.
+  # Upstream ralph.sh blindly greps for the sentinel substring, which
+  # false-positives whenever the agent narrates the literal string
+  # "<promise>COMPLETE</promise>" mid-iteration. We additionally verify
+  # that prd.json has zero passes:false stories before honoring.
   if echo "$OUTPUT" | grep -q "<promise>COMPLETE</promise>"; then
-    echo ""
-    echo "Ralph completed all tasks!"
-    echo "Completed at iteration $i of $MAX_ITERATIONS"
-    exit 0
+    PENDING=$(jq '[.userStories[] | select(.passes == false)] | length' "$PRD_FILE" 2>/dev/null || echo 99)
+    if [ "$PENDING" = "0" ]; then
+      echo ""
+      echo "Ralph completed all tasks!"
+      echo "Completed at iteration $i of $MAX_ITERATIONS"
+      exit 0
+    else
+      echo ""
+      echo "WARNING: agent emitted COMPLETE signal but $PENDING stories still have passes:false."
+      echo "Treating as a false-positive and continuing the loop."
+      echo "Next pending: $(jq -r '.userStories | map(select(.passes==false)) | .[0].id' "$PRD_FILE")"
+    fi
   fi
   
   echo "Iteration $i complete. Continuing..."
