@@ -61,7 +61,7 @@
         "Typecheck passes from workspace root"
       ],
       "priority": 4,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {

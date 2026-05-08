@@ -15,6 +15,10 @@ Started: 2026-05-08
 - Workspace packages under `packages/*` declare `"main": "./src/index.ts"`, `"types": "./src/index.ts"`, and `"exports": { ".": "./src/index.ts" }` so consumers import TS source directly (no build step) — matches D3 in the design doc.
 - `next lint` is removed in Next 16 — do NOT add `"lint": "next lint"` to per-app `package.json`. Use `eslint` directly when wiring per-app lint (Phase 0.4/0.7).
 - `.turbo/` (per-package turbo cache + logs) is gitignored at the repo root — covers every workspace package without repeating in each.
+- Shared TS config lives at `tsconfig.base.json` (root). Apps/packages extend via `"extends": "../../tsconfig.base.json"`. Base owns `target/module/strict/jsx/baseUrl/paths`; consumers add only Next plugin + `include`. Don't redeclare `paths` per-package.
+- `@social-hub/*` path alias resolves to `packages/*/src/index.ts` (set in base). Consume with `import { X } from "@social-hub/core"` — no deep imports (matches D3).
+- Root `tsconfig.json` (existing Headball app) does NOT extend base by design — it stays Next-13-style for the legacy root app until Phase 1 relocates Headball into `apps/headball/` and that app gets its own base-extending tsconfig.
+- `bunx tsc --noEmit` from a sub-dir (e.g. `cd apps/hub && bunx tsc --noEmit`) picks up that workspace's tsconfig — useful for verifying per-package extends work.
 
 ## Story Completion Log
 
@@ -58,4 +62,18 @@ Started: 2026-05-08
   - Each workspace package needs `main`/`types`/`exports` pointing at `./src/index.ts` so consuming TS imports resolve to the source file in dev (matches design doc D3 — no build step for shared packages).
   - Turbo's per-package `.turbo/turbo-<task>.log` files MUST be gitignored — adding to root `.gitignore` once handles all packages.
   - When there's a placeholder app whose `package.json` lacks a script, `bunx turbo run <task>` shows "0 successful, 0 total" with a `WARNING  No tasks were executed` — that's the expected "nothing to do" state, not a failure.
+---
+
+## 2026-05-08 — US-004 (Phase 0.4 — tsconfig.base.json with strict mode and path aliases)
+- Created `tsconfig.base.json` at workspace root: `target: ES2022`, `module: esnext`, `moduleResolution: bundler`, `strict: true`, `jsx: preserve`, `baseUrl: "."`, `paths: { "@social-hub/*": ["packages/*/src/index.ts"] }`. Also includes `lib`, `esModuleInterop`, `resolveJsonModule`, `isolatedModules`, `skipLibCheck`, `noEmit`, `incremental`, `allowJs`.
+- Updated `apps/{hub,insider}/tsconfig.json` to extend `../../tsconfig.base.json` and only retain `plugins: [{ name: "next" }]` + `include`/`exclude`. Stripped redundant compilerOptions inherited from base.
+- Created `packages/{core,ui,types,content}/tsconfig.json` extending base with `include: ["src/**/*.ts", "src/**/*.tsx"]`.
+- Did NOT touch the root `tsconfig.json` — it stays Next-13-style for the legacy Headball app at root until Phase 1 relocates that code.
+- Verified: `bunx tsc --noEmit` from workspace root passes; `bunx tsc --noEmit` inside each apps/* and packages/* passes; placed a temp probe file `apps/hub/path-probe.ts` importing all four `@social-hub/*` packages and confirmed it type-checked clean (then removed).
+- Files changed: `tsconfig.base.json` (new); `apps/hub/tsconfig.json`, `apps/insider/tsconfig.json` (rewritten to extend base); `packages/{core,ui,types,content}/tsconfig.json` (new).
+- **Learnings:**
+  - In TS 4.1+ `paths` declared in an extended config are resolved relative to the base config's directory — so putting `baseUrl: "."` + `paths` in `tsconfig.base.json` at root means a consumer at `apps/hub/tsconfig.json` resolves `@social-hub/core` to `<root>/packages/core/src/index.ts` without re-declaring anything.
+  - `include` and `exclude` are NOT inherited via `extends`; each consumer must declare its own. Keep them per-package.
+  - `jsx` belongs in base (set to `preserve` for Next apps). React-only library packages don't render JSX in src yet, so `preserve` doesn't hurt them; if a package later needs `react-jsx` for tests, override locally.
+  - The wildcard `paths` mapping `@social-hub/*` → `packages/*/src/index.ts` only resolves bare-package imports (`@social-hub/core`), not deep imports (`@social-hub/core/foo`). That matches D3's "barrel-export only" rule.
 ---
