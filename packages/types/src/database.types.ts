@@ -583,6 +583,15 @@ export type Database = {
         Args: { p_player_id: string; p_room_id: string; p_round: number }
         Returns: undefined
       }
+      cast_vote: {
+        Args: {
+          p_player_id: string
+          p_room_id: string
+          p_round: number
+          p_voted_player_id: string
+        }
+        Returns: undefined
+      }
       create_room: {
         Args: {
           p_host_name: string

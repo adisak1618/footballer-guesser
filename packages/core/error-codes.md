@@ -35,6 +35,9 @@ The `dispatch()` wrapper in `packages/core/src/dispatch.ts` parses the Supabase 
 > | `PGAME02`  | `PG002`  | `0024_master_respond.sql`             |
 > | `PGAME15`  | `PG015`  | `0024_master_respond.sql`             |
 > | `PGAME16`  | `PG016`  | `0024_master_respond.sql`             |
+> | `PGAME17`  | `PG017`  | `0027_cast_vote.sql`                  |
+> | `PGAME18`  | `PG018`  | `0027_cast_vote.sql`                  |
+> | `PGAME19`  | `PG019`  | `0027_cast_vote.sql`                  |
 >
 > Future codes follow the same pattern: `PGAME02` → `PG002`, …, `PGAME99` → `PG099`. When a Phase 5+ Insider migration introduces a new `PGAMExx`, raise it as `errcode = 'PGxxx'` with the message prefixed by `'PGAMExx: '`. App-side handlers can match on either `error.code === 'PGxxx'` (the SQLSTATE) or the message prefix.
 
@@ -62,7 +65,10 @@ Reserved for the Insider game (Phase 5). Specific assignments are made when the 
 - `PGAME14` — fewer than 3 players (player-count gate on `start_insider_round`; bound by `0023_start_insider_round.sql`)
 - `PGAME15` — only master can perform this action (master-only authorization; bound by `0024_master_respond.sql` and shared by `0025_mark_correct_guess.sql`)
 - `PGAME16` — phase != 'asking' (phase guard for master-only RPCs that run during the asking phase; bound by `0024_master_respond.sql` and shared by `0025_mark_correct_guess.sql`)
-- `PGAME10`, `PGAME17`+ — unassigned. Future Insider RPCs (`cast_vote`, `advance_to_reveal`, `expire_round`, …) will pick from the next free slots.
+- `PGAME17` — voter not in `eligible_voter_ids[]` (eligibility guard on `cast_vote`; bound by `0027_cast_vote.sql`)
+- `PGAME18` — phase != 'voting' (phase guard for voting-only RPCs; bound by `0027_cast_vote.sql`)
+- `PGAME19` — vote deadline passed (post-reconcile expiry on `cast_vote`; distinct from cross-game `PGAME02` because UI copy + handler differ; bound by `0027_cast_vote.sql`)
+- `PGAME10`, `PGAME20`+ — unassigned. Future Insider RPCs (`advance_to_reveal`, …) will pick from the next free slots.
 
 ## Future games (PGAME50–PGAME89)
 
