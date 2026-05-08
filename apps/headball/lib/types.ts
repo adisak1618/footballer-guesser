@@ -1,4 +1,4 @@
-import type { Database } from "@/lib/database.types"
+import type { Database } from "@social-hub/types"
 
 type Tables = Database["public"]["Tables"]
 type Enums = Database["public"]["Enums"]

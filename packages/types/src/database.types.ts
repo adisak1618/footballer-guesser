@@ -85,6 +85,36 @@ export type Database = {
           },
         ]
       }
+      content_packs: {
+        Row: {
+          created_at: string
+          display_name: string
+          display_name_th: string | null
+          enabled: boolean
+          handler: string
+          slug: string
+          source_ref: string
+        }
+        Insert: {
+          created_at?: string
+          display_name: string
+          display_name_th?: string | null
+          enabled?: boolean
+          handler: string
+          slug: string
+          source_ref: string
+        }
+        Update: {
+          created_at?: string
+          display_name?: string
+          display_name_th?: string | null
+          enabled?: boolean
+          handler?: string
+          slug?: string
+          source_ref?: string
+        }
+        Relationships: []
+      }
       football_players: {
         Row: {
           aliases: string[]
@@ -341,6 +371,56 @@ export type Database = {
           },
         ]
       }
+      word_pack_items: {
+        Row: {
+          metadata: Json
+          pack_slug: string
+          value: string
+        }
+        Insert: {
+          metadata?: Json
+          pack_slug: string
+          value: string
+        }
+        Update: {
+          metadata?: Json
+          pack_slug?: string
+          value?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "word_pack_items_pack_slug_fkey"
+            columns: ["pack_slug"]
+            isOneToOne: false
+            referencedRelation: "word_packs"
+            referencedColumns: ["slug"]
+          },
+        ]
+      }
+      word_packs: {
+        Row: {
+          created_at: string
+          display_name: string
+          display_name_th: string | null
+          enabled: boolean
+          slug: string
+        }
+        Insert: {
+          created_at?: string
+          display_name: string
+          display_name_th?: string | null
+          enabled?: boolean
+          slug: string
+        }
+        Update: {
+          created_at?: string
+          display_name?: string
+          display_name_th?: string | null
+          enabled?: boolean
+          slug?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -361,6 +441,14 @@ export type Database = {
       daitch_mokotoff: { Args: { "": string }; Returns: string[] }
       dmetaphone: { Args: { "": string }; Returns: string }
       dmetaphone_alt: { Args: { "": string }; Returns: string }
+      get_random_pack_item: {
+        Args: { p_slug: string }
+        Returns: {
+          display_value: string
+          item_id: string
+          metadata: Json
+        }[]
+      }
       join_room: {
         Args: { p_code: string; p_display_name: string; p_player_id: string }
         Returns: {

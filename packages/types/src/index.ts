@@ -6,10 +6,11 @@
  * columns (e.g. headball's `category`, `score_positions`, `total_score`) live
  * in each app's own `lib/types.ts`.
  *
- * The auto-generated Supabase `Database` type intentionally stays at
- * `apps/headball/lib/database.types.ts` for now — it will be regenerated and
- * promoted into `packages/types` after Phase 3 schema changes land (per T-6).
+ * The auto-generated Supabase `Database` type lives in `./database.types.ts`
+ * (regenerated via `bunx supabase gen types typescript --local > packages/types/src/database.types.ts`).
  */
+
+export type { Database, Json } from "./database.types"
 
 export type GameType = "headball" | "insider"
 

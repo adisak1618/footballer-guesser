@@ -465,7 +465,7 @@
         "Typecheck passes from workspace root with no errors in any app or package"
       ],
       "priority": 28,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {

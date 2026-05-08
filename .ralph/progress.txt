@@ -55,6 +55,7 @@ Started: 2026-05-08
 - **`returns table(...)` plpgsql + qualified column refs (per US-025):** when a function declares `returns table(item_id text, display_value text, metadata jsonb)` and the body uses `return query select … wpi.metadata`, fully-qualify EVERY column in the select list. Bare unqualified column names that match an OUT parameter name (e.g., bare `metadata`) introduce ambiguity that PL/pgSQL resolves inconsistently across versions. Always: `wpi.metadata`, `fp.id`, etc.
 - **Workspace-root scripts/ TS toolchain (per US-026):** TS scripts that operate on cross-game infrastructure (content seeding, ops tooling) live at workspace-root `scripts/` (alongside `check-realtime-publication.sh`), NOT under `apps/headball/scripts/`. Add a `scripts/tsconfig.json` extending `../tsconfig.base.json` with `"types": ["node"]` so `cd scripts && bunx tsc --noEmit` typechecks them without polluting any app's tsconfig. Per-app seed scripts (Headball Wikidata pipeline) stay under `apps/<app>/scripts/`. Root `package.json` `seed:*` scripts spawn either via `bun run scripts/<name>.ts` (workspace-root) or `bun run apps/<app>/scripts/<name>.ts` (app-local).
 - **Idempotent Supabase seed via supabase-js (per US-026):** for cross-table seed scripts, use `.upsert(rows, { onConflict: "<pk>", ignoreDuplicates: true })` rather than raw SQL. Supabase-js translates this to `INSERT ... ON CONFLICT DO NOTHING`. Composite PKs (e.g. `word_pack_items (pack_slug, value)`) take a comma-joined `onConflict` string. RLS-protected tables require the service-role key; reuse the local fallback JWT pattern from `apps/headball/e2e/_helpers/admin.ts` so the script runs out of the box against `bunx supabase start` with no env setup. Staging-target runs require `SUPABASE_URL_STAGING` + `SUPABASE_SERVICE_ROLE_KEY_STAGING` env vars; defer until US-006 wires them.
+- **Database type regen — silence stderr (per US-028 / T-6 / FR-3.6):** the canonical Supabase types live at `packages/types/src/database.types.ts` and are re-exported from `@social-hub/types` (alongside `Json`). Apps import via `import type { Database } from "@social-hub/types"`. Regenerate after any migration that adds/alters a `public.*` table or function: `bunx supabase gen types typescript --local 2>/dev/null > packages/types/src/database.types.ts`. The `2>/dev/null` is REQUIRED — Supabase CLI writes startup chatter ("Saved lockfile", "Connecting to db 5432") to stderr, and Bun's redirect can interleave it into the output file, breaking the entire workspace typecheck with cryptic syntax errors at line 1. Don't import `Database` directly from a sibling app's lib dir; it's package-only now.
 
 ## Story Completion Log
 
@@ -595,4 +596,27 @@ US-005 depends on US-006 (the staging Supabase env vars). Recommended order:
 - **Learnings:**
   - Quick way to confirm a Postgres function is structurally unchanged after a wave of additive migrations: `psql -c "select pg_get_functiondef(oid) from pg_proc where proname = 'X';"` against the running local DB after `bunx supabase db reset`. Compares the *applied* function body, not just whether some new migration mentions the name. Useful pattern for any "verify X is unchanged" story (will repeat for similar verification stories at Phase 4/5/6 boundaries).
   - The "additive-only" rule for a phase can be quickly audited with `grep -n "alter table\|drop table\|drop function\|alter function" supabase/migrations/<phase-files>.sql` — any matches must reference only tables/functions newly created within the same phase. Embed this check in any future C4-style verification story.
+---
+
+## 2026-05-09 — US-028 (Phase 3.6 — Regenerate database.types.ts to packages/types per T-6)
+- Regenerated `packages/types/src/database.types.ts` via `bunx supabase gen types typescript --local 2>/dev/null`. Confirmed it includes the new Phase 3 entities: `content_packs` table, `word_packs` table, `word_pack_items` table, and `get_random_pack_item` RPC (diff vs the old `apps/headball/lib/database.types.ts` shows exactly those 4 additions).
+- Added `export type { Database, Json } from "./database.types"` to `packages/types/src/index.ts` so consumers can `import type { Database } from "@social-hub/types"`. Updated the file's header doc to reflect the new location.
+- Updated 5 Headball imports from `@/lib/database.types` to `@social-hub/types`:
+  - `apps/headball/lib/supabase-server.ts`
+  - `apps/headball/lib/supabase.ts`
+  - `apps/headball/lib/types.ts`
+  - `apps/headball/e2e/_helpers/admin.ts`
+  - `apps/headball/e2e/race-guess.spec.ts`
+- Deleted `apps/headball/lib/database.types.ts` (now lives in `packages/types`).
+- Verification:
+  - `cd apps/headball && bunx tsc --noEmit` → clean
+  - `cd packages/{types,core,ui} && bunx tsc --noEmit` → clean
+  - `cd apps/{hub,insider} && bunx tsc --noEmit` → clean
+  - `bunx vitest run` (workspace root) → 13 files / 80 tests pass
+  - `bun run lint` → pass
+- Files changed: `packages/types/src/database.types.ts` (regenerated, 641 lines), `packages/types/src/index.ts`, `apps/headball/lib/{supabase,supabase-server,types}.ts`, `apps/headball/e2e/_helpers/admin.ts`, `apps/headball/e2e/race-guess.spec.ts`; deleted `apps/headball/lib/database.types.ts`.
+- **Learnings:**
+  - **`supabase gen types` writes Connection logs to STDERR (per US-028):** `bunx supabase gen types typescript --local > out.ts` mixes Supabase startup chatter ("Saved lockfile", "Connecting to db 5432") into the FILE because Bun's redirect captures both streams in some shells. Always use `bunx supabase gen types typescript --local 2>/dev/null > out.ts` to silence stderr — otherwise the generated TS file has invalid leading lines that break the entire workspace typecheck. Reusable for any future regen story (FR-3.6 / Phase 6+ schema bumps).
+  - **`packages/types` is the canonical Database type home (per T-6 / FR-3.6):** after this story, `Database` and `Json` are re-exported from `@social-hub/types`. The hand-written domain types (`Room`, `Player`, `GameType`, `RoomStatus`) co-exist alongside the auto-generated `Database` import. App-side game-specific table types (e.g. headball's `Tables["round_state"]["Row"]`) still derive from `Database` but go through `@social-hub/types`. Future apps follow the same pattern — never import `Database` directly from a sibling app's lib dir.
+  - **Regenerate cadence:** any migration that adds/alters a `public.*` table or `public.*` function must be followed by a regen of `packages/types/src/database.types.ts` in the same phase or the next Phase 3.x story. Phase 3 migrations 0013/0014/0015 are now reflected; the next regen trigger is whenever Insider Phase 5 adds round_phase / vote tables.
 ---
