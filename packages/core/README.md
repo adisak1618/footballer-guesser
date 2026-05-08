@@ -55,3 +55,22 @@ bun run lint:realtime
 - `round_positions` — atomic counter; clients don't need its row events.
 - `football_players`, `player_clubs`, `categories`, `category_players` — server-side
   lookup tables seeded out-of-band; clients query via RPC, never subscribe.
+
+### Column-list publications for asymmetric secrets (A1.C)
+
+Tables with a column the client must NOT see (e.g. `game_insider_round.secret_value`)
+publish an explicit column list:
+
+```sql
+alter publication supabase_realtime add table game_insider_round (
+  room_id, round_number, pack_slug, time_limit_s, started_at, vote_deadline,
+  guessed_at, guessed_by_player_id, eligible_voter_ids, phase
+);
+```
+
+Postgres column-level GRANTs (`grant select (col1, col2, ...) to anon`) protect
+the REST path, but they do NOT filter Realtime payloads. Without the column list
+above, anon subscribers receive `secret_value` in every change event regardless
+of GRANTs. Master/Insider fetch the secret out-of-band via SECURITY DEFINER RPC.
+The realtime-publication lint regex captures the table name and ignores the
+column list, so this form passes the gate.

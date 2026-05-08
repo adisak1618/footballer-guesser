@@ -636,8 +636,8 @@
         "Typecheck passes"
       ],
       "priority": 38,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "SECURITY DEFINER get_my_insider_secret part of the test deferred to US-040 (US-5a.5) where the function lands. Migration 0017 verified: 6/6 vitest pass, anon SELECT * → 42501, anon SELECT secret_value → 42501, anon SELECT (non-secret cols) returns row without secret_value. Realtime publication uses an explicit column list so secret_value is NOT broadcast on the channel either. Apps/insider gained vitest scaffolding (vitest.config.ts + vitest dep + @supabase/supabase-js dep)."
     },
     {
       "id": "US-039",
