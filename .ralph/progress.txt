@@ -834,3 +834,26 @@ US-005 depends on US-006 (the staging Supabase env vars). Recommended order:
   - The FK from `game_insider_round.pack_slug → content_packs.slug` means migration tests need a slug that's actually in the seed. Migration 0013 seeds `football-premier-league` (handler `football_category`) and a small set of others — those are stable across every `db reset`. Don't reach for `insider-thai-food`; it's seeded only by a separate script (`scripts/seed-insider-packs.ts`) that's not part of the migration chain.
   - apps/insider scaffolding mirrors apps/headball but skips jsdom because no React tests run here yet. Phase 5b will likely add an apps/insider/playwright.config.ts and a separate `vitest.setup.ts` if React component tests land in this app.
 ---
+
+## 2026-05-09 — US-039 (Phase 5a.2 — Migration 0018 game_insider_roles table)
+- TDD red→green: wrote `apps/insider/lib/__tests__/migration-0018-game-insider-roles.test.ts` (5 tests) first, confirmed failure with `PGRST205` (table missing in schema cache), then added migration `0018_game_insider_roles.sql`.
+- Schema (per Phase 5 PRD US-5a.2 / design doc):
+  - `game_insider_roles (room_id uuid FK rooms ON DELETE CASCADE, round_number int, player_id uuid, role text check in ('master','insider','player'))`
+  - PK `(room_id, round_number, player_id)`
+  - `enable row level security` + permissive `for select to anon using (true)` (roles are public — see acceptance criterion in PRD line 81)
+  - `alter publication supabase_realtime add table game_insider_roles` (no column list — no asymmetric secret on this table; full row is broadcast)
+- Verification:
+  - `bunx supabase db reset` → applies cleanly through 0018
+  - `bunx vitest run` (apps/insider) → 5/5 new tests pass; 11/11 cumulative for apps/insider
+  - workspace `bunx vitest run` → 114/114 pass (no regressions)
+  - `bun run lint` → realtime gate OK, eslint clean
+  - `bunx tsc --noEmit` (apps/insider) → clean
+- Files changed:
+  - `apps/insider/lib/__tests__/migration-0018-game-insider-roles.test.ts` — new (5 tests)
+  - `supabase/migrations/0018_game_insider_roles.sql` — new
+- **Learnings:**
+  - Insider role tables follow a simpler shape than `game_insider_round`: roles are PUBLIC so no column-level GRANT/REVOKE dance is needed. Standard `enable RLS + anon SELECT policy + alter publication ... add table <name>` (no column list) is correct for any future Insider table that doesn't carry asymmetric secrets (responses, votes per US-5a.3 will follow this same shape).
+  - The `player_id uuid` in role tables is the persistent client `player_id` (cookie/localStorage), NOT a FK to `players.id`. This matches the existing `round_state.player_id` convention from migration 0001 — no FK enforcement, just a logical reference. The PK `(room_id, round_number, player_id)` plus the rooms-FK-cascade is enough to keep the table consistent.
+  - PK violation surfaces as Postgres SQLSTATE `23505` (unique_violation), separate from check-constraint `23514`. Useful for future tests that want to assert "same player can't have two roles in same round" — the PK enforces it, no extra constraint needed.
+  - Test cleanup pattern (delete-by-room-code in beforeAll + afterAll) reused verbatim from `migration-0017-game-insider-round.test.ts`. Continue this for US-040 (responses/votes) and beyond — keeps Insider integration tests hermetic without touching other rooms.
+---
