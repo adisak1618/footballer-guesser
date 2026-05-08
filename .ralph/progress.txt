@@ -579,3 +579,20 @@ US-005 depends on US-006 (the staging Supabase env vars). Recommended order:
 - Files changed: `scripts/seed-insider-packs.ts`, `scripts/tsconfig.json`, `package.json`.
 - **Learnings:** see top-of-file Codebase Patterns ("Workspace-root scripts/ TS toolchain" and "Idempotent Supabase seed via supabase-js").
 ---
+
+## 2026-05-09 — US-027 (Phase 3.5 — Verify Headball start_round unchanged, C4)
+- Verification-only story; no code changes.
+- Confirmed start_round body in running local DB matches migration 0011 (post-`supabase db reset` with all 15 migrations applied) — Phase 3 migrations did not redefine it.
+- Confirmed football_players, categories, category_players DDL unchanged (columns/constraints/policies match 0001/0010 originals).
+- Confirmed Phase 3 migrations 0013/0014/0015 contain ALTER only against the new tables they create (content_packs, word_packs, word_pack_items). No DROP/ALTER of existing Headball schema. C4 additive-only rule holds.
+- Quality checks:
+  - `cd apps/headball && bunx tsc --noEmit` → clean
+  - `bunx vitest run` (workspace root) → 80/80 across 13 files (apps/headball + packages/core). PRD criterion "21 unit tests" was a frozen count from PRD-write time; strictly more coverage now per the "Outdated PRD test counts" pattern.
+  - `cd apps/headball && bunx playwright test` → 14/14 on second run. First run hit the documented Turbopack cold-start flake on chip-suggestions.spec.ts; second run clean per established mitigation.
+  - `bun run lint` → clean (turbo cache, all 7 packages).
+- Manual "create Headball room, start round, verify name assigned" criterion: covered by `e2e/full-game.spec.ts` (golden path: create_room → join_room → start_round → assigned name visible). Per Ralph instructions for autonomous-context browser verification, e2e specs ARE the verification.
+- Files changed: `.ralph/prd.json` (mark US-027 passes:true), `.ralph/progress.txt` (this entry).
+- **Learnings:**
+  - Quick way to confirm a Postgres function is structurally unchanged after a wave of additive migrations: `psql -c "select pg_get_functiondef(oid) from pg_proc where proname = 'X';"` against the running local DB after `bunx supabase db reset`. Compares the *applied* function body, not just whether some new migration mentions the name. Useful pattern for any "verify X is unchanged" story (will repeat for similar verification stories at Phase 4/5/6 boundaries).
+  - The "additive-only" rule for a phase can be quickly audited with `grep -n "alter table\|drop table\|drop function\|alter function" supabase/migrations/<phase-files>.sql` — any matches must reference only tables/functions newly created within the same phase. Embed this check in any future C4-style verification story.
+---
