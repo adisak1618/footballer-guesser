@@ -259,3 +259,18 @@ US-005 depends on US-006 (the staging Supabase env vars). Recommended order:
   - `git add -A` over a freshly-relocated app will scoop up build/test artifacts (`node_modules`, `test-results`, `.vite` cache) unless `.gitignore` patterns are recursive (`**/node_modules` etc.). The Phase 0 `.gitignore` only had root-anchored entries (`/node_modules`); Phase 1.2 widened them.
   - The acceptance criterion's spec/test counts ("21 unit tests", "5 e2e specs") were captured at the time the PRD was written and have since grown. Treat the count as "all pass" not "exactly N pass" — flag if numbers shrink, otherwise green.
 ---
+
+## 2026-05-08 — US-010 (Phase 1.3 — Verify supabase/ stays at workspace root)
+- Verification-only story: no code changes. Confirmed `supabase/` stays at workspace root for the multi-app shared DB.
+- Verified each acceptance criterion:
+  - `supabase/` lives at workspace root (config.toml, migrations/, .branches/, .temp/). No `supabase/` directory under any `apps/*`.
+  - `bunx supabase status` from workspace root prints all running services (Studio :54323, REST :54321/rest/v1, Postgres :54322).
+  - `bunx supabase db reset` from workspace root applied all 12 migrations 0001–0012 cleanly. README.md skipped (expected — not a `<timestamp>_name.sql` file). `WARN: no files matched pattern: supabase/seed.sql` is benign — players seed lives in migration 0003/0010 (per A2 in design doc); no separate seed.sql.
+  - `apps/headball/.env.local` has `NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321` + the local anon key from `supabase status`.
+  - `cd apps/headball && bunx tsc --noEmit` exits clean (no output).
+- Files changed: none (verification only).
+- **Learnings:**
+  - `supabase/` MUST stay at workspace root through all phases — Insider and Hub will share the same Postgres + migrations + Realtime publications. Per A4, never split or duplicate `supabase/migrations/` per-app.
+  - `bunx supabase db reset` from workspace root works regardless of current working directory because the Supabase CLI walks up looking for `supabase/config.toml`. Migrations apply against the linked local stack started by `bunx supabase start`.
+  - The "no files matched pattern: supabase/seed.sql" warning is expected for this repo — Headball seeds Premier League players via migrations (0003 + 0010 replace_player_seed). Don't add a `supabase/seed.sql` file just to silence the warning.
+---
