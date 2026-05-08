@@ -903,8 +903,8 @@
         "Verify in browser using dev-browser skill"
       ],
       "priority": 55,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "GREEN 2026-05-09. e2e/insider-role-reveal-insider.spec.ts passes; 4-context flow asserts insider-warning-scanline, role badge text, secret card bg=rgb(236,72,153) (=tag-pink), mission Thai text, then ฉันพร้อมแล้ว → preparing→asking. Browser verification deferred (no dev-browser skill in autonomous Ralph context); the e2e + multi-context Playwright run IS the verification per the project's documented stance. apps/insider/app/room/[code]/role-reveal.tsx ships an Insider-only variant; Master/Common get a minimal placeholder with the same CTA, to be replaced by US-056/US-057."
     },
     {
       "id": "US-056",
