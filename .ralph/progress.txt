@@ -2,8 +2,20 @@
 
 Branch: feat/multigame-platform
 Total stories: 83
-Started: <Ralph will fill on first run>
+Started: 2026-05-08
+
+## Codebase Patterns
+
+- Root `package.json` uses Bun workspaces (`apps/*`, `packages/*`). `apps/` and `packages/` dirs do not need to exist for `bun install` to succeed — empty globs are tolerated.
+- Existing Headball app code lives at repo root through Phase 0; Phase 1 relocates it to `apps/headball/`.
 
 ## Story Completion Log
 
-(Ralph appends one line per completed story below this header)
+## 2026-05-08 — US-001 (Phase 0.1 — Initialize Bun workspaces)
+- Added `"workspaces": ["apps/*", "packages/*"]` to root `package.json`.
+- Verified: `bun install` clean, `bunx tsc --noEmit` clean, `bun run dev` returns HTTP 200 on http://localhost:3000.
+- Files changed: `package.json`.
+- **Learnings:**
+  - Bun 1.1.29 accepts `workspaces` glob patterns even when no matching directories exist yet — useful for incremental scaffolding.
+  - Next.js 16.2.4 starts in ~200ms with Turbopack; quick to spawn for smoke checks.
+---
