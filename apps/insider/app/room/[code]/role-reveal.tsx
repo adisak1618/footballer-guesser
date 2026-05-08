@@ -6,6 +6,7 @@ import { advanceToAsking, getMyInsiderSecret } from "@/lib/insider-rpc"
 import { supabase } from "@/lib/supabase"
 
 // US-055 / Phase 5b.4a — Role reveal: INSIDER view (the asymmetric drama).
+// US-056 / Phase 5b.4b — Role reveal: MASTER view (the judge).
 //
 // This component is rendered by the room shell once `rooms.status` flips to
 // 'PLAYING' (i.e. start_insider_round committed; phase='preparing'). It reads
@@ -14,10 +15,10 @@ import { supabase } from "@/lib/supabase"
 // DEFINER `get_my_insider_secret` RPC (column-level RLS keeps anon SELECT on
 // `secret_value` denied — see migration 0021 / pattern note 30).
 //
-// Story-scope: ONLY the Insider variant is implemented here (per US-055
-// acceptance criteria). Master (US-056) and Common (US-057) variants land
-// next. Until then, non-insider players see a minimal placeholder — they're
-// not blocked, they just don't see the wireframe-5b/5c treatment yet.
+// Story-scope: Insider + Master variants are implemented here. Common
+// (US-057) variant lands next. Until then, common players see a minimal
+// placeholder — they're not blocked, they just don't see the wireframe-5c
+// treatment yet.
 
 type InsiderRole = "master" | "insider" | "player"
 
@@ -108,8 +109,14 @@ export function RoleReveal({ roomId, round, mePlayerId }: RoleRevealProps) {
     )
   }
 
-  // Master/Common placeholder until US-056/US-057 land. Still includes the
-  // ฉันพร้อมแล้ว CTA (T-3.B) so non-Insider players aren't stuck.
+  if (role === "master" && secret) {
+    return (
+      <MasterView roomId={roomId} round={round} mePlayerId={mePlayerId} secret={secret} />
+    )
+  }
+
+  // Common placeholder until US-057 lands. Still includes the ฉันพร้อมแล้ว
+  // CTA (T-3.B) so common players aren't stuck.
   return (
     <PlaceholderView
       roomId={roomId}
@@ -229,14 +236,114 @@ function InsiderView({
 }
 
 // ───────────────────────────────────────────────────────────────────────────
-// Master/Common placeholder — picked up by US-056/US-057.
+// MasterView — wireframe 5b
+// ───────────────────────────────────────────────────────────────────────────
+
+function MasterView({
+  roomId,
+  round,
+  mePlayerId,
+  secret,
+}: {
+  roomId: string
+  round: number
+  mePlayerId: string
+  secret: string
+}) {
+  const { handleReady, isPending, error } = useAdvanceToAsking({
+    roomId,
+    round,
+    mePlayerId,
+  })
+
+  return (
+    <main className="relative mx-auto flex min-h-[100dvh] w-full max-w-[480px] flex-col gap-8 px-6 pt-8 pb-10">
+      <header className="flex flex-col gap-2 text-center">
+        <p className="font-display text-[28px] uppercase leading-none tracking-[0.3px] text-on-dark">
+          Round {round}
+        </p>
+      </header>
+
+      <section className="flex flex-col gap-6">
+        <div
+          data-testid="master-role-badge"
+          className="flex flex-col items-center justify-center gap-1 rounded-xl border-2 border-info bg-surface/50 px-4 py-4 text-center"
+        >
+          <span className="font-body text-[18px] tracking-[0.3px] text-info">
+            👁 ผู้ตัดสิน
+          </span>
+          <span className="font-display text-[32px] uppercase leading-none tracking-[1px] text-on-dark">
+            THE MASTER
+          </span>
+        </div>
+
+        <div className="flex flex-col gap-3">
+          <p className="text-center text-xs font-medium uppercase tracking-[0.3px] text-on-dark-muted">
+            THE SECRET WORD
+          </p>
+          <div
+            data-testid="master-secret-card"
+            className="flex min-h-[200px] flex-col items-center justify-center rounded-2xl bg-tag-pink px-6 py-10 text-center"
+          >
+            <span className="font-hero text-[clamp(72px,18vw,144px)] uppercase leading-none tracking-[2px] text-on-dark">
+              {secret.toUpperCase()}
+            </span>
+          </div>
+        </div>
+
+        <div
+          data-testid="master-instruction-text"
+          className="flex flex-col gap-2 text-center"
+        >
+          <p className="font-body text-[18px] leading-snug text-on-dark">
+            คุณคือผู้ตัดสิน
+            <br />
+            ตอบคำถามได้เพียง
+            <br />
+            ใช่ / ไม่ใช่ / ไม่แน่ใจ
+          </p>
+          <p className="font-body text-[13px] uppercase tracking-[0.3px] text-on-dark-soft">
+            YOU ARE THE JUDGE.
+            <br />
+            ANSWER YES / NO / UNSURE.
+          </p>
+        </div>
+      </section>
+
+      <section className="mt-auto flex flex-col gap-3">
+        {error ? (
+          <p
+            role="alert"
+            className="rounded-lg border border-error/40 bg-error/10 px-4 py-3 text-center text-sm font-medium text-error"
+          >
+            {error}
+          </p>
+        ) : null}
+        <button
+          type="button"
+          onClick={handleReady}
+          disabled={isPending}
+          aria-busy={isPending}
+          data-testid="insider-ready-cta"
+          className="flex min-h-14 w-full items-center justify-center gap-2 rounded-xl bg-goal px-6 text-on-dark transition-colors active:bg-goal-active disabled:bg-goal-disabled disabled:text-on-dark/70"
+        >
+          <span className="font-display text-[20px] uppercase tracking-[1px]">
+            {isPending ? "กำลังดำเนินต่อ..." : "ฉันพร้อมแล้ว →"}
+          </span>
+        </button>
+      </section>
+    </main>
+  )
+}
+
+// ───────────────────────────────────────────────────────────────────────────
+// Common placeholder — picked up by US-057.
 // ───────────────────────────────────────────────────────────────────────────
 
 function PlaceholderView({
   roomId,
   round,
   mePlayerId,
-  role,
 }: {
   roomId: string
   round: number
@@ -248,8 +355,7 @@ function PlaceholderView({
     round,
     mePlayerId,
   })
-  const label =
-    role === "master" ? "THE MASTER / ผู้ตัดสิน" : "PLAYER / ผู้เล่น"
+  const label = "PLAYER / ผู้เล่น"
 
   return (
     <main className="relative mx-auto flex min-h-[100dvh] w-full max-w-[480px] flex-col gap-8 px-6 pt-8 pb-10">
