@@ -522,3 +522,21 @@ US-005 depends on US-006 (the staging Supabase env vars). Recommended order:
   - **content_packs realtime decision (per A4):** PUBLISHED (clients may subscribe). Reasoning: `enabled` toggle is a host-facing knob (e.g., temporarily hide a pack from setup screens). Cheaper to publish once than to retrofit later. word_packs / word_pack_items in 0014 will likely be `-- no-realtime` since they're static lookup data — decide story-by-story per the A4 protocol.
   - **`bunx supabase db push --linked` interactive prompt:** in non-TTY contexts the push command prints `[Y/n]` and proceeds anyway when run via Bash tool — works as expected. The output line "Applying migration 0013_content_packs.sql..." followed by "Finished supabase db push." is the success confirmation; absence of an error block means clean.
 ---
+
+## 2026-05-08 — US-024 (Phase 3.2 — Migration 0014 word_packs + word_pack_items)
+- Wrote failing integration test `apps/headball/lib/__tests__/word-packs.test.ts` (TDD red): admin (service-role) inserts word_packs row + 5 word_pack_items, anon SELECT round-trips them with metadata. Confirmed red against `Could not find the table 'public.word_packs'`.
+- Created migration `supabase/migrations/0014_word_packs.sql`:
+  - `word_packs` (slug PK, display_name, display_name_th nullable, enabled bool default true, created_at)
+  - `word_pack_items` (pack_slug FK CASCADE → word_packs.slug, value, metadata jsonb default '{}', PK (pack_slug, value))
+  - Index `word_pack_items_pack_slug_idx` on `(pack_slug)`
+  - RLS enabled on both, anon SELECT policy on both
+  - Both create-table lines tagged `-- no-realtime` (per US-021/A4 — clients don't subscribe to static word lists)
+- `bunx supabase db reset` applied 0001..0014 cleanly. `bunx supabase db push --linked` applied 0014 to staging cleanly.
+- Verified: green test, full workspace `bunx vitest run` 76/76, `bunx tsc --noEmit` clean in apps/headball, `scripts/check-realtime-publication.sh` OK.
+- Files changed: `apps/headball/lib/__tests__/word-packs.test.ts` (new), `supabase/migrations/0014_word_packs.sql` (new).
+- **Learnings:**
+  - **word_packs realtime decision (per A4):** NO-REALTIME for both word_packs and word_pack_items. Reasoning: word lists are static lookup data populated by seed scripts; runtime resolution flows through `get_random_pack_item(slug)` (US-025 / migration 0015) which does its own random select per round. There's no `enabled` toggle that hosts need pushed live (unlike content_packs). If a future story needs hot-toggle of a word pack, that's the right time to flip the publication — not a Phase 3 concern.
+  - **TDD round-trip pattern for new lookup tables:** test inserts via service-role admin client (bypasses RLS), reads via separate anon client (must hit the SELECT policy). Both clients in the same test prove RLS allows the read path AND the schema/FK/PK actually accept the insert. Cleanup via `afterAll` + `delete().eq("slug", TEST_PACK_SLUG)` — the FK CASCADE handles word_pack_items. Test slug must be unique-enough to never collide with real seed data (use a `test-` prefix). This pattern will repeat for any future lookup-table migration that needs both write and read paths verified.
+  - **Two SupabaseClient instances in a single vitest file** triggers a benign GoTrueClient stderr warning ("Multiple GoTrueClient instances detected in the same browser context"). Harmless — both clients use `auth: { persistSession: false, autoRefreshToken: false }` so there's no actual auth-state collision. Suppression isn't worth the noise floor; keep both clients explicit so the test reads as "admin writes, anon reads".
+  - **Trailing `-- no-realtime` on the `create table` keyword line:** the realtime gate (`scripts/check-realtime-publication.sh`) parses each `create table <name>` line and looks for either a same-line `-- no-realtime` comment OR a later `alter publication supabase_realtime add table <name>;` statement. Both `word_packs` and `word_pack_items` use the same-line comment form. The comment must be on the SAME LINE as `create table <name>`, not the next line — the gate is line-scoped.
+---
