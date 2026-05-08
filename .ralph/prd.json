@@ -833,8 +833,8 @@
         "Typecheck passes"
       ],
       "priority": 51,
-      "passes": false,
-      "notes": "GATE story — Insider has no UI yet, so /qa for Insider is deferred to 5b."
+      "passes": true,
+      "notes": "Phase 5a GATE PASSED 2026-05-09. Insider Postgres tests: 88/88 across 13 files (apps/insider/lib/__tests__/migration-00{17..28}*.test.ts + insider-rpc.test.ts) — strictly more than the criterion's '~50'. Workspace vitest 191/191 across 30 files. Headball regression: 14/14 e2e on warm rerun (first run hit known chip-suggestions cold-start flake — environmental, not behavioral; documented pattern). Hub e2e 11/11. Typecheck clean across apps/{headball,insider,hub} + packages/core. Lint clean (turbo cache hit on @social-hub/{headball,hub}:lint, realtime-publication.sh ✓). Build green for all 3 apps via bunx turbo run build. Manual verification: `select * from get_random_pack_item('insider-thai-food')` after `bun run scripts/seed-insider-packs.ts` returned `ยำวุ้นเส้น` (Thai yum woon sen) as item_id+display_value. DEFERRED per Vercel-deferral cascade pattern: '/qa standard against headball preview' — no Vercel preview URL (US-005 deferred); local proxy is the headball e2e suite + build green. 'Migrations applied to staging Supabase' — same (no staging until US-006). Pushed git tag phase-5a-done at the US-051 commit."
     },
     {
       "id": "US-052",
