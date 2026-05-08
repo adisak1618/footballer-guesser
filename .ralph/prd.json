@@ -380,8 +380,8 @@
         "Typecheck passes"
       ],
       "priority": 23,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Migration 0013 applied locally and to staging. Test passes (1/1). Full vitest suite 75/75 green. Typecheck clean. Realtime publication gate green."
     },
     {
       "id": "US-024",
