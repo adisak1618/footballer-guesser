@@ -12,6 +12,9 @@ Started: 2026-05-08
 - Turbo v2 schema uses `tasks` (not `pipeline`) — see `turbo.json`. Build outputs include `.next/**` (excluding cache) and `dist/**` for libraries.
 - Bun 1.1.29 generates `bun.lockb` (binary), not `bun.lock` — turbo emits a harmless WARNING about parsing the lockfile but still functions; upgrading to Bun ≥1.1.42 (text lockfile) would silence it.
 - Pre-existing tech debt: root `bun run lint` reports thousands of errors (eslint scope issue / type-aware rules in deps) — predates Phase 0 work, not a regression. Phase 1 relocation will likely scope eslint to `apps/headball/` and reduce the surface.
+- Workspace packages under `packages/*` declare `"main": "./src/index.ts"`, `"types": "./src/index.ts"`, and `"exports": { ".": "./src/index.ts" }` so consumers import TS source directly (no build step) — matches D3 in the design doc.
+- `next lint` is removed in Next 16 — do NOT add `"lint": "next lint"` to per-app `package.json`. Use `eslint` directly when wiring per-app lint (Phase 0.4/0.7).
+- `.turbo/` (per-package turbo cache + logs) is gitignored at the repo root — covers every workspace package without repeating in each.
 
 ## Story Completion Log
 
@@ -39,4 +42,20 @@ Started: 2026-05-08
   - First `bunx turbo run` against this repo errored with `Could not resolve workspaces -> Missing packageManager field`. Fixing that requires only adding `packageManager` to root `package.json`; turbo doesn't otherwise validate the version.
   - Turbo prints a non-fatal WARNING about `bun.lock` not being found because Bun 1.1.29 still uses the binary `bun.lockb` format. Functional behavior is unaffected.
   - `outputs` in `turbo.json` should explicitly exclude `.next/cache/**` to avoid shipping stale cache artifacts up to remote cache once that is enabled.
+---
+
+## 2026-05-08 — US-003 (Phase 0.3 — Empty apps/ and packages/ scaffolding)
+- Created apps/{hub,insider} as minimal Next 16 placeholder apps (page.tsx + layout.tsx + next.config.ts + tsconfig.json + package.json).
+- apps/headball is empty with `.gitkeep` only — Phase 1 relocates current root code here.
+- Created packages/{core,ui,types,content} each with `package.json` (name `@social-hub/<name>`, version `0.0.1`, `main`/`types`/`exports` -> `./src/index.ts`) and `src/index.ts` containing `export {};`.
+- Added `.turbo/` to `.gitignore` so per-package turbo cache logs aren't tracked.
+- Removed `next lint` script from placeholder apps — Next 16 dropped that command; Phase 0.4/0.7 will wire eslint properly. Apps with no code have nothing to lint anyway.
+- Verified: `bun install` resolves all 6 workspace packages (`ls node_modules/@social-hub/` shows `content core hub insider types ui`); `bunx tsc --noEmit` clean; `bunx vitest run` 57/57 pass; `bunx turbo run lint` discovers all 6 packages in scope (zero tasks executed since no lint scripts yet); `bun run dev` still serves HTTP 200 on `localhost:3000` from root Headball.
+- Files changed: `.gitignore`; `apps/{hub,insider}/{package.json,next.config.ts,tsconfig.json,app/page.tsx,app/layout.tsx}`; `apps/headball/.gitkeep`; `packages/{core,ui,types,content}/{package.json,src/index.ts}`; `bun.lockb`.
+- **Learnings:**
+  - `next lint` command was removed in Next 16 — `next dev/build/start` work as usual but `lint` errors with `Invalid project directory provided`. Use `eslint` directly (or `next` v15-style script via separate eslint config) when wiring real lint per app in later phases.
+  - Bun workspaces resolve via symlinks under `node_modules/@social-hub/<name>` — quick way to confirm workspace discovery without running anything.
+  - Each workspace package needs `main`/`types`/`exports` pointing at `./src/index.ts` so consuming TS imports resolve to the source file in dev (matches design doc D3 — no build step for shared packages).
+  - Turbo's per-package `.turbo/turbo-<task>.log` files MUST be gitignored — adding to root `.gitignore` once handles all packages.
+  - When there's a placeholder app whose `package.json` lacks a script, `bunx turbo run <task>` shows "0 successful, 0 total" with a `WARNING  No tasks were executed` — that's the expected "nothing to do" state, not a failure.
 ---
