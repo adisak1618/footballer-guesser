@@ -1,8 +1,8 @@
 "use client"
 
-import { use, useEffect, useState } from "react"
+import { use, useCallback, useEffect, useMemo, useState } from "react"
 import Link from "next/link"
-import type { RealtimeChannel } from "@supabase/supabase-js"
+import { useRoomRealtime } from "@social-hub/core"
 import { supabase } from "@/lib/supabase"
 import { readPlayerId, useGameStore } from "@/lib/game-store"
 import type { Player, Room } from "@/lib/types"
@@ -27,42 +27,13 @@ export default function RoomPage({
   const reset = useGameStore((s) => s.reset)
 
   const [loadError, setLoadError] = useState<string | null>(null)
+  const [roomId, setRoomId] = useState<string | null>(null)
 
   useEffect(() => {
     let active = true
-    let channel: RealtimeChannel | null = null
-    let prevSubStatus: string | null = null
-    let knownRoomId: string | null = null
-
-    async function refetchAll() {
-      if (!knownRoomId) return
-      const { data: roomRow } = await supabase
-        .from("rooms")
-        .select("*")
-        .eq("id", knownRoomId)
-        .maybeSingle()
-      if (!active || !roomRow) return
-      setRoom(roomRow as Room)
-
-      const { data: playerRows } = await supabase
-        .from("players")
-        .select("*")
-        .eq("room_id", knownRoomId)
-        .order("join_order", { ascending: true })
-      if (!active) return
-      const ps = (playerRows ?? []) as Player[]
-      setPlayers(ps)
-
-      const localPlayerId = readPlayerId()
-      const myRow = localPlayerId
-        ? (ps.find((p) => p.player_id === localPlayerId) ?? null)
-        : null
-      setMe(myRow)
-    }
+    setConnectionStatus("CONNECTING")
 
     async function load() {
-      setConnectionStatus("CONNECTING")
-
       const { data: roomRow, error: roomErr } = await supabase
         .from("rooms")
         .select("*")
@@ -76,14 +47,13 @@ export default function RoomPage({
         return
       }
 
-      const roomId = roomRow.id
-      knownRoomId = roomId
       setRoom(roomRow as Room)
+      setRoomId(roomRow.id)
 
       const { data: playerRows } = await supabase
         .from("players")
         .select("*")
-        .eq("room_id", roomId)
+        .eq("room_id", roomRow.id)
         .order("join_order", { ascending: true })
 
       if (!active) return
@@ -95,67 +65,82 @@ export default function RoomPage({
         ? (ps.find((p) => p.player_id === localPlayerId) ?? null)
         : null
       setMe(myRow)
-
-      channel = supabase
-        .channel(`room:${roomId}`)
-        .on(
-          "postgres_changes",
-          {
-            event: "*",
-            schema: "public",
-            table: "rooms",
-            filter: `id=eq.${roomId}`,
-          },
-          (payload) => {
-            if (payload.eventType === "DELETE") return
-            setRoom(payload.new as Room)
-          },
-        )
-        .on(
-          "postgres_changes",
-          {
-            event: "*",
-            schema: "public",
-            table: "players",
-            filter: `room_id=eq.${roomId}`,
-          },
-          async () => {
-            const { data: refreshed } = await supabase
-              .from("players")
-              .select("*")
-              .eq("room_id", roomId)
-              .order("join_order", { ascending: true })
-            if (!active || !refreshed) return
-            setPlayers(refreshed as Player[])
-          },
-        )
-        .subscribe((status) => {
-          if (!active) return
-          if (status === "SUBSCRIBED") {
-            setConnectionStatus("SUBSCRIBED")
-            if (prevSubStatus && prevSubStatus !== "SUBSCRIBED") {
-              void refetchAll()
-            }
-            prevSubStatus = "SUBSCRIBED"
-          } else if (
-            status === "CHANNEL_ERROR" ||
-            status === "TIMED_OUT" ||
-            status === "CLOSED"
-          ) {
-            setConnectionStatus("DISCONNECTED")
-            prevSubStatus = "DISCONNECTED"
-          }
-        })
     }
 
     load()
 
     return () => {
       active = false
-      if (channel) supabase.removeChannel(channel)
+      setRoomId(null)
       reset()
     }
   }, [code, setRoom, setPlayers, setMe, setConnectionStatus, reset])
+
+  const refetchAll = useCallback(async () => {
+    if (!roomId) return
+    const { data: roomRow } = await supabase
+      .from("rooms")
+      .select("*")
+      .eq("id", roomId)
+      .maybeSingle()
+    if (roomRow) setRoom(roomRow as Room)
+
+    const { data: playerRows } = await supabase
+      .from("players")
+      .select("*")
+      .eq("room_id", roomId)
+      .order("join_order", { ascending: true })
+    if (!playerRows) return
+    const ps = playerRows as Player[]
+    setPlayers(ps)
+
+    const localPlayerId = readPlayerId()
+    const myRow = localPlayerId
+      ? (ps.find((p) => p.player_id === localPlayerId) ?? null)
+      : null
+    setMe(myRow)
+  }, [roomId, setRoom, setPlayers, setMe])
+
+  const tables = useMemo(
+    () =>
+      roomId
+        ? [
+            { table: "rooms", filter: `id=eq.${roomId}` },
+            { table: "players", filter: `room_id=eq.${roomId}` },
+          ]
+        : [],
+    [roomId],
+  )
+
+  const handleChange = useCallback(
+    async (table: string, payload: { eventType: string; new: unknown }) => {
+      if (!roomId) return
+      if (table === "rooms") {
+        if (payload.eventType === "DELETE") return
+        setRoom(payload.new as Room)
+        return
+      }
+      if (table === "players") {
+        const { data: refreshed } = await supabase
+          .from("players")
+          .select("*")
+          .eq("room_id", roomId)
+          .order("join_order", { ascending: true })
+        if (!refreshed) return
+        setPlayers(refreshed as Player[])
+      }
+    },
+    [roomId, setRoom, setPlayers],
+  )
+
+  useRoomRealtime({
+    supabase,
+    roomId,
+    tables,
+    onChange: handleChange,
+    onReconnect: refetchAll,
+    onStatusChange: setConnectionStatus,
+  })
 
   if (loadError) {
     return (

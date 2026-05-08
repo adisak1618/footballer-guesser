@@ -280,8 +280,8 @@
         "Typecheck passes"
       ],
       "priority": 17,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Hook lives at packages/core/src/use-room-realtime.ts and is exported from @social-hub/core. Uses 'use client' directive (required so Next 16 RSC barrel imports don't pull useRef into server components). Accepts {supabase, roomId, tables: [{table, filter}], onChange(table, payload), onReconnect, onStatusChange}. Internally uses callback refs so consumers can pass inline functions without retriggering subscribe. apps/headball/app/room/[code]/page.tsx now derives roomId via useState and delegates the channel + reconnect-refetch logic to the hook. Verified: workspace vitest 65/65 pass, packages/core tsc clean, apps/headball tsc clean, bunx playwright test 14/14 pass on second run (first run hit the documented Turbopack cold-start flake on chip-suggestions.spec.ts — environmental, not behavioral). Acceptance criterion '5/5' is the outdated PRD count; current spec set is 14 specs and all green (per existing 'Outdated PRD test counts' pattern)."
     },
     {
       "id": "US-018",
