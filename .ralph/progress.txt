@@ -19,6 +19,11 @@ Started: 2026-05-08
 - `@social-hub/*` path alias resolves to `packages/*/src/index.ts` (set in base). Consume with `import { X } from "@social-hub/core"` — no deep imports (matches D3).
 - Root `tsconfig.json` (existing Headball app) does NOT extend base by design — it stays Next-13-style for the legacy root app until Phase 1 relocates Headball into `apps/headball/` and that app gets its own base-extending tsconfig.
 - `bunx tsc --noEmit` from a sub-dir (e.g. `cd apps/hub && bunx tsc --noEmit`) picks up that workspace's tsconfig — useful for verifying per-package extends work.
+- `data/` directory stays at workspace root through Phase 1 (root `scripts/build-seed.ts` resolves it via `path.join(ROOT, "data")` where ROOT = `..` from scripts/). `apps/headball/tsconfig.json` adds `@/data/*` → `../../data/*` so headball code can keep using `import { ... } from "@/data/premier-league"` after the relocation without changing imports.
+- `vitest.setup.ts` was moved into `apps/headball/` during US-008 (not just US-009 territory). Reason: `bunx tsc --noEmit` from `apps/headball/` needs to compile a file that imports `@testing-library/jest-dom/vitest` so Vitest's `Assertion` interface is augmented with `toBeInTheDocument`/`toHaveTextContent`. Without that file inside the project's tsconfig include, every test file using those matchers fails typecheck.
+- After Phase 1.1 (US-008), root `package.json` keeps only workspace tooling: `turbo`, `typescript`, `supabase` (CLI used at workspace root), `@types/node` (for scripts/*.ts). Every Next/React/test library lives in `apps/headball/package.json`.
+- Root scripts (`dev`, `build`, `lint`, `test`) are now Turbo proxies (`turbo run <task> --filter=@social-hub/headball` for the single-app tasks). Workspace-root `next dev` won't work after Phase 1.1 because `next.config.ts` / `tsconfig.json` still live at root through US-009 — by design.
+- `apps/headball/tsconfig.json` paths order: list more-specific patterns first (`@/data/*` before `@/*`). TS resolves longest-prefix-match regardless of order, but listing in specificity order reads cleaner and avoids confusion.
 
 ## Story Completion Log
 
@@ -203,4 +208,22 @@ US-005 depends on US-006 (the staging Supabase env vars). Recommended order:
   - `bunx supabase db reset` is the right reset between phases — recreates DB from migrations + seed. Safe because local-only.
   - The `Skipping migration README.md... (file name must match pattern)` warning from `supabase db reset` is harmless — just confirms the README we put in `supabase/migrations/` isn't being misinterpreted as a SQL migration.
   - Ralph's child claude exited mid-iteration (likely after edits to .gitignore + eslint.config.mjs but before the commit step). The bash loop's `|| true` swallowed the exit, so `git log` showed no commit. Recovery: pick up where it left off, finish manually.
+---
+
+## 2026-05-08 — US-008 (Phase 1.1 — git mv app/, components/, lib/, public/ into apps/headball/)
+- `git mv` moved `app/`, `components/`, `lib/`, `public/` into `apps/headball/`. Removed `apps/headball/.gitkeep`.
+- Created `apps/headball/package.json` (`@social-hub/headball` v0.1.0, private). Moved every runtime dep (next, react, react-dom, @base-ui/react, @supabase/ssr, @supabase/supabase-js, canvas-confetti, class-variance-authority, clsx, lucide-react, shadcn, tailwind-merge, tw-animate-css, zod, zustand) and every headball-app devDep (@playwright/test, @tailwindcss/postcss, @testing-library/{jest-dom,react,user-event}, @types/{canvas-confetti,node,react,react-dom}, @vitejs/plugin-react, eslint, eslint-config-next, jsdom, tailwindcss, vitest) out of root.
+- Created `apps/headball/tsconfig.json` extending `../../tsconfig.base.json` with `paths: { "@/data/*": ["../../data/*"], "@/*": ["./*"], "@social-hub/*": ["../../packages/*/src/index.ts"] }` and the Next plugin. Include mirrors the original root config (`next-env.d.ts`, `**/*.ts(x)`, `.next/types/**`, `.next/dev/types/**`, `**/*.mts`).
+- Reduced root `package.json` to: `workspaces`, `packageManager: "bun@1.1.29"`, four devDeps (`turbo`, `typescript`, `supabase`, `@types/node`), Turbo-proxy scripts (`dev`, `dev:all`, `dev:hub`, `dev:insider`, `build`, `build:all`, `lint`, `test`), seed scripts at root (`seed:fetch/build/sql/all`), and `ignoreScripts`/`trustedDependencies` for sharp + unrs-resolver.
+- Moved `vitest.setup.ts` into `apps/headball/` so tsc picks up `@testing-library/jest-dom/vitest` Vitest type augmentation. Without this, every `.test.tsx` failed with `TS2339: Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'`.
+- **Verification:**
+  - `bun install` → "Saved lockfile, 1 package installed, Removed: 29" first run; second run "Checked 750 installs across 821 packages (no changes)" → clean.
+  - `cd apps/headball && bunx tsc --noEmit` → exit 0, zero output.
+- Files changed (commit 4b3f37c): 59 file renames into apps/headball/, root `package.json` rewrite, new `apps/headball/{package.json,tsconfig.json}`, `bun.lockb` updated, `vitest.setup.ts` moved into apps/headball.
+- **Learnings:**
+  - The phase-PRD note that "lib imports using `@/lib/...` need their tsconfig paths updated to scope `@/` to apps/headball/" was correct but incomplete — `lib/player-names.ts` also imports `@/data/premier-league`, and `data/` stays at workspace root (root `scripts/*.ts` consume it via `path.join(ROOT, "data")`). Solution: add a more-specific `@/data/*` → `../../data/*` mapping alongside `@/*` → `./*`.
+  - jest-dom matcher types (`toBeInTheDocument` etc.) only attach to Vitest's `Assertion` interface when a TS file in the project includes the side-effect import `import "@testing-library/jest-dom/vitest"` (or `/// <reference>`). The setup file IS that file — so it must live inside the project tsconfig include or the typecheck breaks. Moving `vitest.setup.ts` into `apps/headball/` is the natural fix and aligns with where `vitest.config.ts` will land in US-009.
+  - Bun 1.1.29's `bun install` correctly removes packages no longer declared anywhere (workspace + apps + packages all consulted). Removed 29 packages on first install after deps were relocated; 821 total resolved including new `@social-hub/headball` workspace package.
+  - `git mv` preserved 100% rename detection on all 59 files in the commit — keeps blame intact.
+  - Listed `@/data/*` BEFORE `@/*` in `paths` for readability; TS picks longest-prefix-match regardless of order, but reading top-to-bottom by specificity is clearer.
 ---

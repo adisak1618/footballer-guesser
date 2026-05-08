@@ -130,7 +130,7 @@
         "Typecheck passes from apps/headball/"
       ],
       "priority": 8,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
