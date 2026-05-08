@@ -32,6 +32,9 @@ The `dispatch()` wrapper in `packages/core/src/dispatch.ts` parses the Supabase 
 > | `PGAME12`  | `PG012`  | `0023_start_insider_round.sql`        |
 > | `PGAME13`  | `PG013`  | `0023_start_insider_round.sql`        |
 > | `PGAME14`  | `PG014`  | `0023_start_insider_round.sql`        |
+> | `PGAME02`  | `PG002`  | `0024_master_respond.sql`             |
+> | `PGAME15`  | `PG015`  | `0024_master_respond.sql`             |
+> | `PGAME16`  | `PG016`  | `0024_master_respond.sql`             |
 >
 > Future codes follow the same pattern: `PGAME02` → `PG002`, …, `PGAME99` → `PG099`. When a Phase 5+ Insider migration introduces a new `PGAMExx`, raise it as `errcode = 'PGxxx'` with the message prefixed by `'PGAMExx: '`. App-side handlers can match on either `error.code === 'PGxxx'` (the SQLSTATE) or the message prefix.
 
@@ -57,7 +60,9 @@ Reserved for the Insider game (Phase 5). Specific assignments are made when the 
 - `PGAME12` — only host can start round (host authorization on `start_insider_round`; bound by `0023_start_insider_round.sql`)
 - `PGAME13` — room not in lobby (LOBBY-status guard on `start_insider_round`; bound by `0023_start_insider_round.sql`)
 - `PGAME14` — fewer than 3 players (player-count gate on `start_insider_round`; bound by `0023_start_insider_round.sql`)
-- `PGAME10`, `PGAME15`+ — unassigned. Future Insider RPCs (`master_respond`, `mark_correct_guess`, `cast_vote`, …) will pick from the next free slots.
+- `PGAME15` — only master can respond (master-only authorization on `master_respond`; bound by `0024_master_respond.sql`)
+- `PGAME16` — phase != 'asking' (phase guard on `master_respond`; bound by `0024_master_respond.sql`)
+- `PGAME10`, `PGAME17`+ — unassigned. Future Insider RPCs (`mark_correct_guess`, `cast_vote`, …) will pick from the next free slots.
 
 ## Future games (PGAME50–PGAME89)
 
