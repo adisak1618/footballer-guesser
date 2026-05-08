@@ -16,6 +16,7 @@ import { startInsiderRoundAction } from "@/app/actions/start-insider-round"
 import { getOrCreatePlayerId, readPlayerId } from "@/lib/player-id"
 import { displayNameSchema } from "@/lib/schemas"
 import { supabase } from "@/lib/supabase"
+import { RoleReveal } from "./role-reveal"
 
 interface InsiderPlayer {
   id: string
@@ -142,6 +143,19 @@ export function Lobby({ code }: { code: string }) {
       <JoinView
         code={code}
         onJoined={(playerId) => setMeId(playerId)}
+      />
+    )
+  }
+
+  // Once the host advances LOBBY → PLAYING, render the role-reveal screen.
+  // The Realtime subscription on `rooms` flips room.status here for every
+  // player simultaneously (including the host).
+  if (room.status === "PLAYING") {
+    return (
+      <RoleReveal
+        roomId={room.id}
+        round={room.current_round ?? 1}
+        mePlayerId={me.player_id}
       />
     )
   }
