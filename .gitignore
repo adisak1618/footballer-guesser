@@ -68,3 +68,6 @@ scripts/ralph/.last-branch
 
 # Claude Code per-developer settings (skills/ are committed)
 .claude/settings.local.json
+
+# Supabase Studio scratch — auto-generated "Untitled query N.sql" snippets
+/supabase/snippets/
