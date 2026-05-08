@@ -224,6 +224,7 @@ export type Database = {
           phase: string
           room_id: string
           round_number: number
+          scored_at: string | null
           secret_value: string
           started_at: string | null
           time_limit_s: number
@@ -237,6 +238,7 @@ export type Database = {
           phase?: string
           room_id: string
           round_number: number
+          scored_at?: string | null
           secret_value: string
           started_at?: string | null
           time_limit_s: number
@@ -250,6 +252,7 @@ export type Database = {
           phase?: string
           room_id?: string
           round_number?: number
+          scored_at?: string | null
           secret_value?: string
           started_at?: string | null
           time_limit_s?: number
@@ -581,6 +584,10 @@ export type Database = {
     Functions: {
       advance_to_asking: {
         Args: { p_player_id: string; p_room_id: string; p_round: number }
+        Returns: undefined
+      }
+      advance_to_reveal: {
+        Args: { p_room_id: string; p_round: number }
         Returns: undefined
       }
       cast_vote: {
