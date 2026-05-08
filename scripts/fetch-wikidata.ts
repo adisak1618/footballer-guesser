@@ -1,13 +1,19 @@
-// Fetch raw player data from Wikidata for 15 famous football clubs.
-// Run: bun run scripts/fetch-wikidata.ts
-// Output: data/raw/wikidata-{slug}.json (one per club)
+// Fetch raw player data from Wikidata for the clubs in CLUBS.
+// Run: bun run scripts/fetch-wikidata.ts            (skip clubs already on disk)
+//      bun run scripts/fetch-wikidata.ts --force    (re-fetch every club)
+// Output: data/raw/{league}/{club}.json
 //
 // Reads no env vars. No rate limits worth worrying about (Wikidata public
-// endpoint). Re-run any time to refresh.
+// endpoint). Default skip-if-exists keeps re-runs cheap when you only added
+// a new club; use --force when you want fresh data for everyone (transfers,
+// new player additions on Wikidata, etc.).
 
 import { writeFile, mkdir } from "node:fs/promises";
+import { existsSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
+
+const FORCE = process.argv.includes("--force");
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const OUT_DIR = join(HERE, "..", "data", "raw");
@@ -107,11 +113,24 @@ async function fetchClub(club: Club): Promise<unknown> {
 
 async function main(): Promise<void> {
   await mkdir(OUT_DIR, { recursive: true });
+  if (FORCE) console.log("--force: re-fetching every club\n");
 
   let total = 0;
+  let skipped = 0;
   for (const club of CLUBS) {
+    const leagueDir = join(OUT_DIR, club.league);
+    const path = join(leagueDir, `${club.slug}.json`);
+
+    if (!FORCE && existsSync(path)) {
+      console.log(
+        `[${club.league.padEnd(14)} / ${club.slug.padEnd(14)}] cached, skip`,
+      );
+      skipped++;
+      continue;
+    }
+
     process.stdout.write(
-      `[${club.league.padEnd(14)} / ${club.slug.padEnd(12)}] fetching... `,
+      `[${club.league.padEnd(14)} / ${club.slug.padEnd(14)}] fetching... `,
     );
     const start = Date.now();
 
@@ -123,9 +142,7 @@ async function main(): Promise<void> {
       total += count;
       const dur = Date.now() - start;
 
-      const leagueDir = join(OUT_DIR, club.league);
       await mkdir(leagueDir, { recursive: true });
-      const path = join(leagueDir, `${club.slug}.json`);
       await writeFile(path, JSON.stringify(data, null, 2));
       console.log(`${String(count).padStart(5)} rows  (${dur}ms)`);
     } catch (err) {
@@ -137,7 +154,10 @@ async function main(): Promise<void> {
     await new Promise((r) => setTimeout(r, 1000));
   }
 
-  console.log(`\nDone. ${total} total rows across ${CLUBS.length} clubs.`);
+  const fetched = CLUBS.length - skipped;
+  console.log(
+    `\nDone. ${fetched} fetched (${total} new rows), ${skipped} cached. Re-run with --force to refresh cached clubs.`,
+  );
   console.log(`Raw data in: ${OUT_DIR}`);
 }
 

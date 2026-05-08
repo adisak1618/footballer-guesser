@@ -24,8 +24,16 @@ data/raw/
 ## One-shot refresh
 
 ```bash
-bun run seed:all                 # fetch + build + sql, ~3 min
+bun run seed:all                 # fetch (skips cached) + build + sql
 bunx supabase db reset           # apply the new migration locally
+```
+
+`seed:fetch` skips clubs whose JSON file already exists in `data/raw/`, so adding
+one new club only fetches that one (~5 seconds instead of ~6 minutes). To force a
+full refresh — e.g., after a transfer window when Wikidata has new player rows:
+
+```bash
+bun run scripts/fetch-wikidata.ts --force   # re-fetch every club
 ```
 
 ## Adding a new category
