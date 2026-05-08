@@ -352,3 +352,17 @@ US-005 depends on US-006 (the staging Supabase env vars). Recommended order:
   - `peerDependencies` + matching `devDependencies` for `@supabase/supabase-js` in packages/core: peer signals "consumer must provide compatible version", dev satisfies isolated typecheck/test runs in the package itself. Bun workspaces hoist either way, but declaring intent matters when packages get extracted.
   - `args as Record<string, unknown>` cast is needed in `supabase.rpc("create_room", args)` when `SupabaseClient` is the default-typed (Database = any) form — the rpc args param is otherwise constrained by the generated Functions type. Generic-on-args + cast keeps the call site flexible for any game's create_room shape.
 ---
+
+## 2026-05-08 — US-015 (Phase 2.2 — Extract supabase clients to packages/core)
+- Created `packages/core/src/supabase-browser.ts` exporting `createSupabaseBrowserClient<TDB = unknown>()` (uses `@supabase/ssr` `createBrowserClient`).
+- Created `packages/core/src/supabase-server.ts` exporting `createSupabaseServerClient<TDB = unknown>()` (uses `@supabase/supabase-js` `createClient` with `auth: { persistSession: false, autoRefreshToken: false }`).
+- Re-exported both from `packages/core/src/index.ts`.
+- Added `@supabase/ssr` to `packages/core/package.json` peer + dev deps.
+- Converted `apps/headball/lib/supabase.ts` and `apps/headball/lib/supabase-server.ts` into thin Database-bound wrappers that call the core factories with `<Database>`. Consumer call sites in `app/actions/*` and `app/room/[code]/*` are unchanged — they still import from `@/lib/supabase` / `@/lib/supabase-server`.
+- Files changed: `packages/core/{package.json, src/index.ts, src/supabase-browser.ts, src/supabase-server.ts}`, `apps/headball/lib/{supabase.ts, supabase-server.ts}`, `bun.lockb`.
+- Verified: `bunx tsc --noEmit` (apps/headball + packages/core) clean; `bunx vitest run` 57/57 pass; `bunx playwright test` 14/14 pass on rerun (first run hit known cold-start flake on chip-suggestions.spec.ts, documented in patterns line 37).
+- **Learnings:**
+  - For client-factory primitives in packages/core, the FR-2.1 game-agnostic pattern differs from US-014's call-site-generic pattern (room-code, line 39). Here the generic flows THROUGH to the returned client so app code retains end-to-end typed table queries. Keep `<TDB = unknown>` as the default — apps bind their own Database type at the wrapper layer.
+  - Singleton browser clients are app-local concerns (need a Database type). Keep `apps/headball/lib/supabase.ts` as a thin file that holds `export const supabase = createSupabaseBrowserClient()` (Database-bound). Don't try to put singletons in packages/core.
+  - When a package adds a new runtime dep (`@supabase/ssr`), declare it as both `peerDependencies` (so apps must hoist their own version) and `devDependencies` (so the package's own typecheck/tests can resolve it). Matches the `@supabase/supabase-js` precedent already in packages/core.
+---

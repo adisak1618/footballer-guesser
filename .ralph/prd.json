@@ -247,8 +247,8 @@
         "Typecheck passes"
       ],
       "priority": 15,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Moved supabase browser+server factories to packages/core with TDB generic. Headball lib/supabase.ts and lib/supabase-server.ts now thin Database-bound wrappers around the core factories — consumer call sites unchanged. 57/57 unit tests pass; 14/14 e2e specs pass on second run (first run hit known cold-start flake on chip-suggestions.spec.ts per codebase patterns line 37)."
     },
     {
       "id": "US-016",
