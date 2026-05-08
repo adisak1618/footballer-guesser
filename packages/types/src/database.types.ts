@@ -598,6 +598,10 @@ export type Database = {
       daitch_mokotoff: { Args: { "": string }; Returns: string[] }
       dmetaphone: { Args: { "": string }; Returns: string }
       dmetaphone_alt: { Args: { "": string }; Returns: string }
+      expire_round: {
+        Args: { p_room_id: string; p_round: number }
+        Returns: number
+      }
       get_my_insider_secret: {
         Args: { p_player_id: string; p_room_id: string; p_round: number }
         Returns: string
