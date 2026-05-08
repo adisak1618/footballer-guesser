@@ -89,6 +89,7 @@ There is no workspace-root `tsconfig.json`. Run typecheck per-package; CI will e
 - **Workspace packages** (`packages/*`) declare `"main": "./src/index.ts"`, `"types": "./src/index.ts"`, and `"exports": { ".": "./src/index.ts" }` so consumers import the TS source directly. No build step for shared packages.
 - **Shared TS config**: every app/package extends `../../tsconfig.base.json`. The base owns `target/module/strict/jsx/baseUrl/paths` — don't redeclare per-package.
 - **Vitest aliases** must be an array (not an object) so regex matchers (e.g. `@/data/*`) can come before the catch-all `@` alias. Order: most-specific first.
+- **Realtime publication discipline (A4)**: when a migration `create table <name>`s a table whose row events clients subscribe to, the same migration (or any later one) MUST include `alter publication supabase_realtime add table <name>;`. If clients should NOT subscribe (counter, lookup, audit), tag the create with a trailing `-- no-realtime` comment on the same line. `scripts/check-realtime-publication.sh` (runs as the first step of `bun run lint`) enforces this. Details + currently-published table list: `packages/core/README.md`.
 - **Adding a new app** (`apps/<game>/`):
   - Create a `package.json` with name `@social-hub/<game>`, scripts `dev/build/lint/test`, and Next/React deps local to the app.
   - Extend `tsconfig.base.json` and add app-local `paths` only when needed.

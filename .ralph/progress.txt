@@ -47,6 +47,7 @@ Started: 2026-05-08
 - **Stadium Energy tokens canonical source (per US-019):** `packages/ui/src/tokens.css` is the documentation reference; the actual functional copy lives inlined in each app's `app/globals.css` inside a Tailwind v4 `@theme inline { ... }` block (Tailwind v4 doesn't yet support importing `@theme` blocks across packages). When a token changes, update BOTH places. The duplication is intentional until Tailwind ships cross-package `@theme` import support. Stadium Energy tokens defined: surfaces (ink, surface, surface-elevated, hairline*, canvas, surface-soft, surface-card), text (on-dark*, on-light*), primary action (goal, goal-active, goal-disabled), player tags (red/blue/yellow/green/purple/orange/pink/cyan), semantic (success/warning/error/info), fonts (hero=Bebas, display=Anton, body=PlexThai), animations (hb-shake, hb-flash, hb-pop).
 - **packages/ui peer-dep convention (per US-019):** UI primitives package declares React, react-dom, @base-ui/react, lucide-react as `peerDependencies` (single React tree across the workspace) and bundles class-variance-authority, clsx, tailwind-merge as direct `dependencies` (utility libs, no singleton concerns). Mirror this for any future shared UI package.
 - **packages/ui vitest config quirk (per US-019):** packages/ui's `vitest.config.ts` should NOT load tsx files in tests unless `@vitejs/plugin-react` is wired. Default rolldown ssrTransform fails to parse JSX. Keep package-level smoke tests on pure-TS exports (e.g., `cn` from `./utils`) — render tests belong in apps where the React plugin is already configured.
+- **Realtime publication gate (per US-021 / A4):** every `create table <name>` in `supabase/migrations/*.sql` must either (a) have a matching `alter publication supabase_realtime add table <name>;` in some migration, or (b) be marked with a trailing `-- no-realtime` comment on the same line as the `create table` keyword. `scripts/check-realtime-publication.sh` enforces this and runs as the first step of `bun run lint`. When adding a new table to a migration, decide upfront: do clients need to subscribe to row events? If yes → add the publication line. If no → add `-- no-realtime`. Don't leave it ambiguous; the gate will fail.
 
 ## Story Completion Log
 
@@ -456,4 +457,28 @@ US-005 depends on US-006 (the staging Supabase env vars). Recommended order:
   - **Don't import from `Database` in packages/types yet:** doing so would couple the cross-game package to Headball's local `database.types.ts` (which is the canonical generated artifact through Phase 3). Standalone interface declarations decouple packages/types from the schema regeneration cycle. Phase 3 will revisit this when migrations land for Insider tables.
   - **`RoomStatus` is a hand-maintained string union** (`"LOBBY" | "PLAYING" | "ENDED"`) here, kept in sync with the Postgres enum `room_status`. After Phase 3 regenerates database.types.ts and (optionally) promotes it into packages/types, this can collapse to `Database["public"]["Enums"]["room_status"]`. For now, the duplication is intentional and the values are validated against the existing enum.
   - **`GameType` string union seeds future routing:** `"headball" | "insider"` matches the planned `apps/<game>/` directories and will eventually drive subdomain routing (Phase 4 Hub → Phase 5 Insider). Add new entries here when a new game is scaffolded; the union is the single source of truth for "what games does this platform know about".
+---
+
+## 2026-05-08 — US-021 (Phase 2.8 — Add CI grep check for Realtime publication discipline (A4))
+- Created `scripts/check-realtime-publication.sh` — for every `create table <name>` under `supabase/migrations/*.sql`, requires either a matching `alter publication supabase_realtime add table <name>;` somewhere in migrations, or a `-- no-realtime` comment on the create-table line. Exit 0 on success, exit 1 with file:line diagnostic on failure.
+- Marked 6 deliberately-unpublished tables with `-- no-realtime`:
+  - `supabase/migrations/0001_init.sql`: `round_positions`, `football_players` (legacy, dropped in 0010)
+  - `supabase/migrations/0010_replace_player_seed.sql`: `football_players`, `player_clubs`, `categories`, `category_players`
+- Wired into root `package.json`:
+  - `"lint": "scripts/check-realtime-publication.sh && turbo run lint"` (gate runs first, fails fast on missing publication decision)
+  - `"lint:realtime": "scripts/check-realtime-publication.sh"` (direct invocation for CI/local debugging)
+- Documented the convention in `packages/core/README.md` with examples and the explicit list of currently-published vs `-- no-realtime` tables.
+- TDD verification:
+  - Red: pre-marker run printed 6 missing-decision diagnostics, exit 1.
+  - Green: post-marker run prints "OK: every create-table statement has a realtime decision", exit 0.
+  - Synthetic failure path: dropped a `9999_synthetic_missing.sql` containing `create table widgets ( ... )` (no publication, no comment) into a tmp dir copy of migrations and ran the script with `MIGRATIONS_DIR=$tmp` — exit 1 with the expected diagnostic. Confirmed the script catches the regression it's designed to catch.
+- Quality gates: `bun run lint:realtime` ✓, `cd apps/headball && bunx tsc --noEmit` ✓, `cd packages/core && bunx tsc --noEmit` ✓, `cd apps/headball && bunx vitest run` 49/49 ✓, `bunx vitest run` (root → packages/core) 24/24 ✓, `bun run lint` (full pipeline including realtime gate + turbo eslint) ✓.
+- Files changed:
+  - new: `scripts/check-realtime-publication.sh`, `packages/core/README.md`
+  - edited: `package.json`, `supabase/migrations/0001_init.sql`, `supabase/migrations/0010_replace_player_seed.sql`
+- **Learnings:**
+  - The check intentionally treats the migration set as a flat namespace: a `create table X` in migration N is satisfied by an `alter publication ... add table X` in migration M ≥ N. We don't try to model the "table later dropped + recreated" history (e.g. `football_players` dropped in 0010 with cascade and recreated with a different schema) — both `create table football_players` lines just get tagged `-- no-realtime`. Modeling drop/recreate would require a SQL parser and isn't worth the complexity for this guard.
+  - Place the `-- no-realtime` comment on the same line as `create table <name> (` (not on a preceding line). The grep is line-anchored at `^create table` so a comment on a different line wouldn't be detected. This is the documented convention.
+  - Wiring as `&& turbo run lint` (rather than a turbo task) is deliberate: the realtime gate is a workspace-root concern (migrations live at the root, not inside any app/package), so it doesn't fit cleanly into turbo's per-package task graph. Running it as a chained shell command also makes it fail-fast: if migrations are wrong, you see the diagnostic before turbo's much-noisier output.
+  - `bun run lint:realtime` exposes the gate as a standalone script for CI yaml or pre-commit hooks that don't want to pay for the full eslint pass.
 ---
