@@ -95,6 +95,8 @@ There is no workspace-root `tsconfig.json`. Run typecheck per-package; CI will e
   - Extend `tsconfig.base.json` and add app-local `paths` only when needed.
   - Update `.gitignore` if the app introduces new scratch dirs.
   - Vercel project for the new app uses `rootDirectory = apps/<game>` (manual setup).
+  - If the app has an `e2e/` Playwright dir, ALSO add an `apps/<game>/vitest.config.ts` with `exclude: ["e2e/**"]`. The workspace-root vitest `projects: ["apps/*"]` would otherwise try to collect `*.spec.ts` Playwright files as Vitest tests and fail on the `@playwright/test` import.
+  - Mirror Stadium Energy `@theme inline` tokens from `apps/headball/app/globals.css` into the new app's `globals.css` (Tailwind v4 doesn't yet support cross-package `@theme` imports). Canonical token reference: `packages/ui/src/tokens.css`.
 
 ## Key Files
 
