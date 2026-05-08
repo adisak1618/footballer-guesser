@@ -28,8 +28,12 @@ The `dispatch()` wrapper in `packages/core/src/dispatch.ts` parses the Supabase 
 > | Symbolic   | SQLSTATE | First used in                         |
 > | ---------- | -------- | ------------------------------------- |
 > | `PGAME01`  | `PG001`  | `0015_get_random_pack_item.sql`       |
+> | `PGAME11`  | `PG011`  | `0022_advance_to_asking.sql`          |
+> | `PGAME12`  | `PG012`  | `0023_start_insider_round.sql`        |
+> | `PGAME13`  | `PG013`  | `0023_start_insider_round.sql`        |
+> | `PGAME14`  | `PG014`  | `0023_start_insider_round.sql`        |
 >
-> Future codes follow the same pattern: `PGAME02` → `PG002`, …, `PGAME99` → `PG099`. When a Phase 5+ Insider migration introduces `PGAME10`, raise it as `errcode = 'PG010'` with the message prefixed by `'PGAME10: '`. App-side handlers can match on either `error.code === 'PG010'` (the SQLSTATE) or the message prefix.
+> Future codes follow the same pattern: `PGAME02` → `PG002`, …, `PGAME99` → `PG099`. When a Phase 5+ Insider migration introduces a new `PGAMExx`, raise it as `errcode = 'PGxxx'` with the message prefixed by `'PGAMExx: '`. App-side handlers can match on either `error.code === 'PGxxx'` (the SQLSTATE) or the message prefix.
 
 ## Cross-game codes (PGAME01–PGAME09)
 
@@ -47,12 +51,13 @@ The `dispatch()` wrapper in `packages/core/src/dispatch.ts` parses the Supabase 
 
 ## Insider codes (PGAME10–PGAME49)
 
-Reserved for the Insider game (Phase 5). Specific assignments are made when the relevant migration lands. Examples planned:
+Reserved for the Insider game (Phase 5). Specific assignments are made when the relevant migration lands. Bindings so far:
 
-- `PGAME10` — not master (insider-specific role check)
-- `PGAME11` — already voted
-- `PGAME12` — vote target not in `eligible_voter_ids`
-- `PGAME13` — round phase mismatch (state machine guard, per C2.A)
+- `PGAME11` — player not in room (caller-membership check on Insider RPCs; bound by `0022_advance_to_asking.sql`)
+- `PGAME12` — only host can start round (host authorization on `start_insider_round`; bound by `0023_start_insider_round.sql`)
+- `PGAME13` — room not in lobby (LOBBY-status guard on `start_insider_round`; bound by `0023_start_insider_round.sql`)
+- `PGAME14` — fewer than 3 players (player-count gate on `start_insider_round`; bound by `0023_start_insider_round.sql`)
+- `PGAME10`, `PGAME15`+ — unassigned. Future Insider RPCs (`master_respond`, `mark_correct_guess`, `cast_vote`, …) will pick from the next free slots.
 
 ## Future games (PGAME50–PGAME89)
 

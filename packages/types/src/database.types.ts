@@ -634,6 +634,15 @@ export type Database = {
         Args: { p_host_player_id: string; p_room_id: string }
         Returns: undefined
       }
+      start_insider_round: {
+        Args: {
+          p_pack_slug: string
+          p_player_id: string
+          p_room_id: string
+          p_time_limit_s: number
+        }
+        Returns: number
+      }
       start_round: {
         Args: { p_host_player_id: string; p_room_id: string }
         Returns: undefined
