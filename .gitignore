@@ -40,6 +40,9 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# Turborepo
+.turbo/
+
 # Local "Save As" copies of design preview (use docs/mood-board.html instead)
 Headball — Design Preview.html
 Headball — Design Preview_files/
