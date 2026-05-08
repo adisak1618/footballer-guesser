@@ -1,0 +1,9 @@
+# Ralph Loop Progress — Headball Multi-Game Platform
+
+Branch: feat/multigame-platform
+Total stories: 83
+Started: <Ralph will fill on first run>
+
+## Story Completion Log
+
+(Ralph appends one line per completed story below this header)
