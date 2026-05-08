@@ -6,6 +6,12 @@ export const displayNameSchema = z
   .min(1, "ใส่ชื่อก่อนนะ")
   .max(20, "ชื่อยาวเกิน 20 ตัวอักษร")
 
+export const roomCodeSchema = z
+  .string()
+  .trim()
+  .toUpperCase()
+  .regex(/^[A-Z0-9]{6}$/, "รหัสห้องต้องเป็นตัวอักษร 6 ตัว")
+
 export const packSlugSchema = z.string().trim().min(1, "เลือกคลังคำก่อนนะ")
 
 export const timeLimitSchema = z.union([
