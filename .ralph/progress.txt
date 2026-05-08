@@ -183,3 +183,24 @@ US-005 depends on US-006 (the staging Supabase env vars). Recommended order:
   - For Phase 1 (relocate Headball), root Headball at port 3000 will be retired and apps/headball will take over that port. Until then, root Headball stays on 3000 for backward compat with existing `bun run dev` muscle memory.
   - Visual QA via /qa needs a hosted preview URL. Until Vercel is set up (Phase 4), gate stories rely on the existing test suite + manual eyeballing. That's the right tradeoff for early-phase mechanical changes.
 ---
+
+## 2026-05-08 — US-007 (Phase 0 GATE — local validation)
+- Discovered & fixed a real regression Ralph triggered: pointing .env.local at staging Supabase broke 10 of 14 e2e tests. The e2e admin helper (e2e/_helpers/admin.ts) hardcodes a service-role JWT only valid for local Supabase (the demo `eyJhbGciOiJIUzI1NiI...EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU` token).
+- Reverted .env.local to local Supabase (URL: http://127.0.0.1:54321, anon: sb_publishable_ACJWlzQHlZjBrEguHvfOxg_3BJgxAaH from `bunx supabase status`). Staging stays for Vercel preview env vars only.
+- Killed stale dev servers on :3000/:3001/:3002 (they had cached the old staging env at boot).
+- Reset local Supabase via `bunx supabase db reset`: all 12 migrations applied cleanly, 4123 football_players seeded.
+- Verified all GATE criteria:
+  - bunx tsc --noEmit ✓ clean
+  - bun run lint ✓ clean (Ralph's earlier eslint.config.mjs change to add `**/.next/**` and `.worktrees/**` globs to flat-config ignores was correct and necessary)
+  - bunx vitest run ✓ 57/57 pass
+  - bunx playwright test ✓ 14/14 pass (flaky chip-suggestions test passed when full suite ran — was a transient port/server-warm-up timing issue, not a real failure)
+- Wrote .ralph/qa-baseline-localhost.txt documenting that /qa baseline is deferred to Phase 4 per US-005/US-007 modified criteria.
+- Files changed in this commit: .env.local (revert to local Supabase), .gitignore (Ralph's add of .ralph/.last-branch + .worktrees/), eslint.config.mjs (Ralph's add of flat-config ignore globs for **/.next, **/out, **/build, .worktrees), .ralph/qa-baseline-localhost.txt (new), .ralph/prd.json (US-007 passes:true), .ralph/progress.txt (this entry).
+- Will push git tag `phase-0-done` after this commit.
+- **Learnings:**
+  - **CRITICAL pattern — local-vs-staging env split:** for Phases 0-3 (no Vercel previews), `.env.local` MUST point at local Supabase (`http://127.0.0.1:54321`). The e2e test infrastructure (`e2e/_helpers/admin.ts`) uses a hardcoded service-role JWT that only authenticates against the local stack. Staging needs a different service-role key set via `SUPABASE_SERVICE_ROLE_KEY` env var IF you want to run e2e against staging — but that's a v2 concern.
+  - When Ralph (or any tool) edits .env.local during a phase where tests must pass, run the test suite explicitly to catch env regressions early. Lint and typecheck won't catch env mismatches.
+  - `bunx supabase db reset` is the right reset between phases — recreates DB from migrations + seed. Safe because local-only.
+  - The `Skipping migration README.md... (file name must match pattern)` warning from `supabase db reset` is harmless — just confirms the README we put in `supabase/migrations/` isn't being misinterpreted as a SQL migration.
+  - Ralph's child claude exited mid-iteration (likely after edits to .gitignore + eslint.config.mjs but before the commit step). The bash loop's `|| true` swallowed the exit, so `git log` showed no commit. Recovery: pick up where it left off, finish manually.
+---

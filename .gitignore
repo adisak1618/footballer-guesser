@@ -68,6 +68,10 @@ supabase/.branches/
 
 # Ralph runtime scratch
 scripts/ralph/.last-branch
+.ralph/.last-branch
+
+# Git worktree scratch dirs (used by parallel agent sessions)
+.worktrees/
 
 # Wikidata raw fetches (regeneratable via `bun run seed:fetch`)
 /data/raw/

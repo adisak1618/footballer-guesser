@@ -112,7 +112,7 @@
         "Push git tag phase-0-done"
       ],
       "priority": 7,
-      "passes": false,
+      "passes": true,
       "notes": "MODIFIED: /qa against preview URL removed because US-005 was deferred to Phase 4. Local testing covers Phase 0-3 regression risk; visual QA resumes when Vercel is up."
     },
     {

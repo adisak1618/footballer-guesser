@@ -12,6 +12,11 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Per-app and worktree build artifacts (flat-config globs are not auto-recursive)
+    "**/.next/**",
+    "**/out/**",
+    "**/build/**",
+    ".worktrees/**",
   ]),
 ]);
 
