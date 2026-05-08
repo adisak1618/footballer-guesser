@@ -154,6 +154,156 @@ export type Database = {
         }
         Relationships: []
       }
+      game_insider_responses: {
+        Row: {
+          created_at: string
+          id: number
+          response: string
+          room_id: string
+          round_number: number
+        }
+        Insert: {
+          created_at?: string
+          id?: number
+          response: string
+          room_id: string
+          round_number: number
+        }
+        Update: {
+          created_at?: string
+          id?: number
+          response?: string
+          room_id?: string
+          round_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "game_insider_responses_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      game_insider_roles: {
+        Row: {
+          player_id: string
+          role: string
+          room_id: string
+          round_number: number
+        }
+        Insert: {
+          player_id: string
+          role: string
+          room_id: string
+          round_number: number
+        }
+        Update: {
+          player_id?: string
+          role?: string
+          room_id?: string
+          round_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "game_insider_roles_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      game_insider_round: {
+        Row: {
+          eligible_voter_ids: string[] | null
+          guessed_at: string | null
+          guessed_by_player_id: string | null
+          pack_slug: string
+          phase: string
+          room_id: string
+          round_number: number
+          secret_value: string
+          started_at: string | null
+          time_limit_s: number
+          vote_deadline: string | null
+        }
+        Insert: {
+          eligible_voter_ids?: string[] | null
+          guessed_at?: string | null
+          guessed_by_player_id?: string | null
+          pack_slug: string
+          phase?: string
+          room_id: string
+          round_number: number
+          secret_value: string
+          started_at?: string | null
+          time_limit_s: number
+          vote_deadline?: string | null
+        }
+        Update: {
+          eligible_voter_ids?: string[] | null
+          guessed_at?: string | null
+          guessed_by_player_id?: string | null
+          pack_slug?: string
+          phase?: string
+          room_id?: string
+          round_number?: number
+          secret_value?: string
+          started_at?: string | null
+          time_limit_s?: number
+          vote_deadline?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "game_insider_round_pack_slug_fkey"
+            columns: ["pack_slug"]
+            isOneToOne: false
+            referencedRelation: "content_packs"
+            referencedColumns: ["slug"]
+          },
+          {
+            foreignKeyName: "game_insider_round_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      game_insider_votes: {
+        Row: {
+          room_id: string
+          round_number: number
+          voted_at: string
+          voted_player_id: string
+          voter_player_id: string
+        }
+        Insert: {
+          room_id: string
+          round_number: number
+          voted_at?: string
+          voted_player_id: string
+          voter_player_id: string
+        }
+        Update: {
+          room_id?: string
+          round_number?: number
+          voted_at?: string
+          voted_player_id?: string
+          voter_player_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "game_insider_votes_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       player_clubs: {
         Row: {
           club_name: string
