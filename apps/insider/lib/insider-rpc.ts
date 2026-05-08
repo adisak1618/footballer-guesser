@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js"
-import { dispatch } from "@social-hub/core"
+import { createRoomWithRetry, dispatch } from "@social-hub/core"
 
 // TS wrappers for the Insider Postgres RPCs (US-050 / Phase 5a.13).
 //
@@ -173,6 +173,45 @@ export async function getMyInsiderSecret(
       p_player_id: args.playerId,
     },
   )
+}
+
+export interface CreateInsiderRoomArgs {
+  packSlug: string
+  timeLimitS: number
+  roundCount: number
+  hostName: string
+  hostPlayerId: string
+}
+
+export interface CreateInsiderRoomResult {
+  code: string
+  playerId: string
+}
+
+interface RawCreateInsiderRoomRow {
+  code: string
+  player_id: string
+}
+
+export async function createInsiderRoom(
+  supabase: SupabaseClient,
+  args: CreateInsiderRoomArgs,
+): Promise<CreateInsiderRoomResult> {
+  const row = await createRoomWithRetry<
+    Record<string, unknown>,
+    RawCreateInsiderRoomRow
+  >(
+    supabase,
+    {
+      p_pack_slug: args.packSlug,
+      p_time_limit_s: args.timeLimitS,
+      p_round_count: args.roundCount,
+      p_host_name: args.hostName,
+      p_host_player_id: args.hostPlayerId,
+    },
+    { rpcName: "create_insider_room" },
+  )
+  return { code: row.code, playerId: row.player_id }
 }
 
 export interface ReconcileRoundPhaseArgs {

@@ -6,6 +6,7 @@ import {
   advanceToAsking,
   advanceToReveal,
   castVote,
+  createInsiderRoom,
   expireRound,
   getMyInsiderSecret,
   markCorrectGuess,
@@ -244,6 +245,42 @@ describe("getMyInsiderSecret", () => {
         playerId: PLAYER,
       }),
     ).rejects.toBeInstanceOf(GameRpcError)
+  })
+})
+
+describe("createInsiderRoom", () => {
+  it("forwards to create_insider_room with snake_case args and unwraps the (code, player_id) row", async () => {
+    const supabase = makeMockSupabase(
+      ok([{ code: "ABCDEF", player_id: PLAYER }]),
+    )
+    const result = await createInsiderRoom(supabase, {
+      packSlug: "insider-thai-food",
+      timeLimitS: 300,
+      roundCount: 5,
+      hostName: "Pong",
+      hostPlayerId: PLAYER,
+    })
+    expect(result).toEqual({ code: "ABCDEF", playerId: PLAYER })
+    expect(supabase.rpc).toHaveBeenCalledWith("create_insider_room", {
+      p_pack_slug: "insider-thai-food",
+      p_time_limit_s: 300,
+      p_round_count: 5,
+      p_host_name: "Pong",
+      p_host_player_id: PLAYER,
+    })
+  })
+
+  it("surfaces RPC errors as GameRpcError on non-collision failures", async () => {
+    const supabase = makeMockSupabase(fail("PG020", "PGAME20: invalid args"))
+    await expect(
+      createInsiderRoom(supabase, {
+        packSlug: "insider-thai-food",
+        timeLimitS: 300,
+        roundCount: 5,
+        hostName: "Pong",
+        hostPlayerId: PLAYER,
+      }),
+    ).rejects.toMatchObject({ code: "PG020" })
   })
 })
 

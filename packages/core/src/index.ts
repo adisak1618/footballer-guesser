@@ -6,6 +6,7 @@ export {
   createRoomWithRetry,
   generateRoomCode,
 } from "./room-code"
+export type { CreateRoomWithRetryOptions } from "./room-code"
 export { createSupabaseBrowserClient } from "./supabase-browser"
 export { createSupabaseServerClient } from "./supabase-server"
 export { GameRpcError, dispatch, parsePgErrCode } from "./dispatch"

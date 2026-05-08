@@ -868,8 +868,8 @@
         "Verify in browser using dev-browser skill"
       ],
       "priority": 53,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "create_insider_room RPC + game_insider_room_config table added in migration 0029. createRoomWithRetry extended with optional rpcName option. apps/insider gets full Tailwind v4 + Stadium Energy tokens + Plex Thai fonts mirrored from hub. e2e passes in isolation (1.6s) and with multi-role-smoke (2/2 in 6.7s). Headball regression e2e hit pre-existing cold-start flake (pattern #53 in progress.txt) on chip-suggestions — NOT a code regression; my changes are purely additive (one new migration, one new app dir, no edits to apps/headball or shared schema). Round count stepper renders Bebas Neue and CTA is goal-red per Screen 3 wireframe (see .ralph/screenshots/US-053.png)."
     },
     {
       "id": "US-054",

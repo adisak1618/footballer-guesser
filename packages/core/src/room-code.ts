@@ -23,20 +23,32 @@ export class RoomCodeCollisionError extends Error {
   }
 }
 
+export interface CreateRoomWithRetryOptions {
+  rpcName?: string
+  maxRetries?: number
+}
+
 export async function createRoomWithRetry<TArgs = unknown, TResult = unknown>(
   supabase: SupabaseClient,
   args: TArgs,
-  maxRetries: number = ROOM_CODE_MAX_RETRIES,
+  optionsOrMaxRetries: CreateRoomWithRetryOptions | number = {},
 ): Promise<TResult> {
+  const options: CreateRoomWithRetryOptions =
+    typeof optionsOrMaxRetries === "number"
+      ? { maxRetries: optionsOrMaxRetries }
+      : optionsOrMaxRetries
+  const rpcName = options.rpcName ?? "create_room"
+  const maxRetries = options.maxRetries ?? ROOM_CODE_MAX_RETRIES
+
   let lastError: unknown = null
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     const { data, error } = await supabase.rpc(
-      "create_room",
+      rpcName,
       args as Record<string, unknown>,
     )
     if (!error) {
       const row = (data as TResult[] | null)?.[0]
-      if (!row) throw new Error("create_room returned no row")
+      if (!row) throw new Error(`${rpcName} returned no row`)
       return row
     }
     lastError = error
@@ -45,7 +57,7 @@ export async function createRoomWithRetry<TArgs = unknown, TResult = unknown>(
     }
   }
   throw new RoomCodeCollisionError(
-    `create_room failed after ${maxRetries} attempts: ${
+    `${rpcName} failed after ${maxRetries} attempts: ${
       lastError instanceof Error ? lastError.message : String(lastError)
     }`,
   )

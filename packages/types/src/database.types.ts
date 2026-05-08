@@ -215,6 +215,45 @@ export type Database = {
           },
         ]
       }
+      game_insider_room_config: {
+        Row: {
+          created_at: string
+          pack_slug: string
+          room_id: string
+          round_count: number
+          time_limit_s: number
+        }
+        Insert: {
+          created_at?: string
+          pack_slug: string
+          room_id: string
+          round_count: number
+          time_limit_s: number
+        }
+        Update: {
+          created_at?: string
+          pack_slug?: string
+          room_id?: string
+          round_count?: number
+          time_limit_s?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "game_insider_room_config_pack_slug_fkey"
+            columns: ["pack_slug"]
+            isOneToOne: false
+            referencedRelation: "content_packs"
+            referencedColumns: ["slug"]
+          },
+          {
+            foreignKeyName: "game_insider_room_config_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: true
+            referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       game_insider_round: {
         Row: {
           eligible_voter_ids: string[] | null
@@ -598,6 +637,19 @@ export type Database = {
           p_voted_player_id: string
         }
         Returns: undefined
+      }
+      create_insider_room: {
+        Args: {
+          p_host_name: string
+          p_host_player_id: string
+          p_pack_slug: string
+          p_round_count: number
+          p_time_limit_s: number
+        }
+        Returns: {
+          code: string
+          player_id: string
+        }[]
       }
       create_room: {
         Args: {

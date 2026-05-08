@@ -38,6 +38,7 @@ The `dispatch()` wrapper in `packages/core/src/dispatch.ts` parses the Supabase 
 > | `PGAME17`  | `PG017`  | `0027_cast_vote.sql`                  |
 > | `PGAME18`  | `PG018`  | `0027_cast_vote.sql`                  |
 > | `PGAME19`  | `PG019`  | `0027_cast_vote.sql`                  |
+> | `PGAME20`  | `PG020`  | `0029_create_insider_room.sql`        |
 >
 > Future codes follow the same pattern: `PGAME02` → `PG002`, …, `PGAME99` → `PG099`. When a Phase 5+ Insider migration introduces a new `PGAMExx`, raise it as `errcode = 'PGxxx'` with the message prefixed by `'PGAMExx: '`. App-side handlers can match on either `error.code === 'PGxxx'` (the SQLSTATE) or the message prefix.
 
@@ -68,7 +69,8 @@ Reserved for the Insider game (Phase 5). Specific assignments are made when the 
 - `PGAME17` — voter not in `eligible_voter_ids[]` (eligibility guard on `cast_vote`; bound by `0027_cast_vote.sql`)
 - `PGAME18` — phase != 'voting' (phase guard for voting-only RPCs; bound by `0027_cast_vote.sql`)
 - `PGAME19` — vote deadline passed (post-reconcile expiry on `cast_vote`; distinct from cross-game `PGAME02` because UI copy + handler differ; bound by `0027_cast_vote.sql`)
-- `PGAME10`, `PGAME20`+ — unassigned. Future Insider RPCs (`advance_to_reveal`, …) will pick from the next free slots.
+- `PGAME20` — invalid insider room args (range/length checks on `create_insider_room`: `time_limit_s` must be 180/300/420; `round_count` must be 1..10; `display_name` must be 1..20 chars; `host_player_id` required; bound by `0029_create_insider_room.sql`)
+- `PGAME10`, `PGAME21`+ — unassigned. Future Insider RPCs will pick from the next free slots.
 
 ## Future games (PGAME50–PGAME89)
 
