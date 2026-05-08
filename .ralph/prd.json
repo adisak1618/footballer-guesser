@@ -816,8 +816,8 @@
         "Typecheck passes"
       ],
       "priority": 50,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Implemented apps/insider/lib/insider-rpc.ts with 9 typed wrappers (advanceToAsking, startInsiderRound, masterRespond, markCorrectGuess, expireRound, castVote, advanceToReveal, getMyInsiderSecret, reconcileRoundPhase). Each accepts a camelCase args object, translates to snake_case p_* args, and dispatches through @social-hub/core's dispatch(). 18 unit tests in apps/insider/lib/__tests__/insider-rpc.test.ts (9 happy-path + 9 GameRpcError propagation). Workspace vitest 191/191. Typecheck clean across apps/insider, apps/headball, apps/hub. Lint passes. Added @social-hub/core + @social-hub/types as workspace deps in apps/insider/package.json."
     },
     {
       "id": "US-051",
