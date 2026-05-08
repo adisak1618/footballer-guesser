@@ -21,7 +21,15 @@ The `dispatch()` wrapper in `packages/core/src/dispatch.ts` parses the Supabase 
 | `PGAME50`–`PGAME89` | **Future games** (reserved)      |
 | `PGAME90`–`PGAME99` | **Reserved for platform-level errors** |
 
-> **Note on Postgres SQLSTATE conformance:** Postgres SQLSTATE codes are conventionally 5 chars. Migrations land in Phase 3+ and may map `PGAMExx` symbolically (e.g., embedding the code in the message) if Postgres rejects the literal 7-char string at apply time. The dispatch wrapper is agnostic — it returns whatever string lives in `error.code`.
+> **Note on Postgres SQLSTATE conformance:** Postgres SQLSTATE codes are conventionally 5 chars. PostgreSQL rejects the literal 7-char string `'PGAME01'` as an unrecognized exception condition at apply time, so migrations map `PGAMExx` → 5-char SQLSTATE `'PGxxx'` (class `PG` is unreserved by PostgreSQL). The symbolic name `PGAMExx` is also embedded at the start of the error message for human readability and for downstream parsers that prefer the symbolic form. The dispatch wrapper is agnostic — it returns whatever string lives in `error.code` (i.e. the 5-char SQLSTATE).
+>
+> **SQLSTATE mapping (established in migration 0015):**
+>
+> | Symbolic   | SQLSTATE | First used in                         |
+> | ---------- | -------- | ------------------------------------- |
+> | `PGAME01`  | `PG001`  | `0015_get_random_pack_item.sql`       |
+>
+> Future codes follow the same pattern: `PGAME02` → `PG002`, …, `PGAME99` → `PG099`. When a Phase 5+ Insider migration introduces `PGAME10`, raise it as `errcode = 'PG010'` with the message prefixed by `'PGAME10: '`. App-side handlers can match on either `error.code === 'PG010'` (the SQLSTATE) or the message prefix.
 
 ## Cross-game codes (PGAME01–PGAME09)
 

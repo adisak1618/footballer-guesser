@@ -417,8 +417,8 @@
         "Typecheck passes"
       ],
       "priority": 25,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Implemented per spec, with one explicit deviation authorized by error-codes.md: PGAME01 symbolic code is mapped to SQLSTATE PG001 (5-char) because Postgres rejects 7-char errcodes. The symbolic name PGAME01 is embedded in the error message. Acceptance criterion \"raises errcode PGAME01\" is satisfied via this documented mapping (error.code === PG001 + error.message contains PGAME01)."
     },
     {
       "id": "US-026",
