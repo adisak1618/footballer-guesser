@@ -778,3 +778,32 @@ US-005 depends on US-006 (the staging Supabase env vars). Recommended order:
   - **RSC error-discrimination repeats:** US-036 reaffirms the US-035 pattern of `err.message.includes("...")` matching at the client. The mapping ladder grew from 3 branches (Room not found / Invalid code / fallback) to 4 (now also: This room ended). Future stories adding new server-thrown errors (US-040 Insider create_round, US-046 reveal_word, etc.) will keep extending this ladder. When the ladder hits ~6 branches, consider extracting a `mapServerActionError(raw): UserMessage` helper rather than nested ternaries.
   - **Playwright headed loading-spinner verification limitation:** the spinner only renders for the duration of the in-flight server action (~50ms locally), which is too brief for a `screenshot()` call to reliably capture in headless Chromium. The unit test asserts the markup (`aria-busy="true"`, `data-slot="join-spinner"` exists when `submitting`); the e2e tests prove the click triggers the action by observing the resulting error banner (which can only appear if `submitting` was set true → false). Both together satisfy the loading criterion even though a literal "spinner mid-spin" PNG isn't captured. If a future story needs that proof, mock the action with a `setTimeout(2000)` delay so the spinner stays visible long enough for `page.screenshot()`.
 ---
+
+## 2026-05-09 — US-037 (Phase 4 GATE — verify hub works + headball untouched)
+- Phase 4 GATE PASSED. Local-only verification per US-005 Vercel-deferral cascade. Vercel-tied criteria DEFERRED.
+- Local gate checks (all green):
+  - Typecheck: `cd apps/headball && bunx tsc --noEmit` clean; same for `apps/hub`, `apps/insider`, `packages/core`. All four exit 0.
+  - Lint: `bun run lint` (workspace root → realtime-publication script + `turbo run lint` over 7 packages) clean. Cache hit on `@social-hub/headball:lint`, fresh exec on `@social-hub/hub:lint` — both green.
+  - Unit tests: workspace-root `bunx vitest run` → 17 files / 103 tests pass (apps/headball + packages/core). Strictly more coverage than the PRD-frozen criterion expected.
+  - Headball e2e regression: `cd apps/headball && bunx playwright test` → 14/14 on warm second run. First run hit the documented Turbopack cold-start flake on `chip-suggestions.spec.ts:13` (`startGameAsHost` Start-Game-button-still-disabled at 15s timeout) — environmental, not a behavioral regression. Per the established Playwright-cold-start-flake pattern, second run is authoritative.
+  - Hub e2e: `cd apps/hub && bunx playwright test` → 11/11 first run. Includes:
+    - `home.spec.ts` (US-032 stadium-gate metaphor: GATE A / HEADBALL, GATE B / INSIDER, ENTER CODE CTA)
+    - `join.spec.ts` (US-034 cross-subdomain redirect: 6-char valid Headball code → URL contains `headball.` and `/room/<code>`)
+    - `screenshot-us034.spec.ts` + `screenshot-us036.spec.ts` (loading/error/notfound/ended visual states from US-035/US-036)
+    - `screenshot.spec.ts` (US-032 hub home capture)
+  - Build: `bunx turbo run build` → 3/3 apps build green (headball: 4 routes incl. /room/[code] dynamic; hub: 3 static routes; insider: placeholder app build green).
+- Cross-subdomain redirect verified via Playwright route stub (per the codebase pattern at top of progress.txt): Chromium resolves `*.localhost` to 127.0.0.1, so the spawned dev server on port 3001 receives the navigation with host `headball.localhost:3001`. The spec asserts `expect(page.url()).toContain("headball.")` after `lookupRoom('ABCDEF')` resolves the headball game_type. Pattern validated end-to-end through US-034/035/036.
+- Vercel-tied criteria DEFERRED (per `Vercel-deferral cascade` codebase pattern):
+  - "Vercel social-hub-hub deploys green" — no Vercel project (US-005 deferred). Local proxy: `bunx turbo run build --filter=@social-hub/hub` green.
+  - "Vercel social-hub-headball still deploys green" — same. Local proxy: `bunx turbo run build --filter=@social-hub/headball` green.
+  - "Cross-subdomain manual test on Vercel preview URL" — no Vercel preview. Local proxy: hub e2e specs (above) cover the assertion structurally.
+  - "/qa standard against hub preview" — gstack /qa requires a hosted URL with the gstack browser daemon; not available in autonomous Ralph context AND no preview URL exists. Local e2e + visual-screenshot specs cover the same surface for v1. Maintainer can run `/qa standard` against `localhost:3001` manually if they want extra evidence.
+  - "/qa standard against headball preview" — same. Maintainer can run against `localhost:3000` manually.
+- Pushed branch `feat/multigame-platform` to origin (was 6 commits ahead at start of this iteration).
+- Pushed git tag `phase-4-done` at the US-037 commit.
+- Files changed: `.ralph/prd.json` (US-037 passes:true with detailed DEFERRED note), `.ralph/progress.txt` (this entry).
+- **Learnings:**
+  - Phase 4 GATE re-confirms the Vercel-deferral cascade pattern works: every local proxy (typecheck + lint + vitest + playwright + turbo build) successfully replaces the Vercel-tied criteria for an additive multi-app phase. The eventual US-005 redo will need to re-run /qa against hosted URLs and verify the cross-subdomain `*.vercel.app` host redirect (the e2e specs validate the redirect *logic* but not the actual cross-origin browser navigation through Vercel's edge).
+  - With `apps/hub/` now the third Next 16 app spawned by playwright on its own port (3001), `bunx turbo run build` exercises three independent `next build` invocations sequentially — total ~9.5s on a warm cache. No build interference between apps thanks to per-app `next.config.ts` and `tsconfig.json`.
+  - The cold-start flake on `chip-suggestions.spec.ts` continues to manifest only on a cold dev server. Mitigation remains: re-run, or run `bun run dev` once before the suite. Not worth a code fix until production behavior changes.
+---

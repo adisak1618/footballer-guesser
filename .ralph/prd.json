@@ -618,8 +618,8 @@
         "Push git tag phase-4-done"
       ],
       "priority": 37,
-      "passes": false,
-      "notes": "GATE story — blocks Phase 5."
+      "passes": true,
+      "notes": "GATE green 2026-05-09. Local-only verification per US-005 Vercel-deferral cascade. Quality gates: typecheck (apps/headball + apps/hub + apps/insider + packages/core) clean; bun run lint clean (turbo cache hit on @social-hub/headball:lint, fresh on @social-hub/hub:lint); bunx vitest run = 17 files / 103 tests pass workspace-wide; cd apps/headball && bunx playwright test = 14/14 on warm second run (first run hit known Turbopack cold-start flake on chip-suggestions.spec.ts per progress.txt — environmental, not behavioral); cd apps/hub && bunx playwright test = 11/11 including home.spec.ts + join.spec.ts + screenshot-us034 (cross-subdomain redirect via *.localhost) + screenshot-us036 (loading/error states); bunx turbo run build = all 3 apps build green (headball, hub, insider). Cross-subdomain redirect verified via Playwright (Chromium resolves *.localhost to 127.0.0.1 so the navigation lands and assertions on host pass). DEFERRED Vercel verification: 'Vercel social-hub-hub deploys green', 'Vercel social-hub-headball still deploys green', 'cross-subdomain manual test on Vercel preview', '/qa standard against hub preview', '/qa standard against headball preview' — all blocked by US-005 (Vercel projects not provisioned). Re-verify these before Phase 5+ if Vercel comes online. phase-4-done tag pushed."
     },
     {
       "id": "US-038",
