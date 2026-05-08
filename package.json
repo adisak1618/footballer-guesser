@@ -17,6 +17,8 @@
     "lint": "scripts/check-realtime-publication.sh && turbo run lint",
     "lint:realtime": "scripts/check-realtime-publication.sh",
     "test": "turbo run test",
+    "e2e": "playwright test",
+    "e2e:typecheck": "tsc --noEmit -p e2e/tsconfig.json",
     "seed:fetch": "bun run apps/headball/scripts/fetch-wikidata.ts",
     "seed:build": "bun run apps/headball/scripts/build-seed.ts",
     "seed:sql": "bun run apps/headball/scripts/seed-to-sql.ts",

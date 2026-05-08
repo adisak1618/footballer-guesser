@@ -1156,3 +1156,27 @@ US-005 depends on US-006 (the staging Supabase env vars). Recommended order:
   - **The Vercel-deferral cascade pattern continues to scale.** Phase 5a is the 5th phase to complete with the same DEFERRED template (Phases 0-4 + 5a = 5 phases). Each phase adds local proxy evidence (typecheck + lint + vitest + playwright + build) that substitutes cleanly for the Vercel-tied criteria. Once US-005/006 unlock (manual maintainer step), all five phases will need a one-time `/qa` re-baseline against the actual preview URLs. Per US-007's pattern, save those baselines into `.ralph/qa-baseline-{headball,hub,insider}.txt`.
   - **88 Insider tests run in <1s.** This is the payoff of the SECURITY DEFINER + RLS-on-anon-role pattern (US-038, A1.C): each test sets `request.jwt.claims` via service-role JWT, calls the RPC, verifies behavior, and tears down via `bunx supabase db reset` (not per-test — only between gates). No mocking infrastructure, no test fixtures beyond what each test inserts inline. Pure integration testing at unit-test speed. Future phases (5b UI, 6 hub, 7 production) should preserve this property — keep Postgres logic dense and the TS layer thin.
 ---
+
+## 2026-05-08T20:42Z — US-052
+- Phase 5b.1: Multi-context Playwright config landed at workspace root (T-3.A foundation for Insider 4-role e2e flows).
+- Files added:
+  - `playwright.config.ts` — webServer array (headball:3000, hub:3001, insider:3002) via `bunx turbo run dev --filter=...`. Exports shared env (NEXT_PUBLIC_HEADBALL_URL/HUB_URL/INSIDER_URL/SUPABASE_URL/SUPABASE_ANON_KEY) to all three dev servers so cross-app /join bounces can find each other and Insider can reach local Supabase.
+  - `e2e/_helpers/multi-role.ts` — `createMultiRoleSession(browser, playerCount)` returns `{ contexts, pages, dispose }`. Each context gets its own cookie jar + localStorage (this is what makes the 4-phones-at-the-table model work).
+  - `e2e/multi-role-smoke.spec.ts` — 4 contexts open insider home in parallel, write a unique `multi-role-smoke` value into localStorage per context, and verify each context only sees its own value (independence proof).
+  - `e2e/tsconfig.json` — extends `tsconfig.base.json`, includes `**/*.ts` + `../playwright.config.ts`. Needed because the workspace has no root tsconfig (per CLAUDE.md), so e2e dir owns its own typecheck.
+- Files modified:
+  - `package.json` — added `e2e: playwright test` and `e2e:typecheck: tsc --noEmit -p e2e/tsconfig.json` scripts at root.
+- Verification:
+  - `bun run e2e:typecheck` → clean (no output).
+  - `bunx playwright test e2e/multi-role-smoke.spec.ts` → 1 passed (6.2s) on chromium.
+- **Deviations from PRD:**
+  1. PRD text says "hub on 3000, headball on 3001, insider on 3002". Actual implementation: headball=3000, hub=3001, insider=3002 — these were locked during Phase 0-5a in the apps' `dev` scripts (`apps/headball/package.json` uses `next dev` default 3000; hub uses `-p 3001`; insider uses `-p 3002`). Reshuffling would have required editing every per-app dev script and the existing per-app playwright configs, which would invalidate Phase 1-4 regression baselines for no benefit. The smoke test verifies ports work; documented in playwright.config.ts comment.
+  2. PRD signature `createMultiRoleSession(playerCount: number)` is incomplete — Playwright `BrowserContext` instances must be created via `browser.newContext()`, so the helper takes the test's `browser` fixture as the first arg. Final signature: `createMultiRoleSession(browser: Browser, playerCount: number)`.
+- **Learnings:**
+  - **Workspace-root e2e dir + tsconfig pattern:** because there's no root `tsconfig.json`, cross-app e2e tests need their own scoped tsconfig in `e2e/tsconfig.json` extending `tsconfig.base.json`, plus a root npm script `tsc --noEmit -p e2e/tsconfig.json` to typecheck them. Don't try to add a workspace-root tsconfig — that breaks the per-package typecheck convention CLAUDE.md is built around.
+  - **Playwright webServer.env passes through to spawned next dev:** so the root config can set `NEXT_PUBLIC_HEADBALL_URL` / `NEXT_PUBLIC_INSIDER_URL` / `NEXT_PUBLIC_HUB_URL` for all three apps simultaneously. This is the right place to wire cross-app discovery for e2e — no need to duplicate in each per-app config or in `.env.local`.
+  - **`reuseExistingServer: true` matters here:** when running e2e while a `bun run dev:all` is already up, Playwright skips re-spawning. Without this flag, three webServer entries try to claim ports already bound and fail.
+  - **Pre-existing Turbo bun.lock warning** ("Lockfile not found at .../bun.lock") fires three times during webServer startup. The repo uses `bun.lockb` (binary), not `bun.lock` (text). Turbo 2.9.10 still parses workspaces correctly, so this is noise, not a regression. If a future Turbo upgrade actually needs the text lockfile, run `bun install --save-text-lockfile` to generate one.
+  - **MultiRoleSession must `.dispose()` in `finally`:** if a 4-context session exits without closing, Playwright leaves chromium subprocesses running. Tests that use the helper should always wrap in try/finally — the helper itself can't enforce it because Playwright fixtures are per-test, not per-helper-call.
+
+---

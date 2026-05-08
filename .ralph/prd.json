@@ -848,8 +848,8 @@
         "Typecheck passes"
       ],
       "priority": 52,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Port assignments deviate from PRD text: actual ports are headball=3000, hub=3001, insider=3002 (matches the apps' next dev scripts locked in Phase 0-5a). Helper signature is createMultiRoleSession(browser, playerCount) since Playwright contexts must be created from a Browser instance — playerCount alone has no way to reach Playwright's fixtures. e2e:typecheck script added at root package.json."
     },
     {
       "id": "US-053",
