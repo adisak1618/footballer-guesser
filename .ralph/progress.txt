@@ -1440,3 +1440,25 @@ US-005 depends on US-006 (the staging Supabase env vars). Recommended order:
   - **`voted_player_id === voter_player_id` is a "deselected" sentinel from voting.tsx**: the `myVote` memo treats self-votes as null (no ballot) instead of "You voted yourself", because the voting screen encodes the deselect action by writing the voter's own id into voted_player_id. If a future RPC ever stops accepting self-votes, this branch becomes dead but harmless.
   - **Tailwind v4 `text-on-dark/90` opacity escape:** the variant-internal copy uses `text-on-dark/90` for muted secondary text on tag-color backgrounds — the `/90` modifier works inside the runtime alpha channel without needing a pre-defined token. Reuse for any "muted-on-tag" text to avoid creating a parallel `--color-on-dark-soft` for every tag bg.
 ---
+
+## 2026-05-09 16:48 — US-064 (Phase 5b.7c — Reveal screen TIME EXPIRED variant, Screen 8c)
+- Added 3rd reveal variant for `phase='result_failed'` (asking-phase timeout). New e2e `e2e/insider-time-expired.spec.ts` drives a 4-context flow that backdates `started_at` via the service-role client + calls `expire_round` to flip phase → `result_failed`, then asserts Screen 8c renders for all clients with no scoring (everyone stays at 0) and the NEXT ROUND CTA flips `rooms.status` back to `LOBBY`.
+- Files changed:
+  - `apps/insider/app/room/[code]/reveal.tsx` — added a `phase: "reveal" | "result_failed"` prop, branched FIRST on `phase === "result_failed"` to render the new dark-shell + error-red-top-accent variant (data-testid `reveal-time-expired-shell`). The variant skips insider-was-X badge / scoreboard / leaderboard entirely and shows the secret + "No voting / No points" copy.
+  - `apps/insider/app/room/[code]/lobby.tsx` — passes `phase={roundPhase}` to the Reveal mount so the component knows whether to render 8c vs 8a/8b.
+  - `e2e/insider-time-expired.spec.ts` — new spec.
+- **Learnings:**
+  - **Time-expired e2e construction:** the cleanest deterministic way to force `phase='result_failed'` in a Playwright test is service-role `update started_at = now() - 10min` followed by `rpc('expire_round', { p_room_id, p_round })`. expire_round's WHERE-clause requires `now() >= started_at + time_limit_s`, so backdating started_at is mandatory; the default time_limit_s is 180/300/420 (per host-setup-form), not adjustable from the e2e UI flow. Don't try to wait the timer out — that would spend 3+ minutes per test.
+  - **`phase` as the variant discriminator on the Reveal component:** caught-vs-escaped is a derived boolean from votes, but time-expired has no votes at all so the existing `caught` branch would falsely route to ESCAPED. Solution: pass the round phase explicitly as a prop and short-circuit before the `caught` derivation runs. Future variants (e.g. early-quit) should follow the same pattern — phase first, vote-derived branches second.
+  - **Test isolation under Turbopack dev server:** running multiple Insider Playwright specs back-to-back via `playwright test e2e/insider-*.spec.ts` produces sporadic 120s timeouts on the room-creation `goto + waitForURL` step because the Turbopack dev server can hang on inter-test compile invalidation. Each spec passes individually after `pkill -f "next dev"; sleep 3`. Don't treat back-to-back failures as regressions without a fresh-server retry.
+- Acceptance criteria:
+  - ✓ Failing e2e first (time-expired-shell did not exist) → confirmed red.
+  - ✓ Reveal screen time-expired variant renders per Screen 8c (dark bg + error-red top, TIME UP / ทายไม่ทันเวลา, secret revealed, no voting, no scoring).
+  - ✓ Voting phase skipped entirely on timeout (lobby.tsx routes result_failed → Reveal directly; no Voting mount).
+  - ✓ NEXT ROUND CTA visible to all 4 players (T-3.B "anyone advances"); click flips room.status to LOBBY.
+  - ✓ e2e passes (12.0s on fresh server).
+  - ✓ `bunx tsc --noEmit` (apps/insider) clean.
+  - ✓ `bun run lint` (turbo, all 3 apps) clean.
+  - ✓ `bunx vitest run` (workspace, 193 tests) clean.
+  - ✓ Browser verification via the Playwright e2e (no separate dev-browser pass — Playwright IS the browser verification).
+---

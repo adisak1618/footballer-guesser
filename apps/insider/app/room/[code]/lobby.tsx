@@ -218,6 +218,7 @@ export function Lobby({ code }: { code: string }) {
           roomId={room.id}
           round={round}
           mePlayerId={me.player_id}
+          phase={roundPhase}
         />
       )
     }

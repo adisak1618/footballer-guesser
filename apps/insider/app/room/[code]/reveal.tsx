@@ -8,17 +8,22 @@ import {
 } from "@/lib/insider-rpc"
 import { supabase } from "@/lib/supabase"
 
-// US-062 / US-063 — Reveal phase screen (Screens 8a + 8b).
+// US-062 / US-063 / US-064 — Reveal phase screen (Screens 8a + 8b + 8c).
 //
-// Mounts when room.status === 'PLAYING' AND game_insider_round.phase ===
-// 'reveal'. Two variants share one component, branched on `caught`:
-//   - 8a CAUGHT  (US-062, Phase 5b.7a) — light alt bg #fafbfc, pink secret
-//                 card, "INSIDER WAS X — CAUGHT!" + voted-by breakdown.
-//                 Master + each Common +2; Insider 0.
-//   - 8b ESCAPED (US-063, Phase 5b.7b) — dark mode bg #0a0e1a, warning-yellow
-//                 accents, "👁  X — ESCAPED!" + this-player ballot summary.
-//                 Insider +3; Master + each Common 0.
-// TIME-EXPIRED (Screen 8c, US-064) lands later.
+// Mounts when room.status === 'PLAYING' AND game_insider_round.phase ∈
+// {'reveal', 'result_failed'}. Three variants share one component:
+//   - 8c TIME-EXPIRED (US-064, Phase 5b.7c) — dark bg #0a0e1a + error-red top
+//                      accent. Triggered by phase='result_failed' (asking timer
+//                      ran out before Master tapped ทายถูกแล้ว). No voting,
+//                      no scoring; everyone stays at 0. Branched FIRST so the
+//                      caught-vs-escaped derivation below never executes for
+//                      the no-votes case.
+//   - 8a CAUGHT       (US-062, Phase 5b.7a) — light alt bg #fafbfc, pink
+//                      secret card, "INSIDER WAS X — CAUGHT!" + voted-by
+//                      breakdown. Master + each Common +2; Insider 0.
+//   - 8b ESCAPED      (US-063, Phase 5b.7b) — dark mode bg #0a0e1a,
+//                      warning-yellow accents, "👁  X — ESCAPED!" + this-player
+//                      ballot summary. Insider +3; Master + each Common 0.
 //
 // Outcome detection: caught = (insider's player_id ∈ top-voted set). The
 // component fetches per-round metadata (secret, roles, votes) and the
@@ -36,6 +41,7 @@ interface RevealProps {
   roomId: string
   round: number
   mePlayerId: string
+  phase: "reveal" | "result_failed"
 }
 
 interface PlayerRow {
@@ -56,7 +62,7 @@ interface VoteRow {
   voted_player_id: string
 }
 
-export function Reveal({ roomId, round, mePlayerId }: RevealProps) {
+export function Reveal({ roomId, round, mePlayerId, phase }: RevealProps) {
   const [secret, setSecret] = useState<string | null>(null)
   const [players, setPlayers] = useState<PlayerRow[]>([])
   const [roles, setRoles] = useState<RoleRow[]>([])
@@ -225,8 +231,84 @@ export function Reveal({ roomId, round, mePlayerId }: RevealProps) {
   }, [roomId, round, mePlayerId])
 
   // ─── Render ────────────────────────────────────────────────────────────
+  // TIME-EXPIRED (8c): dark bg + error-red top accent, secret revealed,
+  //                    no voting / scoreboard / leaderboard.
   // CAUGHT (8a): light alt bg, pink secret card, tag-color badge.
   // ESCAPED (8b): dark bg, ink-on-yellow secret card, warning-yellow accents.
+
+  if (phase === "result_failed") {
+    // Variant 8c — TIME EXPIRED. Asking timer ran out; secret revealed but
+    // no voting happened and no scoring is awarded (advance_to_reveal still
+    // stamps scored_at as the idempotency seal — see migration 0028).
+    return (
+      <main
+        data-testid="reveal-time-expired-shell"
+        className="relative mx-auto flex min-h-[100dvh] w-full max-w-[480px] flex-col gap-6 border-t-4 border-error bg-ink px-6 pt-8 pb-10 text-on-dark"
+      >
+        <header className="flex flex-col items-center gap-2 text-center">
+          <p className="font-display text-[20px] uppercase leading-none tracking-[2px] text-on-dark-soft">
+            ROUND {round}
+          </p>
+          <h1
+            data-testid="reveal-time-expired-header"
+            className="flex flex-col items-center gap-1 font-display text-[56px] uppercase leading-none tracking-[1px] text-error"
+          >
+            <span>TIME UP</span>
+            <span className="font-body text-[16px] font-medium tracking-normal text-on-dark-soft">
+              ทายไม่ทันเวลา
+            </span>
+          </h1>
+        </header>
+
+        <section className="flex flex-col items-center gap-3 text-center">
+          <p className="font-display text-[12px] uppercase tracking-[2px] text-on-dark-soft">
+            ── THE SECRET WAS ──
+          </p>
+          <div className="flex w-full flex-col items-center justify-center rounded-2xl bg-warning px-4 py-8 shadow-[0_8px_24px_rgba(251,191,36,0.25)]">
+            <p
+              data-testid="reveal-secret-name"
+              className="font-hero text-[64px] leading-[0.95] tracking-[1px] text-on-light"
+            >
+              {(secret ?? "").toUpperCase()}
+            </p>
+          </div>
+        </section>
+
+        <section
+          data-testid="reveal-no-voting-copy"
+          className="flex flex-col items-center gap-1 text-center"
+        >
+          <p className="font-body text-[14px] leading-snug text-on-dark/90">
+            No voting this round.
+          </p>
+          <p className="font-body text-[14px] leading-snug text-on-dark/90">
+            No points awarded.
+          </p>
+        </section>
+
+        {advanceError ? (
+          <p
+            role="alert"
+            className="rounded-lg border border-error/40 bg-error/10 px-4 py-2 text-center text-sm font-medium text-error"
+          >
+            {advanceError}
+          </p>
+        ) : null}
+
+        <button
+          type="button"
+          data-testid="reveal-next-round-cta"
+          onClick={handleNextRound}
+          disabled={isAdvancing}
+          aria-busy={isAdvancing}
+          className="mt-auto flex min-h-14 w-full items-center justify-center rounded-xl bg-goal px-6 font-display text-[20px] uppercase tracking-[1px] text-on-dark transition-colors active:bg-goal-active disabled:bg-goal-disabled disabled:text-on-dark/70"
+        >
+          {isAdvancing ? "กำลังไป..." : "NEXT ROUND →"}
+        </button>
+      </main>
+    )
+  }
+
   const insiderTagColorIndex = insiderPlayer
     ? ((insiderPlayer.join_order - 1) % 8) + 1
     : 1
