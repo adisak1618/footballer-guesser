@@ -1180,8 +1180,8 @@
         "Typecheck passes"
       ],
       "priority": 72,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Story-focused race-idempotency test at apps/insider/lib/__tests__/us-072-expire-round-race.test.ts. Two and three SEPARATE anon SupabaseClient instances (distinct PostgREST connections) fire expire_round on the same expired asking-round; sum of returned update counts is exactly 1, exactly one caller returns 1, the rest return 0. Asserts phase, started_at, time_limit_s unchanged after the race (losing calls are TRUE no-ops, not redundant writes). Trailing post-race call also returns 0. 3 tests, 200/200 vitest pass workspace-wide. Note: timestamps must be compared as Date.getTime() — Postgres returns +00:00 offset, JS Date.toISOString() emits Z for the same instant."
     },
     {
       "id": "US-073",
