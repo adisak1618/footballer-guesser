@@ -7,10 +7,9 @@ const AUTO_DISMISS_MS = 10000
 interface TurnOverlayProps {
   onCancel: () => void
   onGuess: () => void
-  onScores: () => void
 }
 
-export function TurnOverlay({ onCancel, onGuess, onScores }: TurnOverlayProps) {
+export function TurnOverlay({ onCancel, onGuess }: TurnOverlayProps) {
   const [secondsLeft, setSecondsLeft] = useState(Math.ceil(AUTO_DISMISS_MS / 1000))
   const [visible, setVisible] = useState(false)
 
@@ -76,14 +75,6 @@ export function TurnOverlay({ onCancel, onGuess, onScores }: TurnOverlayProps) {
           >
             <span aria-hidden="true">⚽</span>
             ทายชื่อ
-          </button>
-          <button
-            type="button"
-            onClick={onScores}
-            className="flex min-h-11 w-full items-center justify-center gap-2 rounded-2xl border border-hairline bg-surface-elevated px-6 text-sm font-medium text-on-dark"
-          >
-            <span aria-hidden="true">🏆</span>
-            ดูคะแนน
           </button>
         </div>
 
