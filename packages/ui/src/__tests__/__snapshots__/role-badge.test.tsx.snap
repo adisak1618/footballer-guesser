@@ -1,0 +1,55 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`RoleBadge > info variant matches snapshot 1`] = `
+<div
+  class="flex flex-col items-center justify-center gap-1 rounded-xl border-2 bg-surface/50 px-4 py-4 text-center border-info"
+  data-testid="master-role-badge"
+>
+  <span
+    class="font-body text-[18px] tracking-[0.3px] text-info"
+  >
+    👁 ผู้ตัดสิน
+  </span>
+  <span
+    class="font-display text-[32px] uppercase leading-none tracking-[1px] text-on-dark"
+  >
+    THE MASTER
+  </span>
+</div>
+`;
+
+exports[`RoleBadge > neutral variant matches snapshot 1`] = `
+<div
+  class="flex flex-col items-center justify-center gap-1 rounded-xl border-2 bg-surface/50 px-4 py-4 text-center border-hairline"
+  data-testid="common-role-badge"
+>
+  <span
+    class="font-body text-[18px] tracking-[0.3px] text-on-dark-soft"
+  >
+    ผู้เล่น
+  </span>
+  <span
+    class="font-display text-[32px] uppercase leading-none tracking-[1px] text-on-dark"
+  >
+    PLAYER
+  </span>
+</div>
+`;
+
+exports[`RoleBadge > warning variant matches snapshot 1`] = `
+<div
+  class="flex flex-col items-center justify-center gap-1 rounded-xl border-2 bg-surface/50 px-4 py-4 text-center border-warning"
+  data-testid="insider-role-badge"
+>
+  <span
+    class="font-body text-[18px] tracking-[0.3px] text-warning"
+  >
+    ⚠ คนวงใน ⚠
+  </span>
+  <span
+    class="font-display text-[32px] uppercase leading-none tracking-[1px] text-on-dark"
+  >
+    THE INSIDER
+  </span>
+</div>
+`;

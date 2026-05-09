@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState, useTransition } from "react"
 import { GameRpcError } from "@social-hub/core"
+import { ResponseButton, type ResponseButtonVariant } from "@social-hub/ui"
 import {
   markCorrectGuess,
   masterRespond,
@@ -46,10 +47,10 @@ const RESPONSE_ICON: Record<MasterResponse, string> = {
   unsure: "?",
 }
 
-const RESPONSE_BG: Record<MasterResponse, string> = {
-  yes: "bg-success",
-  no: "bg-error",
-  unsure: "bg-warning",
+const RESPONSE_VARIANT: Record<MasterResponse, ResponseButtonVariant> = {
+  yes: "success",
+  no: "error",
+  unsure: "warning",
 }
 
 const RESPONSE_LABEL_TH: Record<MasterResponse, string> = {
@@ -232,24 +233,16 @@ export function AskingMaster({
         className="flex flex-1 flex-col gap-3"
       >
         {(["yes", "no", "unsure"] as const).map((r) => (
-          <button
+          <ResponseButton
             key={r}
-            type="button"
-            data-testid={`master-respond-${r}`}
-            onClick={() => handleRespond(r)}
+            variant={RESPONSE_VARIANT[r]}
+            icon={RESPONSE_ICON[r]}
+            labelTh={RESPONSE_LABEL_TH[r]}
+            labelEn={RESPONSE_LABEL_EN[r]}
             disabled={isResponding || isGuessing || remainingS <= 0}
-            className={`flex min-h-[96px] flex-1 flex-col items-center justify-center gap-1 rounded-2xl ${RESPONSE_BG[r]} px-6 text-on-dark transition-transform active:scale-[0.99] disabled:opacity-60`}
-          >
-            <span className="font-hero text-[40px] leading-none">
-              {RESPONSE_ICON[r]}
-            </span>
-            <span className="font-display text-[28px] uppercase leading-none tracking-[1px]">
-              {RESPONSE_LABEL_TH[r]}
-            </span>
-            <span className="font-body text-[12px] uppercase tracking-[1px] opacity-80">
-              {RESPONSE_LABEL_EN[r]}
-            </span>
-          </button>
+            onClick={() => handleRespond(r)}
+            testId={`master-respond-${r}`}
+          />
         ))}
       </section>
 

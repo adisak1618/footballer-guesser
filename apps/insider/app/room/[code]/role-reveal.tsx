@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useTransition } from "react"
 import { GameRpcError } from "@social-hub/core"
+import { RoleBadge } from "@social-hub/ui"
 import { advanceToAsking, getMyInsiderSecret } from "@/lib/insider-rpc"
 import { supabase } from "@/lib/supabase"
 
@@ -159,17 +160,12 @@ function InsiderView({
       </header>
 
       <section className="flex flex-col gap-6">
-        <div
-          data-testid="insider-role-badge"
-          className="flex flex-col items-center justify-center gap-1 rounded-xl border-2 border-warning bg-surface/50 px-4 py-4 text-center"
-        >
-          <span className="font-body text-[18px] tracking-[0.3px] text-warning">
-            ⚠ คนวงใน ⚠
-          </span>
-          <span className="font-display text-[32px] uppercase leading-none tracking-[1px] text-on-dark">
-            THE INSIDER
-          </span>
-        </div>
+        <RoleBadge
+          variant="warning"
+          caption="⚠ คนวงใน ⚠"
+          label="THE INSIDER"
+          testId="insider-role-badge"
+        />
 
         <div className="flex flex-col gap-3">
           <p className="text-center text-xs font-medium uppercase tracking-[0.3px] text-on-dark-muted">
@@ -260,17 +256,12 @@ function MasterView({
       </header>
 
       <section className="flex flex-col gap-6">
-        <div
-          data-testid="master-role-badge"
-          className="flex flex-col items-center justify-center gap-1 rounded-xl border-2 border-info bg-surface/50 px-4 py-4 text-center"
-        >
-          <span className="font-body text-[18px] tracking-[0.3px] text-info">
-            👁 ผู้ตัดสิน
-          </span>
-          <span className="font-display text-[32px] uppercase leading-none tracking-[1px] text-on-dark">
-            THE MASTER
-          </span>
-        </div>
+        <RoleBadge
+          variant="info"
+          caption="👁 ผู้ตัดสิน"
+          label="THE MASTER"
+          testId="master-role-badge"
+        />
 
         <div className="flex flex-col gap-3">
           <p className="text-center text-xs font-medium uppercase tracking-[0.3px] text-on-dark-muted">
@@ -359,17 +350,12 @@ function CommonView({
       </header>
 
       <section className="flex flex-col gap-6">
-        <div
-          data-testid="common-role-badge"
-          className="flex flex-col items-center justify-center gap-1 rounded-xl border-2 border-hairline bg-surface/50 px-4 py-4 text-center"
-        >
-          <span className="font-body text-[18px] tracking-[0.3px] text-on-dark-soft">
-            ผู้เล่น
-          </span>
-          <span className="font-display text-[32px] uppercase leading-none tracking-[1px] text-on-dark">
-            PLAYER
-          </span>
-        </div>
+        <RoleBadge
+          variant="neutral"
+          caption="ผู้เล่น"
+          label="PLAYER"
+          testId="common-role-badge"
+        />
 
         <div className="flex flex-col gap-3">
           <p className="text-center text-xs font-medium uppercase tracking-[0.3px] text-on-dark-muted">

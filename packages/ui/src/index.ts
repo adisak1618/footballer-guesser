@@ -2,6 +2,16 @@ export { Button, buttonVariants } from "./button"
 export { Input } from "./input"
 export { PlayerChip, type PlayerChipProps } from "./player-chip"
 export {
+  ResponseButton,
+  type ResponseButtonProps,
+  type ResponseButtonVariant,
+} from "./response-button"
+export {
+  RoleBadge,
+  type RoleBadgeProps,
+  type RoleBadgeVariant,
+} from "./role-badge"
+export {
   RoomCodeDisplay,
   type RoomCodeDisplayProps,
 } from "./room-code-display"
