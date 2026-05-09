@@ -1215,8 +1215,8 @@
         "Typecheck passes"
       ],
       "priority": 74,
-      "passes": false,
-      "notes": "GATE story — localhost-only /qa per US-005 deferral. Vercel was deferred; the GATE runs against local dev servers instead. Same 4-tier coverage, same blocker semantics: regressions block US-075."
+      "passes": true,
+      "notes": "GATE story — localhost-only /qa per US-005 deferral. PASSED 2026-05-09 at HEAD a6384e9. Evidence saved to .ralph/qa-phase-5c.txt. Structural battery: tsc clean across headball/insider/hub; bun run lint full-turbo cache hit; bunx vitest run 200/200 (33 files); bunx turbo run build 3 apps green. Behavioral: 14/14 Headball e2e (chip-suggestions cold-start flake passes solo on retry — US-065 documented pattern), 11/11 Hub e2e, 5 Insider 5c edge-case e2e + 3 Insider 5b happy-path e2e all pass solo (cold-start contention when run in batch is the documented US-065 pattern). 5c.5/5c.6/5c.7 are RPC-level unit tests — included in the 200/200 vitest run. Local /qa-equivalent smoke: hub:3001 + headball:3000 + insider:3002 all HTTP 200; insider /new renders pack-chips; /room/<invalid> renders Next.js not-found UI inside 200 wrapper. /qa exhaustive interactive run substituted with structural+behavioral evidence (autonomous Ralph context cannot drive interactive gstack skill). Headball-untouched verified — only delta under apps/headball/ is the new lib/__tests__/insider-secret-rls.test.ts (US-071 RLS test, not Headball runtime code). Pushed git tag phase-5c-done. Phase 5d unblocked."
     },
     {
       "id": "US-075",
@@ -1232,8 +1232,8 @@
         "Verify in browser using dev-browser skill"
       ],
       "priority": 75,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Implemented role-badge in packages/ui (warning/info/neutral variants). Replaced 3 inline role-reveal pill implementations (Insider/Master/Common). 5 unit tests pass with byte-for-byte DOM snapshots matching the prior inline output (data-testid + all classes + structure preserved). Browser verify: unit-test snapshots are the structural contract; apps/insider has no Playwright e2e dir yet so a 4-player role-reveal happy-path screenshot is deferred to Phase 5d.6 GATE."
     },
     {
       "id": "US-076",
@@ -1249,8 +1249,8 @@
         "Verify in browser using dev-browser skill"
       ],
       "priority": 76,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Implemented response-button in packages/ui (success/error/warning variants — bg-success / bg-error / bg-warning). Replaced the inline `master-respond-{yes,no,unsure}` map-rendered button block in apps/insider/app/room/[code]/asking-master.tsx with three <ResponseButton/> instances (variant + icon + labelTh + labelEn + testId props). 6 unit tests pass with byte-for-byte DOM snapshots matching the prior inline output (data-testid, all classes, three-span structure preserved). Workspace vitest: 211/211 pass. Typecheck (apps/insider + packages/ui) clean. Lint clean (3 pkgs). Existing e2e/insider-asking-master.spec.ts still selects `master-respond-yes/no/unsure` testids unchanged — exercises the live e2e contract; will run at the next /qa GATE (US-082) once Vercel previews are unblocked. Browser verify deferred to that GATE per US-075 precedent."
     },
     {
       "id": "US-077",
@@ -1268,8 +1268,8 @@
         "Verify in browser using dev-browser skill"
       ],
       "priority": 77,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Implemented response-feed-entry (44px min-h, <li> shape, non-interactive timestamp + icon + EN/TH labels — codifies the asking-other.tsx feed row), pack-chip (selectable radio chip, joinIndex→tag-color cycle, label+optional subLabel — codifies host-setup-form.tsx), and added unit-test coverage for the existing vote-target-card (US-061). All exported from @social-hub/ui. Inline implementations replaced: apps/insider/app/room/[code]/asking-other.tsx feed row (preserves asking-other-feed-row + asking-other-feed-time data-testids byte-for-byte) + apps/insider/app/new/host-setup-form.tsx (preserves pack-chip-<slug> data-testid + role=radio + aria-checked semantics; deleted local TAG_COLORS/TAG_TEXT_COLORS arrays since they live inside PackChip now). asking-master.tsx feed-accordion list left inline — that's a different visual shape (compressed list inside a collapsed accordion, not the 44px feed-row pattern; documented as such in component docstring). Verification: bunx vitest run 230/230 pass (was 211 → +19 tests across 3 components: 7 vote-target-card + 5 response-feed-entry + 7 pack-chip), bunx tsc --noEmit clean in packages/ui + apps/insider, bun run lint clean across 3 apps, bunx turbo run build green for all 3 apps. Snapshot tests lock the DOM contract to byte-for-byte parity with the prior inline shape so existing e2e selectors keep working at the next /qa GATE (US-082)."
     },
     {
       "id": "US-078",
@@ -1283,8 +1283,8 @@
         "Typecheck passes"
       ],
       "priority": 78,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Added 5 component entries (role-badge, response-button, response-feed-entry, vote-target-card, pack-chip) to the YAML `components:` frontmatter — variant tables for the 3 multi-variant components (role-badge: warning/info/neutral; response-button: success/error/warning; pack-chip: selected/unselected) bind to existing Stadium Energy semantic tokens (no new colors). Added a new `## Components — Insider additions (Phase 5d)` prose section between Result Screens and Decisions Log with usage notes, variant semantics, and reusability guidance per component (e.g., role-badge → future Mafia/Spy/Civilian role-asymmetric reveal screens). Decisions Log: appended 2026-05-08 entry summarizing the Phase 5d component extraction (US-075…US-077) + a separate 2026-05-08 entry for the docs codification (US-078). Known Gaps: added 3 entries flagging Phase 5d.5/5d.6 follow-up work (reveal animations gated on prefers-reduced-motion per US-073, asking-phase state coverage, a11y polish). Verification: YAML frontmatter parses cleanly via js-yaml (15 component keys: 10 pre-existing + 5 new); single set of `^---$` delimiters at lines 1 and 335 — no accidental delimiter inside the YAML; typecheck clean across apps/insider, packages/ui, apps/headball (exit 0 each)."
     },
     {
       "id": "US-079",

@@ -250,6 +250,88 @@ components:
     textColor: "{colors.on-dark}"
     typography: "{typography.body-sm}"
     padding: "{spacing.sm} {spacing.md}"
+
+  # Insider role-reveal pill (Master / Insider / Common)
+  role-badge:
+    backgroundColor: "{colors.surface}/50"
+    textColor: "{colors.on-dark}"
+    typography: "{typography.display-md}"  # 32px Anton, uppercase, leading-none
+    captionTypography: "{typography.body-md}"  # 18px IBM Plex Thai
+    rounded: "{rounded.lg}"
+    padding: "{spacing.md} {spacing.md}"
+    border: "2px solid {variants}"
+    variants:
+      warning:  # Insider — high-stakes / hidden-role
+        border: "{colors.warning}"      # #fbbf24
+        captionColor: "{colors.warning}"
+      info:     # Master — judge
+        border: "{colors.info}"         # #1d4ed8
+        captionColor: "{colors.info}"
+      neutral:  # Common — plain player
+        border: "{colors.hairline}"     # #2a3146
+        captionColor: "{colors.on-dark-soft}"
+
+  # Master Yes / No / Unsure response button (asking phase)
+  response-button:
+    minHeight: 96px
+    width: flex-1
+    rounded: "{rounded.xl}"  # rounded-2xl
+    padding: "{spacing.md} {spacing.lg}"
+    layout: "stacked: icon (40px font-hero) → labelTh (28px display-md) → labelEn (12px body)"
+    textColor: "{colors.on-dark}"
+    transition: "active:scale-[0.99]"
+    variants:
+      success: # Yes / Affirmative
+        backgroundColor: "{colors.success}"  # #16a34a
+      error:   # No / Negative
+        backgroundColor: "{colors.error}"    # #e63946
+      warning: # Unsure / Hedge
+        backgroundColor: "{colors.warning}"  # #fbbf24
+
+  # Asking-phase response feed row (Insider/Common live ticker)
+  response-feed-entry:
+    minHeight: 44px
+    backgroundColor: "{colors.surface}"
+    rounded: "{rounded.md}"  # rounded-lg
+    padding: "{spacing.sm} {spacing.md}"
+    layout: "horizontal: [tabular-nums timestamp] · [icon + labelEn + /labelTh]"
+    timestampTypography: "{typography.body-xs} tabular-nums {colors.on-dark-soft}"
+    answerTypography: "{typography.display-sm}"  # 18px Anton, uppercase
+    interactive: false  # non-interactive list row, rendered inside <ul>
+
+  # Voting phase tap target (Screen 7)
+  vote-target-card:
+    minHeight: 120px
+    width: 100%
+    backgroundColor: "{colors.tag-*}"  # palette by joinOrder, same as player-chip
+    textColor: "{colors.on-dark}"
+    typography: "{typography.display-md}"  # 24px Anton, uppercase
+    rounded: "{rounded.xl}"  # rounded-2xl
+    padding: "{spacing.md} {spacing.md}"
+    transition: "active:scale-[0.99]"
+    selectedRing: "4px solid {colors.goal} offset-2 offset-{colors.ink}"
+    selectedOverlay: "✓ icon, top-right, 28px circle, bg {colors.goal}"
+    privacy: "no per-player tally shown (D6 — anti-cheat: hidden tallies)"
+
+  # Host-setup pack picker chip (Screen 1)
+  pack-chip:
+    minHeight: 64px  # min-h-16
+    rounded: "{rounded.lg}"  # rounded-xl
+    padding: "{spacing.sm} {spacing.md}"
+    semantics: "radio (role=radio + aria-checked)"
+    label: "{typography.body-md} uppercase, IBM Plex Thai display"
+    subLabel: "{typography.body-xs} (optional English)"
+    states:
+      selected:
+        backgroundColor: "{colors.tag-*}"  # joinIndex → palette
+        textColor: "{colors.on-dark|on-light}"  # palette-aware
+        border: "1px solid transparent"
+        shadow: shadow-md
+      unselected:
+        backgroundColor: "{colors.surface-elevated}"
+        textColor: "{colors.on-dark}"
+        border: "1px solid {colors.hairline}"
+        active: "active:bg-{colors.surface}"
 ---
 
 ## Product Context
@@ -474,6 +556,37 @@ This variant fires when a player guessed the right name but a faster opponent al
 ### Error / fallback (`is_correct` missing/null)
 The `selectGuessResultMode()` helper falls back to **Foul** if `is_correct` is null or undefined. This is a defensive choice: if the DB ever fails to write the boolean, showing Foul is closer to the conservative outcome than falsely celebrating a guess.
 
+## Components — Insider additions (Phase 5d)
+
+These five components were extracted into `@social-hub/ui` during Phase 5d to lock the visual contract for the Insider game and any future role-asymmetric / multi-tap / list-row screens. All five preserve the prior inline DOM byte-for-byte (same `data-testid`, same classes, same structure) so existing e2e selectors keep working.
+
+### `role-badge`
+Outlined pill used by Insider/Master/Common role-reveal screens (Screen 4). Anton 32px uppercase label, optional 18px Plex Thai caption above. Three variants:
+
+- **`warning`** — yellow `#fbbf24` border + caption color. The Insider's high-stakes / hidden-role reveal.
+- **`info`** — blue `#1d4ed8` border + caption color. The Master's judge reveal.
+- **`neutral`** — hairline `#2a3146` border + soft caption (`text-on-dark-soft`). The Common player's plain reveal.
+
+Reusable beyond Insider: any future role-asymmetric reveal (Mafia/Spy/Civilian, Werewolf/Villager) should reach for this primitive rather than re-inlining the div+span+span pile.
+
+### `response-button`
+Master's Yes / No / Unsure tap-target on Screen 6a (asking phase). 96px min-height, full-width via `flex-1`, three stacked spans (40px icon → 28px Thai display → 12px English caption). Three variants:
+
+- **`success`** — `bg-success` (`#16a34a`). Yes / Affirmative.
+- **`error`** — `bg-error` (`#e63946`). No / Negative.
+- **`warning`** — `bg-warning` (`#fbbf24`). Unsure / Hedge.
+
+Reusable for any future polarized-tap-to-answer screen.
+
+### `response-feed-entry`
+Non-interactive 44px list row used by the Insider asking-phase response feed (Screen 6b). Renders inside a `<ul>` rendered by the consumer. Layout is timestamp on the left (tabular-nums, 12px Plex Thai, soft color), then icon + 18px Anton uppercase EN label + optional `/ TH` subtext on the right. The consumer passes both `testId` (the row) and `timeTestId` (the timestamp) so existing `asking-other-feed-row` / `asking-other-feed-time` selectors keep working.
+
+### `vote-target-card`
+Voting-phase tap target on Screen 7. 120px tall, full-width, tag-color background driven by `joinOrder` (mirrors `player-chip`'s 8-color palette so a player carries the same tag-color across lobby and voting). Selected state: 4px goal-red ring with 2px ink offset + a 28px circular ✓ overlay anchored top-right. Per design decision **D6 (hidden tallies)** the card never shows per-player vote counts — only the group's progress lives outside this component. Anti-cheat: zero indication of who else has voted for whom.
+
+### `pack-chip`
+Selectable radio chip used by the Insider host-setup form (Screen 1). 64px min-height. Selected state: tag-color fill keyed by `joinIndex` (palette-aware text color: `text-on-dark` for most colors, `text-ink` for yellow/cyan). Unselected state: `surface-elevated` with hairline outline and an `active:bg-surface` press state. Carries proper accessibility semantics (`role="radio"` + `aria-checked`) — keyboard and screen readers see it as a real radio control. Headline is IBM Plex Thai display (16px uppercase); optional English subtitle is dimmed below.
+
 ## Decisions Log
 
 | Date | Decision | Rationale |
@@ -485,6 +598,8 @@ The `selectGuessResultMode()` helper falls back to **Foul** if `is_correct` is n
 | 2026-04-30 | 8-color player tag palette | Each player ≤8 in MVP scope; deterministic by join_order |
 | 2026-04-30 | IBM Plex Thai Looped + Sarabun fallback | Best Thai script legibility on small screens |
 | 2026-04-30 | Correct-zero variant stays in Correct family | Issue #8: a non-top-N correct guess must not visually collapse to Foul. Same green accent + `+0 pts` pill, only the headline changes. |
+| 2026-05-08 | Phase 5d component extraction (US-075…US-077) | Five Insider screens' inline JSX (role-reveal pill, master Yes/No/Unsure button block, asking-phase feed row, voting tap card, host-setup pack chip) extracted into `@social-hub/ui` as `role-badge`, `response-button`, `response-feed-entry`, `vote-target-card`, `pack-chip`. Snapshot tests per variant lock byte-for-byte DOM equivalence so existing e2e selectors keep working. Variants reuse Stadium Energy semantic tokens (warning/info/success/error/neutral + 8-color tag palette) — no new colors introduced. Reusable beyond Insider: future role-asymmetric reveal screens (Mafia/Spy/Civilian) and 3-option tap surfaces should reach for these primitives instead of re-inlining the patterns. |
+| 2026-05-08 | Phase 5d component specs added to DESIGN.md (US-078) | Five components codified in both the YAML `components:` frontmatter (token-bound props, variant tables) and a prose `## Components — Insider additions` section (usage notes, variant semantics, reusability guidance). Decisions Log + Known Gaps refreshed accordingly. |
 
 ## Don'ts
 
@@ -509,3 +624,6 @@ The `selectGuessResultMode()` helper falls back to **Foul** if `is_correct` is n
 - Print/PDF export not in scope
 - Light celebration alt mode tokens defined but UX not yet wireframed
 - Sound on/off toggle not yet specified in component vocabulary
+- Insider reveal screen (Screen 8) animations — flip / confetti / score-roll — gated behind `prefers-reduced-motion: reduce` per US-073 contract; Phase 5d.5 will add the actual animations
+- Insider asking-phase loading/empty/error/transition state coverage (Phase 5d.5)
+- Insider a11y polish (Phase 5d.6) — focus rings over tag-color backgrounds, aria-live response feed, ARIA landmarks audit
