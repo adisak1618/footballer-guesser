@@ -59,7 +59,9 @@ test("guess popup hides hero name, locks dismissal, and scoreboard auto-shows af
     })
 
     // Open the turn overlay and confirm the standalone ดูคะแนน button
-    // is gone (acceptance #3).
+    // is gone (acceptance #3). The TurnOverlay uses a 95%-opacity backdrop,
+    // so the hero text bleeds through — it must be hidden the moment the
+    // overlay opens, not just when the guess popup opens.
     const tapTarget = hostPage.getByRole("button", {
       name: "แตะเพื่อเปิดตัวเลือก",
     })
@@ -69,6 +71,7 @@ test("guess popup hides hero name, locks dismissal, and scoreboard auto-shows af
     })
     await expect(turnOverlay).toBeVisible()
     await expect(turnOverlay.getByRole("button", { name: /ดูคะแนน/ })).toHaveCount(0)
+    await expect(heroSpan).toHaveText("???")
 
     // Open the guess popup. The hero name on the underlying screen must
     // swap to ??? (acceptance #1, not blurred / not overlaid).

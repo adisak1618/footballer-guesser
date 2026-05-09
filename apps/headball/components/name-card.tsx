@@ -96,8 +96,12 @@ export function NameCard({
   const tagBg = TAG_BG[me.join_order] ?? "bg-tag-red"
   const tagText = TAG_TEXT[me.join_order] ?? "text-on-dark"
   const upperName = myRoundState.assigned_name.toUpperCase()
-  const heroDisplay = guessOpen ? "???" : upperName
-  const heroAriaLabel = guessOpen
+  // Hide the name once the player has tapped to act — both the turn overlay
+  // (which uses a 95%-opacity backdrop, so the BIG NAME bleeds through) and
+  // the guess popup must show ??? instead of the assigned name.
+  const nameHidden = overlayOpen || guessOpen
+  const heroDisplay = nameHidden ? "???" : upperName
+  const heroAriaLabel = nameHidden
     ? "ชื่อของคุณถูกซ่อน — กำลังทาย"
     : "ชื่อของคุณซ่อนอยู่ — หันจอให้เพื่อนเห็นเพื่อเริ่มเล่น"
 

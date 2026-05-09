@@ -68,6 +68,15 @@ describe("NameCard hero name reveal", () => {
     expect(hero.textContent).toBe("STEVEN GERRARD")
   })
 
+  it("swaps the hero text to ??? when the turn overlay is open", () => {
+    setup()
+    fireEvent.click(screen.getByLabelText("แตะเพื่อเปิดตัวเลือก"))
+
+    const hero = screen.getByTestId("hero-name")
+    expect(hero.textContent).toBe("???")
+    expect(hero.textContent).not.toContain("STEVEN")
+  })
+
   it("swaps the hero text to ??? when the guess popup is open", () => {
     setup()
     fireEvent.click(screen.getByLabelText("แตะเพื่อเปิดตัวเลือก"))
