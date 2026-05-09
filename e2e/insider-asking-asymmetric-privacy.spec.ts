@@ -219,13 +219,22 @@ test.describe.serial("insider asking phase — asymmetric privacy (US-058)", () 
       ).toHaveCount(0)
 
       // The visible textContent of the asking-phase-shell on Insider and Common
-      // pages must be identical (D4 — anti-cheat parity).
-      const insiderShellText = (
-        await insiderPage!.getByTestId("asking-phase-shell").textContent()
-      )?.replace(/\s+/g, " ").trim()
-      const commonShellText = (
-        await commonPage!.getByTestId("asking-phase-shell").textContent()
-      )?.replace(/\s+/g, " ").trim()
+      // pages must be identical (D4 — anti-cheat parity), EXCEPT for the
+      // Insider-only D2 hint introduced in US-060: it is the lone legitimate
+      // asymmetric DOM node (warning-yellow caption) and is initially
+      // opacity-0; we strip it from both sides before comparing the rest.
+      const evalShellTextWithoutHint = (page: Page) =>
+        page.evaluate((sel: string) => {
+          const root = document.querySelector(sel) as HTMLElement | null
+          if (!root) return ""
+          const clone = root.cloneNode(true) as HTMLElement
+          clone
+            .querySelectorAll('[data-testid="asking-other-insider-hint"]')
+            .forEach((el) => el.remove())
+          return clone.textContent?.replace(/\s+/g, " ").trim() ?? ""
+        }, '[data-testid="asking-phase-shell"]')
+      const insiderShellText = await evalShellTextWithoutHint(insiderPage!)
+      const commonShellText = await evalShellTextWithoutHint(commonPage!)
       expect(insiderShellText).toBe(commonShellText)
 
       // ─── Master page: small Bebas 32px on-dark-soft secret reminder ───────

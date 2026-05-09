@@ -990,8 +990,8 @@
         "Verify in browser using dev-browser skill"
       ],
       "priority": 60,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "e2e/insider-asking-other.spec.ts passes solo (12.4s). Cumulative cold-compile flake (progress.txt note 68) makes the 3-spec asking suite unreliable on a single machine; each spec passes individually."
     },
     {
       "id": "US-061",
