@@ -1141,8 +1141,8 @@
         "Verify in browser using dev-browser skill"
       ],
       "priority": 69,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "e2e/insider-late-guess-rejected.spec.ts: backdated started_at after asking-phase mounts (Master CTA stays enabled — modelling click just before deadline). Click → server reconciles asking→result_failed inside TX, raises PGAME02 (PG002), TX rolls back, phase stays asking on disk. UI surfaces หมดเวลาแล้ว via mapGuessError. Test then fires expire_round to commit reconcile; Master/all clients land on reveal-time-expired-shell. Spec criterion variants: did NOT use 5s timer (RPC enforces time_limit_s ∈ {180,300,420} per PGAME20); deadline simulated via service-role backdate, identical contract. Test passes; broader insider regression (asking-master, time-expired, voting) all green."
     },
     {
       "id": "US-070",
