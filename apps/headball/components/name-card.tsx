@@ -37,7 +37,6 @@ interface NameCardProps {
   round: number
   maxRounds: number
   myRoundState: RoundState | null
-  onScores?: () => void
 }
 
 export function NameCard({
@@ -46,7 +45,6 @@ export function NameCard({
   round,
   maxRounds,
   myRoundState,
-  onScores,
 }: NameCardProps) {
   const [overlayOpen, setOverlayOpen] = useState(false)
   const [guessOpen, setGuessOpen] = useState(false)
@@ -98,15 +96,14 @@ export function NameCard({
   const tagBg = TAG_BG[me.join_order] ?? "bg-tag-red"
   const tagText = TAG_TEXT[me.join_order] ?? "text-on-dark"
   const upperName = myRoundState.assigned_name.toUpperCase()
+  const heroDisplay = guessOpen ? "???" : upperName
+  const heroAriaLabel = guessOpen
+    ? "ชื่อของคุณถูกซ่อน — กำลังทาย"
+    : "ชื่อของคุณซ่อนอยู่ — หันจอให้เพื่อนเห็นเพื่อเริ่มเล่น"
 
   function handleGuessTap() {
     setOverlayOpen(false)
     setGuessOpen(true)
-  }
-
-  function handleScoresTap() {
-    setOverlayOpen(false)
-    onScores?.()
   }
 
   function handleGuessResult({ correct }: { correct: boolean; score: number }) {
@@ -118,7 +115,7 @@ export function NameCard({
     <>
       <main
         role="img"
-        aria-label="ชื่อของคุณซ่อนอยู่ — หันจอให้เพื่อนเห็นเพื่อเริ่มเล่น"
+        aria-label={heroAriaLabel}
         className={`relative flex min-h-[100dvh] w-full select-none flex-col items-center justify-center overflow-hidden px-6 text-center ${tagBg} ${tagText} ${
           feedback === "foul" ? "motion-safe:animate-hb-shake" : ""
         }`}
@@ -126,8 +123,11 @@ export function NameCard({
         <p className="absolute left-4 top-4 text-xs font-semibold uppercase tracking-[0.5px] opacity-80">
           Round {round}/{maxRounds}
         </p>
-        <span className="font-hero text-[96px] leading-[0.95] tracking-[2px] min-[375px]:text-[144px]">
-          {upperName}
+        <span
+          data-testid="hero-name"
+          className="font-hero text-[96px] leading-[0.95] tracking-[2px] min-[375px]:text-[144px]"
+        >
+          {heroDisplay}
         </span>
         <p className="absolute inset-x-0 bottom-6 text-xs font-medium uppercase tracking-[0.5px] opacity-80">
           — tap to act —
@@ -143,7 +143,6 @@ export function NameCard({
         <TurnOverlay
           onCancel={() => setOverlayOpen(false)}
           onGuess={handleGuessTap}
-          onScores={handleScoresTap}
         />
       ) : null}
       {guessOpen ? (
@@ -151,7 +150,6 @@ export function NameCard({
           roomId={roomId}
           roundNumber={round}
           playerId={me.player_id}
-          onCancel={() => setGuessOpen(false)}
           onResult={handleGuessResult}
         />
       ) : null}

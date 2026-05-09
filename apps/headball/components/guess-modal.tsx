@@ -45,15 +45,15 @@ interface GuessModalProps {
   roomId: string
   roundNumber: number
   playerId: string
-  onCancel: () => void
   onResult: (result: { correct: boolean; score: number }) => void
 }
+
+const GUESS_MODAL_HISTORY_FLAG = "headballGuessModalOpen"
 
 export function GuessModal({
   roomId,
   roundNumber,
   playerId,
-  onCancel,
   onResult,
 }: GuessModalProps) {
   const [text, setText] = useState("")
@@ -74,13 +74,41 @@ export function GuessModal({
     queueMicrotask(() => inputRef.current?.focus())
   }, [])
 
+  // Lock dismissal: ESC + browser-back are both blocked while the modal is
+  // mounted. The modal can only be closed by submitting a guess (which calls
+  // onResult and unmounts us). Backdrop click and the ยกเลิก button were
+  // removed entirely from the render tree.
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
-      if (event.key === "Escape" && !isPending) onCancel()
+      if (event.key === "Escape") {
+        event.preventDefault()
+        event.stopPropagation()
+      }
     }
-    window.addEventListener("keydown", onKey)
-    return () => window.removeEventListener("keydown", onKey)
-  }, [isPending, onCancel])
+    // Capture phase so we beat any document-level handler.
+    window.addEventListener("keydown", onKey, true)
+    return () => window.removeEventListener("keydown", onKey, true)
+  }, [])
+
+  useEffect(() => {
+    if (typeof window === "undefined") return
+    // Push a sentinel state so the next browser-back lands on us instead of
+    // navigating away. On popstate, immediately re-push so we stay locked.
+    window.history.pushState({ [GUESS_MODAL_HISTORY_FLAG]: true }, "")
+    function onPopState() {
+      window.history.pushState({ [GUESS_MODAL_HISTORY_FLAG]: true }, "")
+    }
+    window.addEventListener("popstate", onPopState)
+    return () => {
+      window.removeEventListener("popstate", onPopState)
+      // Clean up: if our sentinel is still on top of the stack (modal closed
+      // via submit, not via back), pop it so the user's history isn't padded.
+      const state = window.history.state as Record<string, unknown> | null
+      if (state && state[GUESS_MODAL_HISTORY_FLAG]) {
+        window.history.back()
+      }
+    }
+  }, [])
 
   function dispatchSubmit(value: string) {
     setNetworkError(null)
@@ -146,16 +174,11 @@ export function GuessModal({
     dispatchSubmit(parsed.data)
   }
 
-  function onBackdrop(event: React.MouseEvent<HTMLDivElement>) {
-    if (event.target === event.currentTarget && !isPending) onCancel()
-  }
-
   return (
     <div
       role="dialog"
       aria-modal="true"
       aria-label="ทายชื่อนักเตะของคุณ"
-      onClick={onBackdrop}
       className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 px-4 pb-6 pt-10 sm:items-center"
     >
       <form
@@ -244,19 +267,11 @@ export function GuessModal({
           </div>
         ) : null}
 
-        <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-          <button
-            type="button"
-            onClick={onCancel}
-            disabled={isPending}
-            className="inline-flex min-h-11 items-center justify-center rounded-xl border border-hairline bg-surface-elevated px-5 text-sm font-medium text-on-dark disabled:opacity-60"
-          >
-            ยกเลิก
-          </button>
+        <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
           <button
             type="submit"
             disabled={isPending}
-            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-goal px-6 text-sm font-semibold text-on-dark active:bg-goal-active disabled:opacity-60"
+            className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-goal px-6 text-sm font-semibold text-on-dark active:bg-goal-active disabled:opacity-60 sm:w-auto"
           >
             {showSpinner ? (
               <span
