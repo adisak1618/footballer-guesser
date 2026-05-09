@@ -90,13 +90,26 @@ echo "Starting Ralph - Tool: $TOOL - Max iterations: $MAX_ITERATIONS"
 # Diagnostic log file — every iteration appends a line so we can audit cadence
 # and spot early exits. View with: tail -f .ralph/run.log
 RUN_LOG="$SCRIPT_DIR/run.log"
-echo "[$(date '+%Y-%m-%d %H:%M:%S')] LAUNCH max=$MAX_ITERATIONS tool=$TOOL pending=$(jq '[.userStories[] | select(.passes == false)] | length' "$PRD_FILE" 2>/dev/null || echo ?)" >> "$RUN_LOG"
+echo "[$(date '+%Y-%m-%d %H:%M:%S')] LAUNCH max=$MAX_ITERATIONS tool=$TOOL pending=$(jq '[.userStories[] | select(.passes == false)] | length' "$PRD_FILE" 2>/dev/null || echo ?) pid=$$" >> "$RUN_LOG"
 
 # Per-iteration hard timeout. claude --print won't return while any background
 # Bash subprocess (like a stray `next dev`) is alive. If the agent forgets the
 # cleanup step in CLAUDE.md, we cap the iteration at MAX_ITER_SECONDS and
 # force-kill leftovers so the loop can advance.
 MAX_ITER_SECONDS=${RALPH_ITER_TIMEOUT:-3600}  # default 1 hour per story
+
+# Track all watchdog PIDs we've spawned so we can clean them on exit.
+# Without this trap, killing ralph.sh externally orphans the watchdogs;
+# they survive and pkill dev servers minutes/hours later — wreaking havoc
+# on subsequent ralph.sh invocations.
+WATCHDOG_PIDS=()
+cleanup_watchdogs() {
+  for pid in "${WATCHDOG_PIDS[@]}"; do
+    kill "$pid" 2>/dev/null || true
+  done
+  echo "[$(date '+%H:%M:%S')] EXIT — cleaned ${#WATCHDOG_PIDS[@]} watchdog(s)" >> "$RUN_LOG" 2>/dev/null || true
+}
+trap cleanup_watchdogs EXIT INT TERM HUP
 
 # Pre-iteration cleanup: kill any leftover dev servers from a previous
 # crashed/stuck iteration so this iteration starts clean.
@@ -121,17 +134,32 @@ for i in $(seq 1 $MAX_ITERATIONS); do
   ITER_START=$(date +%s)
 
   # Spawn a watchdog: after MAX_ITER_SECONDS, kill any stray dev servers
-  # so claude --print can return cleanly. The watchdog itself exits when
-  # ralph.sh exits (it shares the same process group).
+  # so claude --print can return cleanly. The watchdog also self-checks that
+  # its parent (ralph.sh) is still alive — if not, it self-destructs without
+  # firing pkill. This prevents orphan watchdogs from a previous run nuking
+  # dev servers spawned by a subsequent run.
+  RALPH_PID=$$
   (
-    sleep $MAX_ITER_SECONDS
-    echo "[$(date '+%H:%M:%S')] WATCHDOG firing for ITER $i — killing dev servers" >> "$RUN_LOG"
-    pkill -f "next dev" 2>/dev/null || true
-    pkill -f "next-server" 2>/dev/null || true
-    pkill -f "turbo run dev" 2>/dev/null || true
-    pkill -f "supabase functions serve" 2>/dev/null || true
+    # Self-destruct check: poll once a minute, exit if parent died
+    end=$(( $(date +%s) + MAX_ITER_SECONDS ))
+    while [ "$(date +%s)" -lt "$end" ]; do
+      if ! kill -0 "$RALPH_PID" 2>/dev/null; then
+        # Parent ralph.sh died — abort silently, don't pkill anything
+        exit 0
+      fi
+      sleep 30
+    done
+    # Re-verify parent is still alive before nuking dev servers
+    if kill -0 "$RALPH_PID" 2>/dev/null; then
+      echo "[$(date '+%H:%M:%S')] WATCHDOG firing for ITER $i (parent $RALPH_PID alive) — killing dev servers" >> "$RUN_LOG"
+      pkill -f "next dev" 2>/dev/null || true
+      pkill -f "next-server" 2>/dev/null || true
+      pkill -f "turbo run dev" 2>/dev/null || true
+      pkill -f "supabase functions serve" 2>/dev/null || true
+    fi
   ) &
   WATCHDOG_PID=$!
+  WATCHDOG_PIDS+=("$WATCHDOG_PID")
 
   # Run the selected tool with the ralph prompt
   if [[ "$TOOL" == "amp" ]]; then
