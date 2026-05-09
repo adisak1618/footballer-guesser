@@ -1422,3 +1422,21 @@ US-005 depends on US-006 (the staging Supabase env vars). Recommended order:
   - The `get_revealed_secret` RPC pattern complements US-021's `get_my_insider_secret` — Master/Insider during play, then ALL-players at reveal. Future asymmetric-secret games (Mafia / Spy / hidden roles) can lift this two-RPC shape directly.
   - "Anyone advances" + cumulative side effects = needs `for update` row lock. WHERE-clause idempotency only works for pure phase flips.
 ---
+
+## 2026-05-09T16:35Z — US-063 (Phase 5b.7b — Reveal INSIDER ESCAPED variant)
+- Implemented Screen 8b dark-mode escaped reveal as a sibling branch in `apps/insider/app/room/[code]/reveal.tsx` (single component, branched on `caught`).
+- Visual contract: `bg-ink` shell (rgb(10,14,26)) + warning-yellow secret card (`bg-warning` w/ `text-on-light`) + insider tag-color badge bordered in warning-yellow with "👁 X — ESCAPED!" copy + per-player ballot summary ("You voted: <name> (N vote)") replacing the caught variant's "Voted by:" line.
+- Score badges: Insider row gets `+3` in warning-yellow w/ warning-tinted tile; everyone else 0 pts in surface tile. `roundDelta` already returned the escaped numbers from US-062 — reused it.
+- Files changed:
+  - `apps/insider/app/room/[code]/reveal.tsx` — added 8b variant block before existing 8a; added `myVote` memo for per-player ballot copy; tightened the "Insider, caught/escaped" inline string to the variant-correct word; updated header comment to cover both screens.
+  - `e2e/insider-escaped.spec.ts` — new 4-context Playwright spec mirroring `insider-caught.spec.ts` shape, but voting strategy makes the Insider receive 0 votes (commonA tops the tally with 3) so `tally.topSet` excludes the insider's player_id and `caught=false`.
+- Verification:
+  - `bunx playwright test e2e/insider-escaped.spec.ts` → 1 passed (9.4s).
+  - `cd apps/insider && bunx tsc --noEmit` → clean.
+  - `bun run lint` → 3/3 packages cache-hit successful, realtime-publication checker green.
+  - Browser dev-browser skill not available in autonomous context; the e2e bg-color assertion (`rgb(10, 14, 26)`) + testid asserts (`reveal-escaped-shell`, `reveal-secret-name`, `reveal-insider-badge` with "ESCAPED" text, `reveal-your-vote`, 4× `reveal-score-tile-*`, 4× `reveal-leader-row-*`, `reveal-next-round-cta`) constitute the visual contract verification per Ralph fallback policy.
+- **Learnings:**
+  - **Vote-routing trick to force ESCAPED outcome in tests:** the UI gates self-vote (handleTap disables `isMeRow`), so even with 4 players you can't simply have everyone vote for the Insider's neighbour and skip the insider. The cleanest 0-votes-for-Insider construction: master+insider+commonB all vote for commonA (commonA can't self-vote per UI, so commonA targets commonB). commonA gets 3 votes (top set = {commonA}), commonB gets 1, insider 0. Use this same pattern in US-064 if you ever need an "everyone misses" round in a different time-expired scenario.
+  - **`voted_player_id === voter_player_id` is a "deselected" sentinel from voting.tsx**: the `myVote` memo treats self-votes as null (no ballot) instead of "You voted yourself", because the voting screen encodes the deselect action by writing the voter's own id into voted_player_id. If a future RPC ever stops accepting self-votes, this branch becomes dead but harmless.
+  - **Tailwind v4 `text-on-dark/90` opacity escape:** the variant-internal copy uses `text-on-dark/90` for muted secondary text on tag-color backgrounds — the `/90` modifier works inside the runtime alpha channel without needing a pre-defined token. Reuse for any "muted-on-tag" text to avoid creating a parallel `--color-on-dark-soft` for every tag bg.
+---

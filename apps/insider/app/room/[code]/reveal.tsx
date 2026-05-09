@@ -8,18 +8,24 @@ import {
 } from "@/lib/insider-rpc"
 import { supabase } from "@/lib/supabase"
 
-// US-062 / Phase 5b.7a — Reveal phase screen (Screen 8a — INSIDER CAUGHT).
+// US-062 / US-063 — Reveal phase screen (Screens 8a + 8b).
 //
 // Mounts when room.status === 'PLAYING' AND game_insider_round.phase ===
-// 'reveal'. Phase 5b.7a covers the CAUGHT variant only (light alt bg). The
-// ESCAPED (8b) and TIME-EXPIRED (8c) variants land in US-063/US-064.
+// 'reveal'. Two variants share one component, branched on `caught`:
+//   - 8a CAUGHT  (US-062, Phase 5b.7a) — light alt bg #fafbfc, pink secret
+//                 card, "INSIDER WAS X — CAUGHT!" + voted-by breakdown.
+//                 Master + each Common +2; Insider 0.
+//   - 8b ESCAPED (US-063, Phase 5b.7b) — dark mode bg #0a0e1a, warning-yellow
+//                 accents, "👁  X — ESCAPED!" + this-player ballot summary.
+//                 Insider +3; Master + each Common 0.
+// TIME-EXPIRED (Screen 8c, US-064) lands later.
 //
 // Outcome detection: caught = (insider's player_id ∈ top-voted set). The
 // component fetches per-round metadata (secret, roles, votes) and the
 // players table (display names, total_score) on mount + via realtime so
 // reloading mid-reveal restores correctly. Scoring itself is server-side
 // (advance_to_reveal stamps scored_at + bumps players.total_score) — we just
-// derive the "+2 / +0" badge from the caught/escaped outcome.
+// derive the "+pts" badges from the caught/escaped outcome.
 //
 // NEXT ROUND CTA: any connected player (T-3.B) can click. advance_to_next_round
 // flips rooms.status back to 'LOBBY' so the host can start the next round
@@ -162,7 +168,7 @@ export function Reveal({ roomId, round, mePlayerId }: RevealProps) {
 
   const caught = insiderRole ? tally.topSet.has(insiderRole.player_id) : false
 
-  // Voted-by display names for the Insider.
+  // Voted-by display names for the Insider (caught variant copy).
   const insiderVoters = useMemo(() => {
     if (!insiderRole) return []
     return votes
@@ -170,6 +176,18 @@ export function Reveal({ roomId, round, mePlayerId }: RevealProps) {
       .map((v) => players.find((p) => p.player_id === v.voter_player_id))
       .filter((p): p is PlayerRow => Boolean(p))
   }, [votes, insiderRole, players])
+
+  // This player's own ballot (escaped variant copy: "You voted: X (N vote)").
+  // Resolves to null when the caster either skipped or selected the self-vote
+  // sentinel (voting.tsx encodes "deselected" as voting for themselves).
+  const myVote = useMemo(() => {
+    const row = votes.find((v) => v.voter_player_id === mePlayerId)
+    if (!row || row.voted_player_id === mePlayerId) return null
+    const target = players.find((p) => p.player_id === row.voted_player_id)
+    if (!target) return null
+    const tally_n = tally.counts.get(target.player_id) ?? 0
+    return { name: target.display_name, votes: tally_n }
+  }, [votes, players, mePlayerId, tally])
 
   // Per-player round score deltas (caught variant).
   const roundDelta = useCallback(
@@ -207,10 +225,8 @@ export function Reveal({ roomId, round, mePlayerId }: RevealProps) {
   }, [roomId, round, mePlayerId])
 
   // ─── Render ────────────────────────────────────────────────────────────
-  // Phase 5b.7a covers the CAUGHT variant only. ESCAPED + TIME-EXPIRED come
-  // in US-063 / US-064. Until then a non-caught reveal still renders the
-  // same shell so happy-path multi-round flow doesn't get stuck on a blank
-  // screen, but the badge text + bg are scoped to caught semantics.
+  // CAUGHT (8a): light alt bg, pink secret card, tag-color badge.
+  // ESCAPED (8b): dark bg, ink-on-yellow secret card, warning-yellow accents.
   const insiderTagColorIndex = insiderPlayer
     ? ((insiderPlayer.join_order - 1) % 8) + 1
     : 1
@@ -227,6 +243,153 @@ export function Reveal({ roomId, round, mePlayerId }: RevealProps) {
     ][insiderTagColorIndex - 1]
   }`
 
+  if (!caught) {
+    // Variant 8b — INSIDER ESCAPED. Dark mode, warning-yellow accents.
+    return (
+      <main
+        data-testid="reveal-escaped-shell"
+        className="relative mx-auto flex min-h-[100dvh] w-full max-w-[480px] flex-col gap-6 bg-ink px-6 pt-8 pb-10 text-on-dark"
+      >
+        <header className="flex flex-col items-center gap-2 text-center">
+          <h1
+            data-testid="reveal-round-header"
+            className="font-display text-[40px] uppercase leading-none tracking-[1px] text-on-dark"
+          >
+            ROUND {round} RESULT
+          </h1>
+        </header>
+
+        <section className="flex flex-col items-center gap-3 text-center">
+          <p className="font-display text-[12px] uppercase tracking-[2px] text-on-dark-soft">
+            ── THE SECRET WAS ──
+          </p>
+          <div className="flex w-full flex-col items-center justify-center rounded-2xl bg-warning px-4 py-8 shadow-[0_8px_24px_rgba(251,191,36,0.25)]">
+            <p
+              data-testid="reveal-secret-name"
+              className="font-hero text-[64px] leading-[0.95] tracking-[1px] text-on-light"
+            >
+              {(secret ?? "").toUpperCase()}
+            </p>
+          </div>
+        </section>
+
+        <section className="flex flex-col items-center gap-3 text-center">
+          <p className="font-display text-[12px] uppercase tracking-[2px] text-on-dark-soft">
+            ── THE INSIDER WAS ──
+          </p>
+          <div
+            data-testid="reveal-insider-badge"
+            className={`flex w-full flex-col items-center gap-2 rounded-2xl border-2 border-warning ${insiderTagBg} px-4 py-5 text-on-dark`}
+          >
+            <p className="font-display text-[24px] uppercase leading-none tracking-[1px]">
+              👁 {insiderPlayer?.display_name ?? "—"} — ESCAPED!
+            </p>
+            {myVote ? (
+              <p
+                data-testid="reveal-your-vote"
+                className="font-body text-[14px] leading-snug text-on-dark/90"
+              >
+                You voted: {myVote.name} ({myVote.votes}{" "}
+                {myVote.votes === 1 ? "vote" : "votes"})
+              </p>
+            ) : (
+              <p
+                data-testid="reveal-your-vote"
+                className="font-body text-[14px] leading-snug text-on-dark/90"
+              >
+                You did not vote.
+              </p>
+            )}
+          </div>
+        </section>
+
+        <section className="flex flex-col gap-2">
+          <p className="font-display text-[12px] uppercase tracking-[2px] text-center text-on-dark-soft">
+            ── ROUND SCORES ──
+          </p>
+          <ul className="flex flex-col gap-1.5">
+            {players.map((p) => {
+              const role = roles.find((r) => r.player_id === p.player_id)?.role
+              const delta = roundDelta(p)
+              const label =
+                role === "master"
+                  ? `${p.display_name} (Master)`
+                  : role === "insider"
+                    ? `${p.display_name} (Insider, escaped)`
+                    : p.display_name
+              const isInsiderRow = role === "insider"
+              return (
+                <li
+                  key={p.id}
+                  data-testid={`reveal-score-tile-${p.player_id}`}
+                  className={`flex items-center justify-between rounded-lg border px-4 py-2.5 ${
+                    isInsiderRow
+                      ? "border-warning/60 bg-warning/10 text-on-dark"
+                      : "border-hairline bg-surface text-on-dark"
+                  }`}
+                >
+                  <span className="font-body text-[14px] font-medium">
+                    {label}
+                  </span>
+                  <span
+                    className={`font-display text-[18px] tabular-nums ${
+                      isInsiderRow ? "text-warning" : "text-on-dark"
+                    }`}
+                  >
+                    {delta > 0 ? `+${delta}` : "0"} pts
+                  </span>
+                </li>
+              )
+            })}
+          </ul>
+        </section>
+
+        <section className="flex flex-col gap-2">
+          <p className="font-display text-[12px] uppercase tracking-[2px] text-center text-on-dark-soft">
+            ── LEADERBOARD ──
+          </p>
+          <ul className="flex flex-col gap-1.5">
+            {leaderboard.map((p, idx) => (
+              <li
+                key={p.id}
+                data-testid={`reveal-leader-row-${p.player_id}`}
+                className="flex items-center justify-between rounded-lg border border-hairline bg-surface px-4 py-2.5 text-on-dark"
+              >
+                <span className="font-body text-[14px] font-medium">
+                  {idx + 1}. {p.display_name}
+                </span>
+                <span className="font-display text-[18px] tabular-nums text-on-dark">
+                  {p.total_score} pts
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        {advanceError ? (
+          <p
+            role="alert"
+            className="rounded-lg border border-error/40 bg-error/10 px-4 py-2 text-center text-sm font-medium text-error"
+          >
+            {advanceError}
+          </p>
+        ) : null}
+
+        <button
+          type="button"
+          data-testid="reveal-next-round-cta"
+          onClick={handleNextRound}
+          disabled={isAdvancing}
+          aria-busy={isAdvancing}
+          className="flex min-h-14 w-full items-center justify-center rounded-xl bg-goal px-6 font-display text-[20px] uppercase tracking-[1px] text-on-dark transition-colors active:bg-goal-active disabled:bg-goal-disabled disabled:text-on-dark/70"
+        >
+          {isAdvancing ? "กำลังไป..." : "NEXT ROUND →"}
+        </button>
+      </main>
+    )
+  }
+
+  // Variant 8a — INSIDER CAUGHT. Light alt mode.
   return (
     <main
       data-testid="reveal-caught-shell"
@@ -291,7 +454,7 @@ export function Reveal({ roomId, round, mePlayerId }: RevealProps) {
               role === "master"
                 ? `${p.display_name} (Master)`
                 : role === "insider"
-                  ? `${p.display_name} (Insider, ${caught ? "caught" : "escaped"})`
+                  ? `${p.display_name} (Insider, caught)`
                   : p.display_name
             return (
               <li
