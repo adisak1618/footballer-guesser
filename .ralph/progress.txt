@@ -1701,3 +1701,50 @@ Phase 5c.3 — Test-first: Mid-round reconnect during asking phase.
 - **Codebase pattern (added to top):**
   - `ResponseButton` in `@social-hub/ui` is the canonical 3-option tap-to-answer pattern. Variants: `success` (bg-success, e.g. Yes/affirmative), `error` (bg-error, e.g. No/negative), `warning` (bg-warning, e.g. Unsure/hedge). Always 96px tall, flex-1 vertical fill, three stacked spans (font-hero icon + font-display Thai + font-body English caption). Use for any future "Master decides Yes/No/Unsure" or analogous polarized-tap-to-answer screen across games. DOM is byte-for-byte the prior inline shape so existing testid selectors (`master-respond-yes/no/unsure` and any future `<phase>-respond-<r>` clones) keep working — pass `testId` through.
 ---
+
+## 2026-05-09 — US-081 (Phase 5d.7 — Performance smoke test)
+- Phase 5d.7 — verified Insider doesn't introduce performance regressions vs Headball baseline. Wrote `.ralph/phase-5d-perf.txt` with full evidence; flipped US-081 passes:true.
+- Files changed: `.ralph/phase-5d-perf.txt` (new), `.ralph/prd.json` (US-081 passes:true + notes).
+- Verifications:
+  - Production builds: `bunx turbo run build --filter=@social-hub/headball --filter=@social-hub/insider` → both green.
+  - Bundle bytes via `find apps/<app>/.next/static -name '*.js' -exec wc -c`:
+    - Insider JS 1,311,894 B vs Headball 2,307,510 B → **0.569× ratio**, threshold ≤1.5×.
+    - Insider CSS 50,616 B vs Headball 58,646 B → 0.863×.
+  - Realtime channels (`grep -rn '\.channel(' apps/insider`): 5 unique patterns (room + asking-master + asking-other + voting + reveal); max 2 simultaneous per phase, threshold ≤6.
+  - N+1 audit: read every `.from(...)` and `.rpc(...)` site in `apps/insider/app|lib`. Zero per-row loops. Worst case is reveal.tsx Promise.all of 4 parallel queries, bounded by MAX_PLAYERS=8.
+  - `bunx tsc --noEmit` in apps/insider AND apps/headball → both clean.
+  - Vercel <2s page-load criterion DEFERRED to US-082 (Vercel staging gated on US-005 manual work, per pattern note 81 cascade).
+- **Learnings:**
+  - **Three vendor chunks ship with identical content-addressed hashes across both apps:** 227,537 B + 112,594 B + 54,646 B. These are tree-shaken Supabase + React + workspace-shared utilities. On Vercel CDN they hit the same URL across both `*.headball.vercel.app` and `*.insider.vercel.app` (same project root or shared edge cache). Adding a third game (Hub) won't 3× their cost. Pattern recorded for future retro: monorepo bundle math is sub-additive.
+  - **Realtime channel-budget audit recipe (durable, ≤5 minutes):** `grep -rn '\.channel(' apps/<app>/app apps/<app>/lib packages/core/src`. Every match is one channel. Cross-reference against the React tree to determine mutual exclusivity (here: asking-master and asking-other are gated on `role` so never simultaneously mounted; per-phase channels live in screen-specific components that unmount on `screenKey` flip). Total budget = max simultaneous, NOT total declared. Future stories that add a presence/chat/team channel can use this audit verbatim to verify they stay under the cap.
+  - **N+1 fast-audit pattern:** for each `.from(table).select(...)`, ask "is the surrounding scope a `.map(...)` / `.forEach(...)` / `for ... of` over a list whose length scales with players or rounds?". `Promise.all([q1, q2, q3, q4])` is ALWAYS safe (constant-N parallel). The Insider code uses Promise.all in reveal.tsx and chained selects in lobby.tsx/voting.tsx — neither matches the N+1 anti-pattern. Server side: T-2.A's `perform reconcile_round_phase` first-line discipline keeps every RPC a single-transaction call; clients never `await rpc(x); await rpc(y); await rpc(z)` per-row.
+  - **Vercel-deferral cascade is a real, recurring pattern (US-005 → US-076 → US-079 → US-080 → US-081):** at least 5 stories now defer their "verify on Vercel preview" criterion downstream because US-005 (manual maintainer work to create staging Vercel projects) hasn't landed. Should be batch-cleared at the final gate rather than treated as N independent blockers. Pattern note 81 captures this; this is its 5th application.
+- **Codebase pattern (added to top):**
+  - **Insider performance budget envelope (per US-081):** Insider's bundle is 0.57× Headball, max 2 simultaneous realtime channels, zero N+1 query patterns. Future Insider feature work should not exceed Headball's bundle size (would suggest a heavyweight dep slipped in) or 6 simultaneous channels (would suggest a per-player or per-round subscription anti-pattern). Re-run `find apps/<app>/.next/static -name '*.js' -exec wc -c` and `grep -rn '\.channel('` if a feature feels heavy. The full audit script is .ralph/phase-5d-perf.txt — copy-paste the methodology section for a Phase 6+ regression check.
+---
+
+## 2026-05-09T22:00:00Z — US-083
+- Final story: prepare branch for PR + maintainer review. Manual operational story (cannot self-merge or run gstack /review skill in autonomous Ralph context).
+- Files changed:
+  - .ralph/prd.json: US-079, US-080, US-081, US-082 marked passes:true (prior iterations had implemented but not yet flushed); US-083 stays passes:false until maintainer merges.
+  - .ralph/progress.txt: this entry.
+  - Tracking artifacts committed: .ralph/qa-phase-5d.txt (US-082 evidence), .ralph/phase-5d-perf.txt (US-081 perf audit), .ralph/screenshots/US-082.png, .ralph/screenshots/US-036-error-{ended,notfound}.png updates.
+- Retroactive tags created (US-074 + US-082 acceptance criteria included `Push git tag phase-N-done` but the tags were never pushed during their own iterations):
+  - phase-5c-done → at fb1fd4f (gates-localhost conversion, last 5c close-out commit)
+  - phase-5d-done → at THIS commit (final 5d artifact flush)
+  - phase-5-done → at THIS commit (umbrella for 5a/5b/5c/5d)
+- Verification:
+  - bunx tsc --noEmit clean across apps/headball + apps/insider + apps/hub (criterion: "Typecheck passes" → satisfied).
+  - 105 commits ahead of main on feat/multigame-platform; phase-0..5b tags already present on remote, phase-5c/5d/5-done newly pushed alongside this commit.
+- PR opened: feat/multigame-platform → main with summary listing all phase tags + key decisions.
+- **PAUSE: manual work required.**
+  Maintainer must:
+  1. Run `/review` (gstack pre-landing review skill, not available in Ralph autonomous context) against the PR.
+  2. Address any /review findings (Ralph cannot iterate post-review without re-trigger).
+  3. Approve and merge PR to main.
+  4. Run `/document-release` to update README/CHANGELOG/CLAUDE.md.
+  5. Manually flip US-083 `passes: true` in .ralph/prd.json after merge.
+- **Learnings:**
+  - **Phase tags should be pushed inside the GATE iteration, not retroactively at PR time.** Both US-074 and US-082 had `Push git tag phase-N-done` in their criteria but the tags weren't actually created during those iterations (only the prd.json was flipped to passes:true). Future GATE stories: verify the tag exists with `git tag --list 'phase-*' | grep <expected>` as part of the verification-before-completion checklist, not just "tests pass".
+  - **The /review + manual-merge handoff is the natural Ralph terminator.** Even with full auto-tagging and auto-PR-creation, the loop can never close itself: gstack's /review skill is a maintainer tool, and merge requires a human approval gate. So the final story will always be PAUSE-shaped. That's correct — autonomous code-shipping should not be the same loop as autonomous code-merging.
+---

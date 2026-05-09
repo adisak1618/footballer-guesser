@@ -1,0 +1,187 @@
+# Phase 5d.7 — Insider Performance Smoke Test (US-081)
+
+Date: 2026-05-09
+Branch: feat/multigame-platform
+Methodology: local production builds (`bunx turbo run build --filter=...`),
+file-system byte counts on `.next/static/`, source-grep for realtime channels
+and DB queries, manual N+1 audit of every Insider screen's fetch path.
+
+## Summary
+
+| Criterion | Threshold | Insider | Headball baseline | Status |
+|---|---|---|---|---|
+| Total JS bytes | ≤ 1.5× baseline | **1,311,894 B** (~1.25 MiB) | 2,307,510 B (~2.20 MiB) | **PASS** (0.569× — Insider is *smaller*) |
+| Total CSS bytes | ≤ 1.5× baseline | **50,616 B** (~49 KiB) | 58,646 B (~57 KiB) | **PASS** (0.863×) |
+| Static dir size | informational | 1.5 MB | 2.5 MB | informational |
+| Realtime channels (max simultaneous per session) | ≤ 6 | **2** | n/a | **PASS** |
+| Realtime channels (unique patterns across session) | ≤ 6 | **5** | n/a | **PASS** |
+| N+1 query patterns in Insider screens | 0 | **0** | n/a | **PASS** |
+| Insider page load <2s on Vercel preview | <2s | DEFERRED | n/a | DEFERRED to /qa GATE |
+| `bunx tsc --noEmit` (Insider + Headball) | clean | clean | clean | **PASS** |
+
+## 1. Bundle size — PASS (0.569× of headball baseline)
+
+Production builds (Next 16.2.4 + Turbopack):
+
+```
+$ bunx turbo run build --filter=@social-hub/headball --filter=@social-hub/insider
+@social-hub/headball:build: ✓ Compiled successfully in 4.6s
+@social-hub/insider:build: ✓ Compiled successfully in 2.8s
+```
+
+Bundle byte counts (`.next/static/chunks/`):
+
+```
+=== Headball JS total ===   2,307,510 bytes  (≈ 2.20 MiB)
+=== Insider  JS total ===   1,311,894 bytes  (≈ 1.25 MiB)
+=== Headball CSS total ===     58,646 bytes  (≈   57 KiB)
+=== Insider  CSS total ===     50,616 bytes  (≈   49 KiB)
+```
+
+Ratio Insider / Headball:
+- JS: 1,311,894 / 2,307,510 = **0.569×** — comfortably below 1.5× ceiling.
+- CSS: 50,616 / 58,646 = **0.863×**.
+
+Top chunks per app (>40KB):
+
+| Headball                                         | Insider                                         |
+|---|---|
+| 515,355 × 3 chunks (route bundles)               | 628,097 (single combined route bundle)          |
+| 227,537 (shared vendor chunk)                    | 227,537 (shared vendor chunk — same hash)       |
+| 193,831                                          | 149,531                                         |
+| 123,515                                          | 112,594 (shared chunk — same hash)              |
+| 112,594 (shared chunk — same hash)               | 54,646  (shared chunk — same hash)              |
+| 54,646  (shared chunk — same hash)               | 49,593                                          |
+|                                                  | 44,414                                          |
+
+Observations:
+- Tailwind v4 is tree-shaking effectively across both apps. Insider has fewer
+  routes (3 vs 4) and currently no client-side roster selection / scoring
+  pipeline, which dominates Headball's bundle.
+- Three chunks (227,537 / 112,594 / 54,646) appear with **identical hashes** in
+  both apps — these are cache-shared workspace deps (Supabase client, React,
+  date-fns, etc.) that Vercel's CDN will serve from the same URL. Adding
+  another app to the monorepo doesn't multiply the cost of these chunks.
+- Headball's 515,355 chunk appears 3× in `.next/static/chunks/` — Next/Turbopack
+  emits per-route chunk replicas during the static-page build pass. Counted
+  once each in the total for fairness; doesn't change the conclusion.
+
+## 2. Realtime channel budget — PASS (max 2 simultaneous, 5 unique)
+
+Channels declared in the Insider client (`grep -rn '\.channel(' apps/insider`):
+
+| File                                        | Channel name                                       | Lifecycle                       |
+|---|---|---|
+| `apps/insider/app/room/[code]/lobby.tsx`   | `room:${roomId}` (via `useRoomRealtime`)           | mounted across whole session    |
+| `apps/insider/app/room/[code]/asking-master.tsx` | `asking-master-${roomId}-${round}`           | only mounted during asking phase, Master only |
+| `apps/insider/app/room/[code]/asking-other.tsx`  | `asking-other-${roomId}-${round}-${role}`    | only mounted during asking phase, Insider/Common only |
+| `apps/insider/app/room/[code]/voting.tsx`        | `voting-${roomId}-${round}`                  | only mounted during voting phase |
+| `apps/insider/app/room/[code]/reveal.tsx`        | `reveal-${roomId}-${round}`                  | only mounted during reveal phase |
+
+Phase × max-simultaneous channels:
+
+| Phase                | room channel | phase channel | TOTAL |
+|---|---|---|---|
+| Lobby                | 1            | 0             | 1     |
+| role-reveal          | 1            | 0             | 1     |
+| asking (Master)      | 1            | 1 (asking-master) | 2 |
+| asking (Insider/Common) | 1         | 1 (asking-other)  | 2 |
+| voting               | 1            | 1 (voting)    | 2     |
+| reveal / result_failed | 1          | 1 (reveal)    | 2     |
+
+**Max simultaneous = 2.** The asking-master and asking-other channels are
+mutually exclusive (gated on role), and each phase component unmounts on
+phase transition (driven by lobby.tsx's `screenKey`-based routing per US-079),
+so Supabase's `removeChannel` runs in the cleanup of every per-phase useEffect.
+
+**Unique patterns mounted across a full game = 5** (room + 4 phase channels).
+Both numbers are under the ≤6 budget. Headroom for future additions (e.g. a
+"presence" channel or per-team chat) without hitting the cap.
+
+## 3. N+1 query audit — PASS (zero N+1 patterns)
+
+Audited every `.from(...)` and `.rpc(...)` call site in
+`apps/insider/app/**` and `apps/insider/lib/**` (excluding tests). Pattern
+to flag: any DB call inside a `for/forEach/map` over a list whose length
+scales with players, rounds, or responses. None found.
+
+Per-screen fetch shape:
+
+- **lobby.tsx** — 3 fixed queries (room row, players list, round phase).
+  Realtime delta updates re-fetch only the players list when changes land.
+  Nothing per-row. ✓
+- **role-reveal.tsx** — 1 select (own role) + 1 RPC `get_my_insider_secret`
+  (own secret). One row each. ✓
+- **asking-master.tsx** — 1 select (response feed bounded by 100 entries
+  per round per migration 0019 cap). ✓
+- **asking-other.tsx** — 1 select (response feed). ✓
+- **asking-phase.tsx** — 1 select (own role) + 1 select (round timing). ✓
+- **voting.tsx** — 1 select (round phase + eligible_voter_ids) + 1 select
+  (players) + 1 select (own vote) + 2 `count: 'exact', head: true`
+  metadata-only count queries (no row fetch). ✓
+- **reveal.tsx** — `Promise.all` of [getRevealedSecret RPC, players,
+  game_insider_roles, game_insider_votes] — 4 queries, each one-shot, all
+  parallelised. Realtime players-channel callback re-fetches only the
+  players list. ✓
+- **app/actions/start-insider-round.ts** — 1 select (pack/time) + 1 RPC. ✓
+- **app/actions/join-insider-room.ts** — 1 RPC `join_room`. ✓
+
+Worst case observed: reveal.tsx fires 4 parallel queries on mount. Bounded,
+not iterated; this is "1+1+1+1", not "N+1". With MAX_PLAYERS = 8, every
+list-shaped query returns at most 8 rows.
+
+Server-side: per design decision **T-2.A**, every Insider RPC starts with
+`perform reconcile_round_phase(...)` and operates inside a single
+SECURITY DEFINER transaction. There is no per-player loop on the server
+side either.
+
+## 4. Page load <2s on Vercel preview — DEFERRED
+
+Per the standing Vercel-deferral cascade (pattern note 81 + US-005/US-012
+deferral): Insider does not yet have a Vercel preview URL because the
+Vercel project for `apps/insider` is gated on US-005 ("create staging
+Vercel projects for hub/insider"), which requires manual maintainer
+dashboard work. Until that lands, the local `bunx next dev`-served page
+load is not directly comparable to the Vercel cold-start SSR path.
+
+This criterion will be re-checked at the **Phase 5d FINAL GATE (US-082)**
+once the Vercel preview is live. Two pre-emptive observations that
+reduce the risk of failing it:
+
+1. Bundle size 0.57× of Headball — Headball loads in <2s on Vercel preview
+   today (US-007 baseline), and a smaller bundle should load no slower.
+2. Initial-fetch shape on `room/[code]` is identical to Headball's lobby
+   (1 room + 1 players + 1 phase query), so SSR + hydration cost is
+   structurally similar.
+
+If US-082 finds page load ≥2s, the most likely cause would be
+Supabase realtime websocket TLS handshake on cold connections, which
+would be tunable independently of the bundle.
+
+## 5. Typecheck — PASS
+
+```
+$ cd apps/insider && bunx tsc --noEmit && echo OK
+OK
+$ cd apps/headball && bunx tsc --noEmit && echo OK
+OK
+```
+
+Both apps clean under TypeScript strict.
+
+## Conclusion
+
+Phase 5d.7 acceptance:
+
+- [x] Bundle size of `apps/insider` ≤ 1.5× headball baseline (actual: 0.569×).
+- [DEFERRED] Insider page load <2s on Vercel preview — pending US-005 staging
+  project; will re-verify at US-082 final gate.
+- [x] Realtime subscription count ≤6 channels per game session (max 2
+  simultaneous, 5 unique patterns total).
+- [x] No N+1 query patterns identified.
+- [x] Document findings in `.ralph/phase-5d-perf.txt` (this file).
+- [x] Typecheck passes.
+
+5 of 6 criteria green; the sixth deferred to the Vercel-gated final review.
+The Vercel-deferral is consistent with the precedent set by US-076, US-079,
+US-080 for any criterion that requires a deployed preview URL.
