@@ -2,7 +2,13 @@
 # Ralph Wiggum - Long-running AI agent loop
 # Usage: ./ralph.sh [--tool amp|claude] [max_iterations]
 
-set -e
+# NOTE: removed `set -e` because the upstream script's `|| true` after the
+# claude pipeline does NOT actually catch all error paths under `set -e`
+# (subtle interaction between subshell-pipe-exit-code and assignment context).
+# We handle errors explicitly per command instead. This was the root cause of
+# "stuck on iteration 1" — the loop body's `echo "$OUTPUT" | grep -q ...` returns
+# non-zero when grep doesn't match, and under `set -e` that propagated through
+# the pipe-substitution into a script-level error.
 
 # Parse arguments
 TOOL="amp"  # Default to amp for backwards compatibility
@@ -81,11 +87,20 @@ fi
 
 echo "Starting Ralph - Tool: $TOOL - Max iterations: $MAX_ITERATIONS"
 
+# Diagnostic log file — every iteration appends a line so we can audit cadence
+# and spot early exits. View with: tail -f .ralph/run.log
+RUN_LOG="$SCRIPT_DIR/run.log"
+echo "[$(date '+%Y-%m-%d %H:%M:%S')] LAUNCH max=$MAX_ITERATIONS tool=$TOOL pending=$(jq '[.userStories[] | select(.passes == false)] | length' "$PRD_FILE" 2>/dev/null || echo ?)" >> "$RUN_LOG"
+
 for i in $(seq 1 $MAX_ITERATIONS); do
   echo ""
   echo "==============================================================="
   echo "  Ralph Iteration $i of $MAX_ITERATIONS ($TOOL)"
   echo "==============================================================="
+  ITER_PENDING_BEFORE=$(jq '[.userStories[] | select(.passes == false)] | length' "$PRD_FILE" 2>/dev/null || echo ?)
+  ITER_NEXT_BEFORE=$(jq -r '.userStories | map(select(.passes==false)) | .[0].id' "$PRD_FILE" 2>/dev/null || echo ?)
+  echo "[$(date '+%H:%M:%S')] ITER $i START — pending=$ITER_PENDING_BEFORE next=$ITER_NEXT_BEFORE" >> "$RUN_LOG"
+  ITER_START=$(date +%s)
 
   # Run the selected tool with the ralph prompt
   if [[ "$TOOL" == "amp" ]]; then
@@ -94,7 +109,11 @@ for i in $(seq 1 $MAX_ITERATIONS); do
     # Claude Code: use --dangerously-skip-permissions for autonomous operation, --print for output
     OUTPUT=$(claude --dangerously-skip-permissions --print < "$SCRIPT_DIR/CLAUDE.md" 2>&1 | tee /dev/stderr) || true
   fi
-  
+  CHILD_EXIT=$?
+  ITER_DUR=$(( $(date +%s) - ITER_START ))
+  ITER_PENDING_AFTER=$(jq '[.userStories[] | select(.passes == false)] | length' "$PRD_FILE" 2>/dev/null || echo ?)
+  echo "[$(date '+%H:%M:%S')] ITER $i CHILD_EXIT=$CHILD_EXIT dur=${ITER_DUR}s pending_after=$ITER_PENDING_AFTER" >> "$RUN_LOG"
+
   # Check for completion signal — VERIFIED variant.
   # Upstream ralph.sh blindly greps for the sentinel substring, which
   # false-positives whenever the agent narrates the literal string
@@ -106,18 +125,24 @@ for i in $(seq 1 $MAX_ITERATIONS); do
       echo ""
       echo "Ralph completed all tasks!"
       echo "Completed at iteration $i of $MAX_ITERATIONS"
+      echo "[$(date '+%H:%M:%S')] EXIT 0 — all stories pass" >> "$RUN_LOG"
       exit 0
     else
       echo ""
       echo "WARNING: agent emitted COMPLETE signal but $PENDING stories still have passes:false."
       echo "Treating as a false-positive and continuing the loop."
-      echo "Next pending: $(jq -r '.userStories | map(select(.passes==false)) | .[0].id' "$PRD_FILE")"
+      NEXT=$(jq -r '.userStories | map(select(.passes==false)) | .[0].id' "$PRD_FILE" 2>/dev/null || echo "?")
+      echo "Next pending: $NEXT"
+      echo "[$(date '+%H:%M:%S')] FALSE-POSITIVE COMPLETE signal — continuing (next=$NEXT)" >> "$RUN_LOG"
     fi
   fi
-  
+
   echo "Iteration $i complete. Continuing..."
+  echo "[$(date '+%H:%M:%S')] ITER $i END — about to sleep 2 + loop" >> "$RUN_LOG"
   sleep 2
 done
+
+echo "[$(date '+%H:%M:%S')] LOOP EXHAUSTED — ran all $MAX_ITERATIONS iterations" >> "$RUN_LOG"
 
 echo ""
 echo "Ralph reached max iterations ($MAX_ITERATIONS) without completing all tasks."
