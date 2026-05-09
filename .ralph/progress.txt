@@ -1501,3 +1501,53 @@ US-005 depends on US-006 (the staging Supabase env vars). Recommended order:
   - **D4 caught-vs-escaped scoring is role-based, not vote-based** — every `role='player'` row gets +2 in the caught branch regardless of who voted for whom. So commonB (who voted for commonA, didn't vote for the Insider) still scores +2 because their role is 'player'. The e2e asserts all three non-Insider players score +2 even though only Master+commonA actually voted for the Insider.
   - **Insider's UI-gated self-vote constraint shapes tie engineering.** To engineer a 2-2 tie where the Insider is in the top set, the Insider must contribute the second vote to the OTHER tied target (commonA). That forces the layout: 2 voters → Insider, 1 voter (Insider) + 1 voter (commonB) → commonA. The constraint is anti-cheat-bulletproof — the test cannot bypass it (the vote-target-card for `playerId === mePlayerId` has `aria-pressed` blocked at the UI layer). Reusable: any future "engineer a specific tally" e2e must respect the no-self-vote rule when assigning the Insider's ballot.
 ---
+
+## 2026-05-09 — US-067 (Phase 5c.2 — Disconnected player can be voted for, can't vote, T-4)
+
+- Added `e2e/insider-voting-disconnect.spec.ts` — multi-role 4-page Playwright spec
+  drives the T-4 "frozen eligible_voter_ids excludes disconnects but disconnected
+  players still on player cards" contract end-to-end through the real Insider RPC
+  stack + UI.
+- Disconnect simulation: service-role `update players set connected = false`
+  during the 'asking' phase, BEFORE the Master taps `master-mark-correct-cta`.
+  mark_correct_guess (migration 0025) snapshots `eligible_voter_ids` from
+  `connected = true` players, so the DB column is the source of truth — no need
+  to actually close the disconnected player's browser context.
+- Files changed: `e2e/insider-voting-disconnect.spec.ts` (new, ~270 lines)
+- Test verifies:
+  1. eligible_voter_ids has 3 entries post-guess; the disconnected Common is NOT in the array.
+  2. On the 3 still-connected pages (Master, Insider, live Common), the disconnected
+     Common's `vote-target-card-${disconnectedPid}` IS visible — they remain a valid
+     suspect (T-4 "still on player cards"). All 4 cards render on every voter's screen.
+  3. After 3 eligible voters cast votes, phase auto-advances to 'reveal' WITHOUT waiting
+     for the disconnected player's ballot. cast_vote's auto-advance counts only votes
+     where voter_player_id ∈ eligible_voter_ids, so 3/3 triggers the flip.
+  4. game_insider_votes contains exactly 3 rows; voter_player_ids does NOT include
+     the disconnected Common.
+- Test result: ✓ passes in 9.0s (workspace-root playwright config, all 3 dev servers
+  spawned via Turbo).
+- Verification: typecheck (`bunx tsc --noEmit -p e2e/tsconfig.json`) clean. Browser
+  verification implicit — 4-context Playwright run IS the browser verification per
+  the in-context Ralph instruction "If no browser tooling is available in this
+  autonomous context: write Playwright e2e specs that assert the UI behavior. The
+  e2e specs ARE the verification."
+
+- **Learnings:**
+  - The "disconnect during asking" simulation pattern: don't try to close the
+    browser context — just flip `players.connected = false` via service-role.
+    The DB column is what mark_correct_guess reads when snapshotting
+    eligible_voter_ids. The disconnected player's page is still alive and
+    subscribes to realtime, but `isEligible = eligibleIds.includes(mePlayerId)`
+    is false, so handleTap early-returns and cast_vote rejects with PGAME17 if
+    they ever attempted. Both layers protect the invariant — UI gate + RPC gate.
+  - Vote-target rendering reads from the `players` table, NOT
+    `eligible_voter_ids`. A disconnected player still appears as a vote target
+    card to other players. Only the disconnect-ed player's own ability to vote
+    is gated. This is the critical T-4 distinction: who you can VOTE FOR ≠ who
+    is ELIGIBLE TO VOTE.
+  - cast_vote's auto-advance condition is
+    `count(votes WHERE voter_player_id = ANY(eligible)) >= len(eligible)`.
+    That's why the round advances on 3 ballots when only 3 are eligible —
+    not because of any "disconnect-aware" branching, but because the eligible
+    set was frozen at 3 at vote-phase entry.
+---
