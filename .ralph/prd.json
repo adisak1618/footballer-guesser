@@ -1154,8 +1154,8 @@
         "Typecheck passes"
       ],
       "priority": 70,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Story-focused integration test at apps/insider/lib/__tests__/us-070-common-master-respond-denied.test.ts. Common (role=player) → master_respond rejected with PG015/PGAME15 (only master can respond), no row in game_insider_responses, phase stays asking. In-test sanity baseline: Master path on the same fixture succeeds, proving the rejection is role-driven not fixture-driven. 91/91 vitest pass."
     },
     {
       "id": "US-071",
