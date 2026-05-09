@@ -135,6 +135,27 @@ export async function castVote(
   })
 }
 
+export interface AdvanceToVotingArgs {
+  roomId: string
+  round: number
+  playerId: string
+}
+
+export async function advanceToVoting(
+  supabase: SupabaseClient,
+  args: AdvanceToVotingArgs,
+): Promise<void> {
+  await dispatch<Record<string, unknown>, void>(
+    supabase,
+    "advance_to_voting",
+    {
+      p_room_id: args.roomId,
+      p_round: args.round,
+      p_player_id: args.playerId,
+    },
+  )
+}
+
 export interface AdvanceToRevealArgs {
   roomId: string
   round: number

@@ -1014,7 +1014,7 @@
         "Verify in browser using dev-browser skill"
       ],
       "priority": 61,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {

@@ -5,6 +5,7 @@ export {
   RoomCodeDisplay,
   type RoomCodeDisplayProps,
 } from "./room-code-display"
+export { VoteTargetCard, type VoteTargetCardProps } from "./vote-target-card"
 export { SlotInput, type SlotInputProps } from "./slot-input"
 export {
   Dialog,

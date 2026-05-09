@@ -18,6 +18,7 @@ import { displayNameSchema } from "@/lib/schemas"
 import { supabase } from "@/lib/supabase"
 import { AskingPhase } from "./asking-phase"
 import { RoleReveal } from "./role-reveal"
+import { Voting } from "./voting"
 
 interface InsiderPlayer {
   id: string
@@ -197,6 +198,16 @@ export function Lobby({ code }: { code: string }) {
           roomId={room.id}
           round={round}
           mePlayerId={me.player_id}
+        />
+      )
+    }
+    if (roundPhase === "guessed" || roundPhase === "voting") {
+      return (
+        <Voting
+          roomId={room.id}
+          round={round}
+          mePlayerId={me.player_id}
+          initialPhase={roundPhase}
         />
       )
     }
