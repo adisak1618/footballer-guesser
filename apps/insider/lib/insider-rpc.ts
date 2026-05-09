@@ -175,6 +175,27 @@ export async function advanceToReveal(
   )
 }
 
+export interface AdvanceToNextRoundArgs {
+  roomId: string
+  round: number
+  playerId: string
+}
+
+export async function advanceToNextRound(
+  supabase: SupabaseClient,
+  args: AdvanceToNextRoundArgs,
+): Promise<number> {
+  return dispatch<Record<string, unknown>, number>(
+    supabase,
+    "advance_to_next_round",
+    {
+      p_room_id: args.roomId,
+      p_round: args.round,
+      p_player_id: args.playerId,
+    },
+  )
+}
+
 export interface GetMyInsiderSecretArgs {
   roomId: string
   round: number
@@ -188,6 +209,27 @@ export async function getMyInsiderSecret(
   return dispatch<Record<string, unknown>, string>(
     supabase,
     "get_my_insider_secret",
+    {
+      p_room_id: args.roomId,
+      p_round: args.round,
+      p_player_id: args.playerId,
+    },
+  )
+}
+
+export interface GetRevealedSecretArgs {
+  roomId: string
+  round: number
+  playerId: string
+}
+
+export async function getRevealedSecret(
+  supabase: SupabaseClient,
+  args: GetRevealedSecretArgs,
+): Promise<string> {
+  return dispatch<Record<string, unknown>, string>(
+    supabase,
+    "get_revealed_secret",
     {
       p_room_id: args.roomId,
       p_round: args.round,

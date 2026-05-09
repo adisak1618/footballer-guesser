@@ -625,8 +625,16 @@ export type Database = {
         Args: { p_player_id: string; p_room_id: string; p_round: number }
         Returns: undefined
       }
+      advance_to_next_round: {
+        Args: { p_player_id: string; p_room_id: string; p_round: number }
+        Returns: number
+      }
       advance_to_reveal: {
         Args: { p_room_id: string; p_round: number }
+        Returns: undefined
+      }
+      advance_to_voting: {
+        Args: { p_player_id: string; p_room_id: string; p_round: number }
         Returns: undefined
       }
       cast_vote: {
@@ -681,6 +689,10 @@ export type Database = {
           item_id: string
           metadata: Json
         }[]
+      }
+      get_revealed_secret: {
+        Args: { p_player_id: string; p_room_id: string; p_round: number }
+        Returns: string
       }
       join_room: {
         Args: { p_code: string; p_display_name: string; p_player_id: string }

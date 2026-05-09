@@ -17,6 +17,7 @@ import { getOrCreatePlayerId, readPlayerId } from "@/lib/player-id"
 import { displayNameSchema } from "@/lib/schemas"
 import { supabase } from "@/lib/supabase"
 import { AskingPhase } from "./asking-phase"
+import { Reveal } from "./reveal"
 import { RoleReveal } from "./role-reveal"
 import { Voting } from "./voting"
 
@@ -208,6 +209,15 @@ export function Lobby({ code }: { code: string }) {
           round={round}
           mePlayerId={me.player_id}
           initialPhase={roundPhase}
+        />
+      )
+    }
+    if (roundPhase === "reveal" || roundPhase === "result_failed") {
+      return (
+        <Reveal
+          roomId={room.id}
+          round={round}
+          mePlayerId={me.player_id}
         />
       )
     }
