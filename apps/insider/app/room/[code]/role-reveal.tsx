@@ -7,18 +7,15 @@ import { supabase } from "@/lib/supabase"
 
 // US-055 / Phase 5b.4a — Role reveal: INSIDER view (the asymmetric drama).
 // US-056 / Phase 5b.4b — Role reveal: MASTER view (the judge).
+// US-057 / Phase 5b.4c — Role reveal: COMMON view (mystery placeholder).
 //
 // This component is rendered by the room shell once `rooms.status` flips to
 // 'PLAYING' (i.e. start_insider_round committed; phase='preparing'). It reads
 // the local player's role from `game_insider_roles` (anon-readable per A1.C
-// shape (1)) and, for master/insider, fetches the secret via the SECURITY
-// DEFINER `get_my_insider_secret` RPC (column-level RLS keeps anon SELECT on
-// `secret_value` denied — see migration 0021 / pattern note 30).
-//
-// Story-scope: Insider + Master variants are implemented here. Common
-// (US-057) variant lands next. Until then, common players see a minimal
-// placeholder — they're not blocked, they just don't see the wireframe-5c
-// treatment yet.
+// shape (1)) and calls the SECURITY DEFINER `get_my_insider_secret` RPC for
+// every role — master/insider receive the secret (column-level RLS keeps anon
+// SELECT on `secret_value` denied; see migration 0021 / pattern note 30) and
+// commons receive NULL by design.
 
 type InsiderRole = "master" | "insider" | "player"
 
@@ -31,12 +28,17 @@ interface RoleRevealProps {
 export function RoleReveal({ roomId, round, mePlayerId }: RoleRevealProps) {
   const [role, setRole] = useState<InsiderRole | null>(null)
   const [secret, setSecret] = useState<string | null>(null)
+  const [secretLoaded, setSecretLoaded] = useState(false)
   const [loadError, setLoadError] = useState<string | null>(null)
 
-  // Load role + (if applicable) secret. The role row is inserted in the same
+  // Load role + secret via RPC. The role row is inserted in the same
   // transaction as `rooms.status='PLAYING'`, so by the time we render we
   // expect the role row to exist. A short retry guards against any
   // realtime-vs-SELECT eventual-consistency hiccups.
+  //
+  // The secret RPC is called for every role: master/insider get the secret,
+  // commons get NULL (per migration 0021). Calling it for commons too keeps
+  // a single load path and matches the US-057 acceptance criterion.
   useEffect(() => {
     let active = true
     let attempts = 0
@@ -64,19 +66,19 @@ export function RoleReveal({ roomId, round, mePlayerId }: RoleRevealProps) {
         return
       }
       setRole(r)
-      if (r === "master" || r === "insider") {
-        try {
-          const s = await getMyInsiderSecret(supabase, {
-            roomId,
-            round,
-            playerId: mePlayerId,
-          })
-          if (!active) return
-          setSecret(s)
-        } catch {
-          if (!active) return
-          setLoadError("โหลดคำลับไม่สำเร็จ")
-        }
+      try {
+        const s = await getMyInsiderSecret(supabase, {
+          roomId,
+          round,
+          playerId: mePlayerId,
+        })
+        if (!active) return
+        // RPC returns NULL for commons — coerce to null and continue.
+        setSecret((s as string | null) ?? null)
+        setSecretLoaded(true)
+      } catch {
+        if (!active) return
+        setLoadError("โหลดคำลับไม่สำเร็จ")
       }
     }
     tick()
@@ -95,7 +97,7 @@ export function RoleReveal({ roomId, round, mePlayerId }: RoleRevealProps) {
     )
   }
 
-  if (!role || (role !== "player" && !secret)) {
+  if (!role || !secretLoaded) {
     return (
       <main className="relative mx-auto flex min-h-[100dvh] w-full max-w-[480px] flex-col items-center justify-center gap-3 px-6 text-center">
         <p className="text-sm text-on-dark-soft">กำลังเตรียมเกม...</p>
@@ -115,15 +117,8 @@ export function RoleReveal({ roomId, round, mePlayerId }: RoleRevealProps) {
     )
   }
 
-  // Common placeholder until US-057 lands. Still includes the ฉันพร้อมแล้ว
-  // CTA (T-3.B) so common players aren't stuck.
   return (
-    <PlaceholderView
-      roomId={roomId}
-      round={round}
-      mePlayerId={mePlayerId}
-      role={role}
-    />
+    <CommonView roomId={roomId} round={round} mePlayerId={mePlayerId} />
   )
 }
 
@@ -337,10 +332,10 @@ function MasterView({
 }
 
 // ───────────────────────────────────────────────────────────────────────────
-// Common placeholder — picked up by US-057.
+// CommonView — wireframe 5c (US-057). Mystery placeholder + warning hint.
 // ───────────────────────────────────────────────────────────────────────────
 
-function PlaceholderView({
+function CommonView({
   roomId,
   round,
   mePlayerId,
@@ -348,14 +343,12 @@ function PlaceholderView({
   roomId: string
   round: number
   mePlayerId: string
-  role: InsiderRole
 }) {
   const { handleReady, isPending, error } = useAdvanceToAsking({
     roomId,
     round,
     mePlayerId,
   })
-  const label = "PLAYER / ผู้เล่น"
 
   return (
     <main className="relative mx-auto flex min-h-[100dvh] w-full max-w-[480px] flex-col gap-8 px-6 pt-8 pb-10">
@@ -363,10 +356,58 @@ function PlaceholderView({
         <p className="font-display text-[28px] uppercase leading-none tracking-[0.3px] text-on-dark">
           Round {round}
         </p>
-        <p className="font-display text-[24px] uppercase leading-none tracking-[1px] text-on-dark">
-          {label}
-        </p>
       </header>
+
+      <section className="flex flex-col gap-6">
+        <div
+          data-testid="common-role-badge"
+          className="flex flex-col items-center justify-center gap-1 rounded-xl border-2 border-hairline bg-surface/50 px-4 py-4 text-center"
+        >
+          <span className="font-body text-[18px] tracking-[0.3px] text-on-dark-soft">
+            ผู้เล่น
+          </span>
+          <span className="font-display text-[32px] uppercase leading-none tracking-[1px] text-on-dark">
+            PLAYER
+          </span>
+        </div>
+
+        <div className="flex flex-col gap-3">
+          <p className="text-center text-xs font-medium uppercase tracking-[0.3px] text-on-dark-muted">
+            THE SECRET WORD
+          </p>
+          <div
+            data-testid="common-mystery-card"
+            className="flex min-h-[200px] flex-col items-center justify-center rounded-2xl bg-surface-elevated px-6 py-10 text-center"
+          >
+            <span className="font-hero text-[clamp(72px,18vw,144px)] uppercase leading-none tracking-[2px] text-on-dark-muted">
+              ???
+            </span>
+          </div>
+        </div>
+
+        <div
+          data-testid="common-instruction-text"
+          className="flex flex-col gap-2 text-center"
+        >
+          <p className="font-body text-[18px] leading-snug text-on-dark">
+            ถามคำถามใช่/ไม่ใช่
+            <br />
+            เพื่อหาคำลับ
+          </p>
+          <p className="font-body text-[13px] uppercase tracking-[0.3px] text-on-dark-soft">
+            ASK YES/NO QUESTIONS
+            <br />
+            TO FIND THE SECRET.
+          </p>
+        </div>
+
+        <p
+          data-testid="common-warning-hint"
+          className="text-center font-body text-[14px] tracking-[0.3px] text-warning"
+        >
+          ⚠ มีคนวงในซ่อนอยู่ในกลุ่ม
+        </p>
+      </section>
 
       <section className="mt-auto flex flex-col gap-3">
         {error ? (
