@@ -3,22 +3,22 @@
 import { useEffect, useState } from "react"
 import { getMyInsiderSecret } from "@/lib/insider-rpc"
 import { supabase } from "@/lib/supabase"
+import { AskingMaster } from "./asking-master"
 
 // US-058 / Phase 5b.5a — Asymmetric privacy during the asking phase (D3, D4).
+// US-059 / Phase 5b.5b — Master view (Screen 6a + D1) delegated to AskingMaster.
 //
 // Once `game_insider_round.phase` flips from 'preparing' → 'asking', the room
-// shell (`lobby.tsx`) swaps the role-reveal screen for this asking-phase shell.
-// The shell intentionally:
-//   - Hides every role-specific badge (`insider-role-badge`, `master-role-badge`,
-//     `common-role-badge`) so a phone glanced at during the question round can
-//     not betray who the Insider is (D4 — anti-cheat parity).
-//   - Hides the BIG NAME secret card from the Insider; only the Master keeps a
-//     small Bebas 32px on-dark-soft "Secret: [WORD]" reminder because Master is
-//     the one answering Yes/No/Unsure (D3).
-//
-// The full asking-phase UI (3 huge response buttons, response feed, timer,
-// "ทายถูกแล้ว" CTA) lands in US-5b.5 / wireframes 6a/6b. This story only
-// commits the asymmetric-privacy mechanism.
+// shell (`lobby.tsx`) swaps the role-reveal screen for this asking-phase
+// shell. The shell is the role router for the asking phase:
+//   - master → render <AskingMaster/> (Screen 6a wireframe + D1 — buttons,
+//     feed, ทายถูกแล้ว CTA). Receives the secret and round timer params.
+//   - insider / common → render the asymmetric-privacy minimal shell (US-058).
+//     The Insider's role badge AND secret card are stripped (D4 anti-cheat
+//     parity); the Common's mystery placeholder is also stripped. Both views
+//     are visually identical so a phone glanced at during asking can not
+//     betray who the Insider is. US-060 will replace this minimal shell with
+//     the full Screen 6b (response feed, instruction, D2 hint).
 
 type InsiderRole = "master" | "insider" | "player"
 
@@ -31,25 +31,33 @@ interface AskingPhaseProps {
 export function AskingPhase({ roomId, round, mePlayerId }: AskingPhaseProps) {
   const [role, setRole] = useState<InsiderRole | null>(null)
   const [masterSecret, setMasterSecret] = useState<string | null>(null)
+  const [startedAt, setStartedAt] = useState<string | null>(null)
+  const [timeLimitS, setTimeLimitS] = useState<number | null>(null)
   const [loaded, setLoaded] = useState(false)
 
-  // Read role to decide whether to fetch the master secret reminder. The role
-  // row already exists by the time we render this screen (start_insider_round
-  // inserts roles + round atomically; phase only flips to 'asking' after the
-  // round was 'preparing', so the role rows are guaranteed present).
   useEffect(() => {
     let active = true
     async function load() {
-      const { data } = await supabase
-        .from("game_insider_roles")
-        .select("role")
-        .eq("room_id", roomId)
-        .eq("round_number", round)
-        .eq("player_id", mePlayerId)
-        .maybeSingle()
+      const [{ data: roleRow }, { data: roundRow }] = await Promise.all([
+        supabase
+          .from("game_insider_roles")
+          .select("role")
+          .eq("room_id", roomId)
+          .eq("round_number", round)
+          .eq("player_id", mePlayerId)
+          .maybeSingle(),
+        supabase
+          .from("game_insider_round")
+          .select("started_at, time_limit_s")
+          .eq("room_id", roomId)
+          .eq("round_number", round)
+          .maybeSingle(),
+      ])
       if (!active) return
-      const r = (data?.role as InsiderRole | undefined) ?? "player"
+      const r = (roleRow?.role as InsiderRole | undefined) ?? "player"
       setRole(r)
+      setStartedAt((roundRow?.started_at as string | null) ?? null)
+      setTimeLimitS((roundRow?.time_limit_s as number | null) ?? null)
       if (r === "master") {
         try {
           const s = await getMyInsiderSecret(supabase, {
@@ -60,9 +68,8 @@ export function AskingPhase({ roomId, round, mePlayerId }: AskingPhaseProps) {
           if (!active) return
           setMasterSecret(s)
         } catch {
-          // Master secret fetch failed — render the shell without the reminder.
-          // (UI parity invariant still holds: Insider/Common pages also have
-          // no reminder, so an absent reminder doesn't leak role info.)
+          // Master secret fetch failed — still render the shell. UI parity
+          // invariant holds: Insider/Common shells also have no secret.
         }
       }
       setLoaded(true)
@@ -81,8 +88,26 @@ export function AskingPhase({ roomId, round, mePlayerId }: AskingPhaseProps) {
     )
   }
 
+  if (role === "master" && masterSecret && timeLimitS !== null) {
+    return (
+      <AskingMaster
+        roomId={roomId}
+        round={round}
+        mePlayerId={mePlayerId}
+        secret={masterSecret}
+        startedAt={startedAt}
+        timeLimitS={timeLimitS}
+      />
+    )
+  }
+
+  // Non-master shell — kept identical for Insider and Common (D4 parity).
+  // US-060 (Phase 5b.5c) replaces this with the full Screen 6b.
   return (
-    <main className="relative mx-auto flex min-h-[100dvh] w-full max-w-[480px] flex-col gap-6 px-6 pt-8 pb-10">
+    <main
+      data-testid="asking-phase-shell"
+      className="relative mx-auto flex min-h-[100dvh] w-full max-w-[480px] flex-col gap-6 px-6 pt-8 pb-10"
+    >
       <header className="flex flex-col items-center gap-1 text-center">
         <p className="font-display text-[28px] uppercase leading-none tracking-[0.3px] text-on-dark">
           Round {round}
@@ -92,19 +117,7 @@ export function AskingPhase({ roomId, round, mePlayerId }: AskingPhaseProps) {
         </p>
       </header>
 
-      {role === "master" && masterSecret ? (
-        <p
-          data-testid="master-asking-secret-reminder"
-          className="text-center font-hero text-[32px] uppercase leading-none tracking-[1px] text-on-dark-soft"
-        >
-          Secret: {masterSecret.toUpperCase()}
-        </p>
-      ) : null}
-
-      <section
-        data-testid="asking-phase-shell"
-        className="flex flex-1 flex-col items-center justify-center gap-4 text-center"
-      >
+      <section className="flex flex-1 flex-col items-center justify-center gap-4 text-center">
         <p className="font-display text-[24px] uppercase leading-none tracking-[0.3px] text-on-dark">
           ถามดัง ๆ
         </p>
