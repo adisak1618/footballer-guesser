@@ -1,0 +1,43 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`NetworkErrorBanner > hidden variant matches snapshot 1`] = `
+<div
+  aria-hidden="true"
+  aria-live="assertive"
+  class="pointer-events-none fixed inset-x-0 top-0 z-40 flex items-center justify-center gap-2 bg-warning px-4 py-2 text-[13px] font-semibold tracking-[0.2px] text-on-light shadow-lg motion-safe:transition-transform motion-safe:duration-300 -translate-y-full"
+  data-state="hidden"
+  data-testid="network-error-banner"
+  role="status"
+>
+  <span
+    aria-hidden="true"
+    class="text-base motion-safe:animate-pulse"
+  >
+    🔴
+  </span>
+  <span>
+    กำลังเชื่อมต่อ...
+  </span>
+</div>
+`;
+
+exports[`NetworkErrorBanner > visible variant matches snapshot 1`] = `
+<div
+  aria-hidden="false"
+  aria-live="assertive"
+  class="pointer-events-none fixed inset-x-0 top-0 z-40 flex items-center justify-center gap-2 bg-warning px-4 py-2 text-[13px] font-semibold tracking-[0.2px] text-on-light shadow-lg motion-safe:transition-transform motion-safe:duration-300 translate-y-0"
+  data-state="visible"
+  data-testid="network-error-banner"
+  role="status"
+>
+  <span
+    aria-hidden="true"
+    class="text-base motion-safe:animate-pulse"
+  >
+    🔴
+  </span>
+  <span>
+    กำลังเชื่อมต่อ...
+  </span>
+</div>
+`;

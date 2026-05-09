@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { LoadingSkeleton } from "@social-hub/ui"
 import { getMyInsiderSecret } from "@/lib/insider-rpc"
 import { supabase } from "@/lib/supabase"
 import { AskingMaster } from "./asking-master"
@@ -85,9 +86,11 @@ export function AskingPhase({ roomId, round, mePlayerId }: AskingPhaseProps) {
 
   if (!loaded) {
     return (
-      <main className="relative mx-auto flex min-h-[100dvh] w-full max-w-[480px] flex-col items-center justify-center gap-3 px-6 text-center">
-        <p className="text-sm text-on-dark-soft">กำลังเริ่มถาม...</p>
-      </main>
+      <LoadingSkeleton
+        phaseLabel="ASKING"
+        caption="กำลังเริ่มถาม..."
+        testId="asking-phase-loading"
+      />
     )
   }
 

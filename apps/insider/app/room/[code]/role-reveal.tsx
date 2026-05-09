@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useTransition } from "react"
 import { GameRpcError } from "@social-hub/core"
-import { RoleBadge } from "@social-hub/ui"
+import { LoadingSkeleton, RoleBadge } from "@social-hub/ui"
 import { advanceToAsking, getMyInsiderSecret } from "@/lib/insider-rpc"
 import { supabase } from "@/lib/supabase"
 
@@ -100,9 +100,11 @@ export function RoleReveal({ roomId, round, mePlayerId }: RoleRevealProps) {
 
   if (!role || !secretLoaded) {
     return (
-      <main className="relative mx-auto flex min-h-[100dvh] w-full max-w-[480px] flex-col items-center justify-center gap-3 px-6 text-center">
-        <p className="text-sm text-on-dark-soft">กำลังเตรียมเกม...</p>
-      </main>
+      <LoadingSkeleton
+        phaseLabel={`ROUND ${round}`}
+        caption="กำลังเตรียมเกม..."
+        testId="role-reveal-loading"
+      />
     )
   }
 

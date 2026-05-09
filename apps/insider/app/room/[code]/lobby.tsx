@@ -9,8 +9,18 @@ import {
   useTransition,
 } from "react"
 import Link from "next/link"
-import { PlayerChip, RoomCodeDisplay } from "@social-hub/ui"
-import { useRoomRealtime } from "@social-hub/core"
+import {
+  EmptySlot,
+  LoadingSkeleton,
+  NetworkErrorBanner,
+  PhaseTransitionOverlay,
+  PlayerChip,
+  RoomCodeDisplay,
+} from "@social-hub/ui"
+import {
+  useRoomRealtime,
+  type RoomRealtimeStatus,
+} from "@social-hub/core"
 import { joinInsiderRoomAction } from "@/app/actions/join-insider-room"
 import { startInsiderRoundAction } from "@/app/actions/start-insider-round"
 import { getOrCreatePlayerId, readPlayerId } from "@/lib/player-id"
@@ -48,6 +58,10 @@ export function Lobby({ code }: { code: string }) {
   // flips to PLAYING. Drives the room-shell phase routing below: 'preparing'
   // (or null while loading) → role-reveal; 'asking' → asymmetric privacy shell.
   const [roundPhase, setRoundPhase] = useState<string | null>(null)
+  // US-079 / Phase 5d.5 — Realtime connection status. Drives the
+  // <NetworkErrorBanner/> visibility (slides down when DISCONNECTED).
+  const [connectionStatus, setConnectionStatus] =
+    useState<RoomRealtimeStatus>("CONNECTING")
 
   // ─── Initial fetch + me detection ───────────────────────────────────────
   useEffect(() => {
@@ -127,6 +141,7 @@ export function Lobby({ code }: { code: string }) {
     roomId: room?.id ?? null,
     tables,
     onChange: handleChange,
+    onStatusChange: setConnectionStatus,
   })
 
   // Initial round-phase fetch: covers (a) the gap between subscribing and the
@@ -169,21 +184,36 @@ export function Lobby({ code }: { code: string }) {
   }
 
   if (!room) {
-    return (
-      <main className="relative mx-auto flex min-h-[100dvh] w-full max-w-[480px] flex-col items-center justify-center gap-3 px-6 text-center">
-        <p className="text-sm text-on-dark-soft">กำลังโหลด...</p>
-      </main>
-    )
+    return <LoadingSkeleton phaseLabel="LOBBY" />
   }
 
   const me = meId ? players.find((p) => p.player_id === meId) : null
 
+  // US-079 / Phase 5d.5 — Wraps every visible sub-screen so the network-error
+  // banner and the phase-transition overlay span the full route. Both are
+  // outside the per-screen <main> so they survive sub-component remounts when
+  // roundPhase flips (without this, the overlay couldn't track lobby ↔ asking
+  // ↔ voting transitions because each sub-screen lives in a separate <main>).
+  const screenKey = deriveScreenKey({ status: room.status, roundPhase, hasMe: Boolean(me) })
+  const labels = SCREEN_LABELS[screenKey] ?? { en: screenKey.toUpperCase() }
+  const shell = (children: React.ReactNode) => (
+    <>
+      <NetworkErrorBanner visible={connectionStatus === "DISCONNECTED"} />
+      <PhaseTransitionOverlay
+        phaseKey={screenKey}
+        labelEn={labels.en}
+        labelTh={labels.th}
+      />
+      {children}
+    </>
+  )
+
   if (!me) {
-    return (
+    return shell(
       <JoinView
         code={code}
         onJoined={(playerId) => setMeId(playerId)}
-      />
+      />,
     )
   }
 
@@ -194,51 +224,83 @@ export function Lobby({ code }: { code: string }) {
   if (room.status === "PLAYING") {
     const round = room.current_round ?? 1
     if (roundPhase === "asking") {
-      return (
+      return shell(
         <AskingPhase
           roomId={room.id}
           round={round}
           mePlayerId={me.player_id}
-        />
+        />,
       )
     }
     if (roundPhase === "guessed" || roundPhase === "voting") {
-      return (
+      return shell(
         <Voting
           roomId={room.id}
           round={round}
           mePlayerId={me.player_id}
           initialPhase={roundPhase}
-        />
+        />,
       )
     }
     if (roundPhase === "reveal" || roundPhase === "result_failed") {
-      return (
+      return shell(
         <Reveal
           roomId={room.id}
           round={round}
           mePlayerId={me.player_id}
           phase={roundPhase}
-        />
+        />,
       )
     }
-    return (
+    return shell(
       <RoleReveal
         roomId={room.id}
         round={round}
         mePlayerId={me.player_id}
-      />
+      />,
     )
   }
 
-  return (
+  return shell(
     <LobbyView
       code={code}
       room={room}
       players={players}
       mePlayerId={me.player_id}
-    />
+    />,
   )
+}
+
+// US-079 / Phase 5d.5 — Map (room.status, roundPhase, hasMe) to a stable
+// screen key the phase-transition overlay can flash on. Keys must be stable
+// across re-renders so the overlay only fires once per real screen change.
+function deriveScreenKey({
+  status,
+  roundPhase,
+  hasMe,
+}: {
+  status: string
+  roundPhase: string | null
+  hasMe: boolean
+}): string {
+  if (status !== "PLAYING") return hasMe ? "lobby" : "join"
+  if (roundPhase === "asking") return "asking"
+  if (roundPhase === "guessed") return "guessed"
+  if (roundPhase === "voting") return "voting"
+  if (roundPhase === "reveal") return "reveal"
+  if (roundPhase === "result_failed") return "reveal-time-up"
+  return "role-reveal"
+}
+
+const SCREEN_LABELS: Record<string, { en: string; th?: string }> = {
+  join: { en: "JOIN", th: "เข้าห้อง" },
+  lobby: { en: "LOBBY", th: "ห้องรอ" },
+  "role-reveal": { en: "ROLE REVEAL", th: "บทบาท" },
+  asking: { en: "ASKING", th: "ถาม" },
+  guessed: { en: "GUESSED", th: "ทายถูก" },
+  voting: { en: "VOTING", th: "โหวต" },
+  reveal: { en: "REVEAL", th: "เฉลย" },
+  "reveal-time-up": { en: "TIME UP", th: "หมดเวลา" },
 }
 
 // ───────────────────────────────────────────────────────────────────────────
@@ -410,11 +472,26 @@ function LobbyView({
               isMe={p.player_id === mePlayerId}
             />
           ))}
-          {players.length === 0 && (
-            <li className="rounded-2xl border border-hairline bg-surface px-4 py-6 text-center text-sm text-on-dark-soft">
-              ยังไม่มีผู้เล่น
-            </li>
-          )}
+          {/* US-079 / Phase 5d.5 — Dashed empty slots up to MIN_PLAYERS_TO_START
+             so the room visually communicates the minimum capacity. The first
+             empty slot also carries the min-player hint copy. */}
+          {Array.from({
+            length: Math.max(0, MIN_PLAYERS_TO_START - players.length),
+          }).map((_, offset) => {
+            const slotIndex = players.length + offset + 1
+            const isFirstEmpty = offset === 0
+            return (
+              <EmptySlot
+                key={`empty-${slotIndex}`}
+                index={slotIndex}
+                hint={
+                  isFirstEmpty
+                    ? `ต้องการอย่างน้อย ${MIN_PLAYERS_TO_START} คน`
+                    : "เปิดรับผู้เล่น"
+                }
+              />
+            )
+          })}
         </ul>
       </section>
 

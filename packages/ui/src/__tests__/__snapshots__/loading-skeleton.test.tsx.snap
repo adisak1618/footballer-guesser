@@ -1,0 +1,95 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`LoadingSkeleton > with phaseLabel matches snapshot 1`] = `
+<main
+  aria-busy="true"
+  aria-live="polite"
+  class="relative mx-auto flex min-h-[100dvh] w-full max-w-[480px] flex-col gap-6 px-6 pt-6 pb-8"
+  data-testid="loading-skeleton"
+  role="status"
+>
+  <header
+    class="flex items-center justify-between"
+  >
+    <span
+      class="rounded-md border border-hairline bg-surface-elevated px-3 py-1 font-display text-[24px] uppercase leading-none tracking-[1px] text-on-dark-muted"
+      data-testid="loading-skeleton-phase-tag"
+    >
+      ASKING
+    </span>
+    <span
+      aria-hidden="true"
+      class="h-8 w-20 rounded-md bg-surface-elevated motion-safe:animate-pulse"
+    />
+  </header>
+  <section
+    class="flex flex-1 flex-col gap-3"
+    data-testid="loading-skeleton-body"
+  >
+    <span
+      aria-hidden="true"
+      class="h-6 w-2/3 rounded-md bg-surface-elevated motion-safe:animate-pulse"
+    />
+    <span
+      aria-hidden="true"
+      class="h-32 w-full rounded-2xl bg-surface-elevated motion-safe:animate-pulse"
+    />
+    <span
+      aria-hidden="true"
+      class="h-12 w-full rounded-xl bg-surface-elevated motion-safe:animate-pulse"
+    />
+  </section>
+  <p
+    class="text-center font-body text-sm text-on-dark-soft"
+    data-testid="loading-skeleton-caption"
+  >
+    กำลังโหลด...
+  </p>
+</main>
+`;
+
+exports[`LoadingSkeleton > without phaseLabel renders a skeleton header rect 1`] = `
+<main
+  aria-busy="true"
+  aria-live="polite"
+  class="relative mx-auto flex min-h-[100dvh] w-full max-w-[480px] flex-col gap-6 px-6 pt-6 pb-8"
+  data-testid="loading-skeleton"
+  role="status"
+>
+  <header
+    class="flex items-center justify-between"
+  >
+    <span
+      aria-hidden="true"
+      class="h-8 w-24 rounded-md border border-hairline bg-surface-elevated motion-safe:animate-pulse"
+    />
+    <span
+      aria-hidden="true"
+      class="h-8 w-20 rounded-md bg-surface-elevated motion-safe:animate-pulse"
+    />
+  </header>
+  <section
+    class="flex flex-1 flex-col gap-3"
+    data-testid="loading-skeleton-body"
+  >
+    <span
+      aria-hidden="true"
+      class="h-6 w-2/3 rounded-md bg-surface-elevated motion-safe:animate-pulse"
+    />
+    <span
+      aria-hidden="true"
+      class="h-32 w-full rounded-2xl bg-surface-elevated motion-safe:animate-pulse"
+    />
+    <span
+      aria-hidden="true"
+      class="h-12 w-full rounded-xl bg-surface-elevated motion-safe:animate-pulse"
+    />
+  </section>
+  <p
+    class="text-center font-body text-sm text-on-dark-soft"
+    data-testid="loading-skeleton-caption"
+  >
+    กำลังโหลด...
+  </p>
+</main>
+`;

@@ -1,0 +1,41 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`EmptySlot > renders with a custom hint 1`] = `
+<li
+  aria-label="Open slot 3"
+  class="flex min-h-14 items-center gap-3 rounded-2xl border-2 border-dashed border-hairline bg-surface/40 px-4 py-3 text-on-dark-soft"
+  data-testid="empty-slot-3"
+>
+  <span
+    aria-hidden="true"
+    class="inline-flex h-8 w-8 items-center justify-center rounded-full border border-dashed border-hairline text-base font-semibold tabular-nums text-on-dark-muted"
+  >
+    3
+  </span>
+  <span
+    class="text-sm font-medium tracking-[0.2px] text-on-dark-soft"
+  >
+    ต้องการอย่างน้อย 3 คน
+  </span>
+</li>
+`;
+
+exports[`EmptySlot > renders with default hint 1`] = `
+<li
+  aria-label="Open slot 4"
+  class="flex min-h-14 items-center gap-3 rounded-2xl border-2 border-dashed border-hairline bg-surface/40 px-4 py-3 text-on-dark-soft"
+  data-testid="empty-slot-4"
+>
+  <span
+    aria-hidden="true"
+    class="inline-flex h-8 w-8 items-center justify-center rounded-full border border-dashed border-hairline text-base font-semibold tabular-nums text-on-dark-muted"
+  >
+    4
+  </span>
+  <span
+    class="text-sm font-medium tracking-[0.2px] text-on-dark-soft"
+  >
+    เปิดรับผู้เล่น
+  </span>
+</li>
+`;
