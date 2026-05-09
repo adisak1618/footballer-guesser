@@ -16,6 +16,7 @@ import { startInsiderRoundAction } from "@/app/actions/start-insider-round"
 import { getOrCreatePlayerId, readPlayerId } from "@/lib/player-id"
 import { displayNameSchema } from "@/lib/schemas"
 import { supabase } from "@/lib/supabase"
+import { AskingPhase } from "./asking-phase"
 import { RoleReveal } from "./role-reveal"
 
 interface InsiderPlayer {
@@ -41,6 +42,10 @@ export function Lobby({ code }: { code: string }) {
   const [players, setPlayers] = useState<InsiderPlayer[]>([])
   const [meId, setMeId] = useState<string | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
+  // Per-round phase state (US-058 / Phase 5b.5a) — subscribed once room.status
+  // flips to PLAYING. Drives the room-shell phase routing below: 'preparing'
+  // (or null while loading) → role-reveal; 'asking' → asymmetric privacy shell.
+  const [roundPhase, setRoundPhase] = useState<string | null>(null)
 
   // ─── Initial fetch + me detection ───────────────────────────────────────
   useEffect(() => {
@@ -73,13 +78,17 @@ export function Lobby({ code }: { code: string }) {
     }
   }, [code])
 
-  // ─── Realtime: rooms + players ──────────────────────────────────────────
+  // ─── Realtime: rooms + players + round (once PLAYING) ───────────────────
+  // game_insider_round is published with phase but NOT secret_value (column-
+  // list publication in migration 0017) so the phase update broadcast is safe
+  // for anon subscribers.
   const tables = useMemo(
     () =>
       room
         ? [
             { table: "rooms", filter: `id=eq.${room.id}` },
             { table: "players", filter: `room_id=eq.${room.id}` },
+            { table: "game_insider_round", filter: `room_id=eq.${room.id}` },
           ]
         : [],
     [room],
@@ -100,6 +109,12 @@ export function Lobby({ code }: { code: string }) {
           .eq("room_id", room.id)
           .order("join_order", { ascending: true })
         if (refreshed) setPlayers(refreshed as InsiderPlayer[])
+        return
+      }
+      if (table === "game_insider_round") {
+        if (payload.eventType === "DELETE") return
+        const next = payload.new as { phase?: string } | null
+        if (next?.phase) setRoundPhase(next.phase)
       }
     },
     [room],
@@ -111,6 +126,29 @@ export function Lobby({ code }: { code: string }) {
     tables,
     onChange: handleChange,
   })
+
+  // Initial round-phase fetch: covers (a) the gap between subscribing and the
+  // first realtime payload landing, and (b) a player who reloads mid-round and
+  // missed the original 'preparing' INSERT. Fired only once room is PLAYING.
+  useEffect(() => {
+    if (!room || room.status !== "PLAYING" || !room.current_round) return
+    const roomId = room.id
+    const roundNumber = room.current_round
+    let active = true
+    void (async () => {
+      const { data } = await supabase
+        .from("game_insider_round")
+        .select("phase")
+        .eq("room_id", roomId)
+        .eq("round_number", roundNumber)
+        .maybeSingle()
+      if (!active) return
+      if (data?.phase) setRoundPhase(data.phase as string)
+    })()
+    return () => {
+      active = false
+    }
+  }, [room])
 
   if (loadError) {
     return (
@@ -147,14 +185,25 @@ export function Lobby({ code }: { code: string }) {
     )
   }
 
-  // Once the host advances LOBBY → PLAYING, render the role-reveal screen.
+  // Once the host advances LOBBY → PLAYING, render the per-phase screen.
   // The Realtime subscription on `rooms` flips room.status here for every
-  // player simultaneously (including the host).
+  // player simultaneously (including the host); a separate subscription on
+  // `game_insider_round` (added in US-058) drives the per-phase routing below.
   if (room.status === "PLAYING") {
+    const round = room.current_round ?? 1
+    if (roundPhase === "asking") {
+      return (
+        <AskingPhase
+          roomId={room.id}
+          round={round}
+          mePlayerId={me.player_id}
+        />
+      )
+    }
     return (
       <RoleReveal
         roomId={room.id}
-        round={room.current_round ?? 1}
+        round={round}
         mePlayerId={me.player_id}
       />
     )
