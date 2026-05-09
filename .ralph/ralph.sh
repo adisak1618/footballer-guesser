@@ -161,14 +161,81 @@ for i in $(seq 1 $MAX_ITERATIONS); do
   WATCHDOG_PID=$!
   WATCHDOG_PIDS+=("$WATCHDOG_PID")
 
-  # Run the selected tool with the ralph prompt
+  # Run the agent in BACKGROUND, capture its output to a temp file. We poll
+  # prd.json for a passes-count increase to detect "agent finished its work"
+  # and force-kill the agent + descendants once detected. This avoids the
+  # claude --print "won't exit while children alive" hang when the agent
+  # leaks dev servers.
+  CLAUDE_OUT=$(mktemp /tmp/ralph-iter-${i}-XXXXXX.out)
+  PASSED_BEFORE=$(jq '[.userStories[] | select(.passes == true)] | length' "$PRD_FILE" 2>/dev/null || echo 0)
   if [[ "$TOOL" == "amp" ]]; then
-    OUTPUT=$(cat "$SCRIPT_DIR/prompt.md" | amp --dangerously-allow-all 2>&1 | tee /dev/stderr) || true
+    cat "$SCRIPT_DIR/prompt.md" | amp --dangerously-allow-all > "$CLAUDE_OUT" 2>&1 &
   else
-    # Claude Code: use --dangerously-skip-permissions for autonomous operation, --print for output
-    OUTPUT=$(claude --dangerously-skip-permissions --print < "$SCRIPT_DIR/CLAUDE.md" 2>&1 | tee /dev/stderr) || true
+    claude --dangerously-skip-permissions --print < "$SCRIPT_DIR/CLAUDE.md" > "$CLAUDE_OUT" 2>&1 &
   fi
-  CHILD_EXIT=$?
+  AGENT_PID=$!
+  echo "[$(date '+%H:%M:%S')] ITER $i AGENT_PID=$AGENT_PID polling for passes-flip" >> "$RUN_LOG"
+
+  # Poll loop: every 10s, check three conditions
+  #   (a) passes count increased → agent finished work, force-kill tree
+  #   (b) agent already exited on its own → done
+  #   (c) timeout → watchdog fires (separate path)
+  POLL_INTERVAL=10
+  WORK_DONE=0
+  while true; do
+    sleep $POLL_INTERVAL
+    # Has agent process exited on its own?
+    if ! kill -0 "$AGENT_PID" 2>/dev/null; then
+      WORK_DONE=1
+      echo "[$(date '+%H:%M:%S')] ITER $i agent exited naturally" >> "$RUN_LOG"
+      break
+    fi
+    # Has passes count gone up? (agent committed + flipped passes:true)
+    PASSED_NOW=$(jq '[.userStories[] | select(.passes == true)] | length' "$PRD_FILE" 2>/dev/null || echo "$PASSED_BEFORE")
+    if [ "$PASSED_NOW" -gt "$PASSED_BEFORE" ]; then
+      # Give the agent 30s to finalize (write progress.txt entry, etc.)
+      echo "[$(date '+%H:%M:%S')] ITER $i passes=$PASSED_BEFORE→$PASSED_NOW — granting 30s grace" >> "$RUN_LOG"
+      sleep 30
+      # Now force-kill the agent and its entire descendant tree
+      echo "[$(date '+%H:%M:%S')] ITER $i force-killing AGENT_PID=$AGENT_PID + descendants" >> "$RUN_LOG"
+      # Build descendant kill list (BSD pkill on macOS doesn't have -P with recurse, so manual)
+      DESCENDANTS=$(pgrep -P $AGENT_PID 2>/dev/null)
+      for desc in $DESCENDANTS; do
+        # Recurse one level
+        pgrep -P "$desc" 2>/dev/null
+      done | sort -u | xargs -r kill 2>/dev/null || true
+      kill -TERM "$AGENT_PID" 2>/dev/null || true
+      sleep 2
+      kill -KILL "$AGENT_PID" 2>/dev/null || true
+      # Belt-and-suspenders: nuke any dev servers the agent forgot
+      pkill -f "next dev" 2>/dev/null || true
+      pkill -f "next-server" 2>/dev/null || true
+      pkill -f "turbo run dev" 2>/dev/null || true
+      pkill -f "supabase functions serve" 2>/dev/null || true
+      WORK_DONE=1
+      break
+    fi
+    # Has watchdog timeout fired? (loop will detect agent dead next iteration)
+    if [ $(($(date +%s) - ITER_START)) -gt $MAX_ITER_SECONDS ]; then
+      echo "[$(date '+%H:%M:%S')] ITER $i timeout reached, force-killing" >> "$RUN_LOG"
+      kill -TERM "$AGENT_PID" 2>/dev/null || true
+      sleep 2
+      kill -KILL "$AGENT_PID" 2>/dev/null || true
+      pkill -f "next dev" 2>/dev/null || true
+      pkill -f "next-server" 2>/dev/null || true
+      pkill -f "turbo run dev" 2>/dev/null || true
+      WORK_DONE=2  # signals timeout, not work done
+      break
+    fi
+  done
+
+  # Capture the agent's output (whatever it wrote before being killed)
+  OUTPUT=$(cat "$CLAUDE_OUT" 2>/dev/null || echo "")
+  rm -f "$CLAUDE_OUT" 2>/dev/null
+  # Mirror to stderr so the user still sees it in the live terminal
+  echo "$OUTPUT" >&2
+
+  CHILD_EXIT=$WORK_DONE
 
   # Cancel watchdog if claude returned before the timeout
   kill $WATCHDOG_PID 2>/dev/null || true
