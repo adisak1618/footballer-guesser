@@ -1200,20 +1200,23 @@
     },
     {
       "id": "US-074",
-      "title": "Phase 5c GATE — /qa exhaustive against insider preview",
+      "title": "Phase 5c GATE — /qa exhaustive against local Insider dev server",
       "description": "Edge cases all green; Headball still untouched.",
       "acceptanceCriteria": [
-        "All 8 edge-case e2e specs pass",
-        "All 3 happy-path e2e still pass (from 5b)",
-        "All Headball regression tests pass",
-        "Vercel insider preview green",
-        "Run /qa exhaustive against insider preview (all 4 tiers — critical, high, medium, cosmetic)",
+        "All 8 edge-case e2e specs pass (cd apps/insider && bunx playwright test)",
+        "All 3 happy-path e2e from 5b still pass",
+        "All Headball regression tests pass (cd apps/headball && bunx playwright test)",
+        "All Hub regression tests pass if any (cd apps/hub && bunx playwright test 2>/dev/null || true)",
+        "Start dev servers locally: bun run dev:all (hub:3001, headball:3000, insider:3002)",
+        "Run /qa exhaustive against http://localhost:3002 (Insider) — all 4 tiers (critical/high/medium/cosmetic) pass",
+        "Save QA findings summary to .ralph/qa-phase-5c.txt",
+        "MANDATORY: pkill dev servers before ending response (per CLAUDE.md cleanup rule)",
         "Push git tag phase-5c-done",
         "Typecheck passes"
       ],
       "priority": 74,
       "passes": false,
-      "notes": "GATE story — exhaustive QA mode."
+      "notes": "GATE story — localhost-only /qa per US-005 deferral. Vercel was deferred; the GATE runs against local dev servers instead. Same 4-tier coverage, same blocker semantics: regressions block US-075."
     },
     {
       "id": "US-075",
@@ -1340,16 +1343,19 @@
     },
     {
       "id": "US-082",
-      "title": "Phase 5d FINAL GATE — /qa exhaustive + /design-review live audit",
+      "title": "Phase 5d FINAL GATE — /qa exhaustive + /design-review (local Insider dev server)",
       "description": "All sub-phases complete, design polish applied, full quality gate.",
       "acceptanceCriteria": [
         "All Insider e2e specs pass (3 happy + 8 edge = 11 from T-1.B)",
         "All Headball regression tests pass",
-        "All Hub e2e tests pass",
+        "All Hub e2e tests pass (if any e2e specs exist for hub)",
         "Visual review: every Insider screen matches Stadium Energy aesthetic per docs/DESIGN.md",
-        "All 3 Vercel deploys green (hub + headball + insider)",
-        "Run /qa exhaustive against Insider preview URL — all 4 tiers (critical/high/medium/cosmetic) pass",
-        "Run /design-review (live visual audit) for final Stadium Energy compliance check",
+        "Local builds green: bun run build:all (turbo run build across all apps)",
+        "Start dev servers: bun run dev:all (hub:3001, headball:3000, insider:3002)",
+        "Run /qa exhaustive against http://localhost:3002 (Insider) — all 4 tiers (critical/high/medium/cosmetic) pass",
+        "Run /design-review (live visual audit) against http://localhost:3002 for final Stadium Energy compliance check",
+        "Save findings summary to .ralph/qa-phase-5d.txt",
+        "MANDATORY: pkill dev servers before ending response",
         "Push git tag phase-5d-done",
         "Push git tag phase-5-done (umbrella)",
         "Typecheck passes",
@@ -1357,7 +1363,7 @@
       ],
       "priority": 82,
       "passes": false,
-      "notes": "FINAL GATE — last story before /review and PR merge."
+      "notes": "FINAL GATE — last story before /review and PR merge. localhost-only per US-005 deferral; Vercel preview setup is deferred to post-merge as a v2 milestone. /design-review runs against the local dev server."
     },
     {
       "id": "US-083",
