@@ -1601,3 +1601,31 @@ Phase 5c.3 — Test-first: Mid-round reconnect during asking phase.
   - **Story-focused regression tests vs. broad migration tests (per US-070 vs. existing migration-0024-master-respond.test.ts):** the migration-0024 test (US-045) was written when the RPC first landed and exercises ALL its rejection branches (insider+player → PGAME15, preparing/guessed → PGAME16, expired → PGAME02, happy path). Phase 5c regression-coverage stories like US-070 add a SECOND story-focused test that targets ONE specific contract from ONE specific actor's POV (here: Common → PGAME15). Pattern: name the file `us-NNN-<short-contract>.test.ts`, single `describe("US-NNN — <story title>")`, ideally a single `it()` with both the negative assertion AND a positive control. The control prevents false-greens caused by fixture or schema drift — if the RPC is broken end-to-end (e.g., always rejects, or always accepts), exactly one of the two assertions in the same test fails, which is more diagnostic than a one-sided assertion. Reusable for any future Phase 5c.x integration-test story (US-5c.6 anon SELECT secret, US-5c.7 expire_round race, etc.).
   - **In-test contract-positive-control pattern (per US-070):** to harden a "X is rejected" assertion against false greens, end the same `it()` block with the positive control — same RPC, same fixture, same arguments EXCEPT the one piece that flips the contract (here: caller's player_id flips from a Common to the Master). If both assertions hold, the contract is bound to the variable under test, not to incidental fixture state. Cheaper than two separate it() blocks (no second fixture build) and stronger than a one-sided assertion. Caveat: the positive control mutates the fixture (writes a response row), so any further assertions in the same test must account for that. For US-070 the order is: assert no rows after Common call → assert one row after Master call.
 ---
+
+## 2026-05-09T10:42Z — US-071
+- Phase 5c.6 — Anon SELECT secret_value column → permission denied (column-level GRANT verified, A1.C).
+- Files changed: apps/headball/lib/__tests__/insider-secret-rls.test.ts (new)
+- Test setup: service-role inserts a `rooms` row (code TST071, game_type insider) and a
+  `game_insider_round` row referencing the seeded `football-premier-league` content_pack.
+  Test asserts (a) anon `select secret_value` → SQLSTATE 42501, (b) anon `select *` →
+  42501 (`*` expands to include the ungranted column), (c) anon explicit non-secret
+  select succeeds with `secret_value` absent from the row.
+- Verification: `bunx vitest run lib/__tests__/insider-secret-rls.test.ts` → 3/3 passed.
+  `bunx tsc --noEmit` → clean.
+- **Learnings:**
+  - **Vitest pattern for column-level RLS verification:** when a migration uses `revoke
+    select ... from anon` + targeted `grant select (col1, col2, ...) to anon`, supabase-js
+    surfaces the underlying Postgres SQLSTATE on `error.code` (`'42501'` for
+    insufficient_privilege). Both explicit-column SELECT of a denied column AND `select
+    *` produce the same code (PostgREST translates the column list into an explicit
+    SELECT, but `*` expands to all table columns including the ungranted ones).
+  - **Self-contained RLS test fixtures:** since `rooms.id` cascades via FK to
+    `game_insider_round`, a single `delete from rooms where code = ...` in afterAll
+    cleans up the whole fixture — no need to also delete from game_insider_round /
+    game_insider_roles. Same pattern reusable for any future
+    `game_insider_<x>` RLS test.
+  - **Pack slug for fixtures:** `'football-premier-league'` is always seeded via
+    migration 0013, so it's the safe FK target for any test that just needs a valid
+    `pack_slug` (avoids needing to seed a fresh content_packs row like
+    get-random-pack-item.test.ts does).
+---
