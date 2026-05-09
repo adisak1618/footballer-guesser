@@ -12,6 +12,29 @@ The full architectural decision context lives in:
 
 Decision IDs (A1.C, C2.A, D3, T-2.A, etc.) referenced in `.ralph/prd.json` map to those design doc sections. Read the relevant decision before implementing.
 
+## CRITICAL: kill background processes before ending your response
+
+`claude --print` (the mode you're running in) does NOT exit until ALL Bash subprocesses you started have terminated. If you start a dev server, a watcher, or any long-running process during this iteration, you MUST kill it before ending your response. Otherwise ralph.sh will hang indefinitely waiting for your process to return, and the loop never advances to the next story.
+
+**The most common offender: dev servers.** If you ran ANY of these during this iteration:
+- `bun run dev`
+- `bun run dev:all`
+- `bunx next dev`
+- `turbo run dev`
+- `supabase functions serve`
+
+You MUST kill them at the very end before returning. Run this as your last Bash call:
+
+```bash
+pkill -f "next dev" 2>/dev/null; pkill -f "next-server" 2>/dev/null; pkill -f "turbo run dev" 2>/dev/null; pkill -f "supabase functions serve" 2>/dev/null; true
+```
+
+(The trailing `; true` ensures non-zero exit codes from pkill don't make the command "fail" if no processes match.)
+
+**Do NOT kill** `bunx supabase start` (Docker containers — those are managed by `supabase stop`) or your terminal's parent shell.
+
+This rule is non-negotiable. If you skip it, ralph.sh stops on this iteration forever and you've broken the loop for the rest of the run.
+
 ## Your Task
 
 1. Read `.ralph/prd.json` to find the highest-priority user story where `passes: false`
@@ -25,6 +48,7 @@ Decision IDs (A1.C, C2.A, D3, T-2.A, etc.) referenced in `.ralph/prd.json` map t
 9. Update `.ralph/prd.json` to set `passes: true` for completed story
 10. Append to `.ralph/progress.txt`
 11. If story has "Push git tag phase-N-done" in criteria, push the tag
+12. **MANDATORY FINAL STEP:** run the pkill cleanup above. Even if you didn't think you started a dev server. Belt and suspenders.
 
 ## TDD Discipline (per superpowers:test-driven-development)
 

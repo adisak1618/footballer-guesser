@@ -92,15 +92,46 @@ echo "Starting Ralph - Tool: $TOOL - Max iterations: $MAX_ITERATIONS"
 RUN_LOG="$SCRIPT_DIR/run.log"
 echo "[$(date '+%Y-%m-%d %H:%M:%S')] LAUNCH max=$MAX_ITERATIONS tool=$TOOL pending=$(jq '[.userStories[] | select(.passes == false)] | length' "$PRD_FILE" 2>/dev/null || echo ?)" >> "$RUN_LOG"
 
+# Per-iteration hard timeout. claude --print won't return while any background
+# Bash subprocess (like a stray `next dev`) is alive. If the agent forgets the
+# cleanup step in CLAUDE.md, we cap the iteration at MAX_ITER_SECONDS and
+# force-kill leftovers so the loop can advance.
+MAX_ITER_SECONDS=${RALPH_ITER_TIMEOUT:-3600}  # default 1 hour per story
+
+# Pre-iteration cleanup: kill any leftover dev servers from a previous
+# crashed/stuck iteration so this iteration starts clean.
+preiter_cleanup() {
+  pkill -f "next dev" 2>/dev/null || true
+  pkill -f "next-server" 2>/dev/null || true
+  pkill -f "turbo run dev" 2>/dev/null || true
+  pkill -f "supabase functions serve" 2>/dev/null || true
+  # Don't kill: bunx supabase start (Docker), git, jq, the user's own shell
+  return 0
+}
+
 for i in $(seq 1 $MAX_ITERATIONS); do
   echo ""
   echo "==============================================================="
   echo "  Ralph Iteration $i of $MAX_ITERATIONS ($TOOL)"
   echo "==============================================================="
+  preiter_cleanup
   ITER_PENDING_BEFORE=$(jq '[.userStories[] | select(.passes == false)] | length' "$PRD_FILE" 2>/dev/null || echo ?)
   ITER_NEXT_BEFORE=$(jq -r '.userStories | map(select(.passes==false)) | .[0].id' "$PRD_FILE" 2>/dev/null || echo ?)
-  echo "[$(date '+%H:%M:%S')] ITER $i START — pending=$ITER_PENDING_BEFORE next=$ITER_NEXT_BEFORE" >> "$RUN_LOG"
+  echo "[$(date '+%H:%M:%S')] ITER $i START — pending=$ITER_PENDING_BEFORE next=$ITER_NEXT_BEFORE timeout=${MAX_ITER_SECONDS}s" >> "$RUN_LOG"
   ITER_START=$(date +%s)
+
+  # Spawn a watchdog: after MAX_ITER_SECONDS, kill any stray dev servers
+  # so claude --print can return cleanly. The watchdog itself exits when
+  # ralph.sh exits (it shares the same process group).
+  (
+    sleep $MAX_ITER_SECONDS
+    echo "[$(date '+%H:%M:%S')] WATCHDOG firing for ITER $i — killing dev servers" >> "$RUN_LOG"
+    pkill -f "next dev" 2>/dev/null || true
+    pkill -f "next-server" 2>/dev/null || true
+    pkill -f "turbo run dev" 2>/dev/null || true
+    pkill -f "supabase functions serve" 2>/dev/null || true
+  ) &
+  WATCHDOG_PID=$!
 
   # Run the selected tool with the ralph prompt
   if [[ "$TOOL" == "amp" ]]; then
@@ -110,9 +141,18 @@ for i in $(seq 1 $MAX_ITERATIONS); do
     OUTPUT=$(claude --dangerously-skip-permissions --print < "$SCRIPT_DIR/CLAUDE.md" 2>&1 | tee /dev/stderr) || true
   fi
   CHILD_EXIT=$?
+
+  # Cancel watchdog if claude returned before the timeout
+  kill $WATCHDOG_PID 2>/dev/null || true
+  wait $WATCHDOG_PID 2>/dev/null || true
+
   ITER_DUR=$(( $(date +%s) - ITER_START ))
   ITER_PENDING_AFTER=$(jq '[.userStories[] | select(.passes == false)] | length' "$PRD_FILE" 2>/dev/null || echo ?)
   echo "[$(date '+%H:%M:%S')] ITER $i CHILD_EXIT=$CHILD_EXIT dur=${ITER_DUR}s pending_after=$ITER_PENDING_AFTER" >> "$RUN_LOG"
+
+  # Belt-and-suspenders: if the agent forgot the cleanup step in CLAUDE.md,
+  # this catches stray dev servers so they don't carry into the next iteration.
+  preiter_cleanup
 
   # Check for completion signal — VERIFIED variant.
   # Upstream ralph.sh blindly greps for the sentinel substring, which
