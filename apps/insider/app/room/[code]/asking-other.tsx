@@ -181,8 +181,14 @@ export function AskingOther({
         </p>
       </section>
 
+      {/* US-080 / Phase 5d.6 — aria-live="polite" so screen readers announce
+       * new Realtime responses without stealing focus, and aria-label so the
+       * landmark has a name independent of the visible "ASK OUT LOUD" copy
+       * above it. */}
       <ul
         data-testid="asking-other-feed"
+        aria-live="polite"
+        aria-label="Master responses"
         className="flex flex-1 flex-col gap-2 overflow-y-auto rounded-xl border border-hairline bg-surface-elevated px-3 py-3"
       >
         {responses.length === 0 ? (

@@ -106,4 +106,22 @@
   html {
     @apply font-sans;
   }
+
+  /* US-080 / Phase 5d.6 — Global focus ring per a11y design review Pass 6.
+   * Every focusable element gets a 3px solid goal-red 2px-offset outline so
+   * the ring is visible across every Stadium Energy surface (including over
+   * tag-color player chips and the Insider warning-yellow scanline). Uses
+   * :focus-visible so mouse clicks don't trigger a ring while keyboard nav
+   * does. Outline is used (not box-shadow) so the ring sits OUTSIDE the
+   * element box and never gets clipped by overflow-hidden parents. */
+  button:focus-visible,
+  a:focus-visible,
+  input:focus-visible,
+  textarea:focus-visible,
+  select:focus-visible,
+  [tabindex]:not([tabindex="-1"]):focus-visible,
+  [role="button"]:focus-visible {
+    outline: 3px solid var(--color-goal);
+    outline-offset: 2px;
+  }
 }

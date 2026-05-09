@@ -177,7 +177,14 @@ function InsiderView({
             data-testid="insider-secret-card"
             className="flex min-h-[200px] flex-col items-center justify-center rounded-2xl bg-tag-pink px-6 py-10 text-center"
           >
-            <span className="font-hero text-[clamp(72px,18vw,144px)] uppercase leading-none tracking-[2px] text-on-dark">
+            {/* US-080 / Phase 5d.6 — sr-only screen-reader announcement.
+             * Visual span is aria-hidden so a screen reader doesn't read the
+             * BIG NAME twice; the sr-only span carries the spoken contract. */}
+            <span className="sr-only">Your secret word: {secret}</span>
+            <span
+              aria-hidden="true"
+              className="font-hero text-[clamp(72px,18vw,144px)] uppercase leading-none tracking-[2px] text-on-dark"
+            >
               {secret.toUpperCase()}
             </span>
           </div>
@@ -273,7 +280,11 @@ function MasterView({
             data-testid="master-secret-card"
             className="flex min-h-[200px] flex-col items-center justify-center rounded-2xl bg-tag-pink px-6 py-10 text-center"
           >
-            <span className="font-hero text-[clamp(72px,18vw,144px)] uppercase leading-none tracking-[2px] text-on-dark">
+            <span className="sr-only">Your secret word: {secret}</span>
+            <span
+              aria-hidden="true"
+              className="font-hero text-[clamp(72px,18vw,144px)] uppercase leading-none tracking-[2px] text-on-dark"
+            >
               {secret.toUpperCase()}
             </span>
           </div>
@@ -389,12 +400,17 @@ function CommonView({
           </p>
         </div>
 
-        <p
+        {/* US-080 / Phase 5d.6 — wrap the warning hint in <aside> so the
+         * Common screen exposes the ARIA-landmark trio (main/header/aside).
+         * Insider/Master views use aside for the asking-phase response feed
+         * instead. */}
+        <aside
+          aria-label="Insider warning"
           data-testid="common-warning-hint"
           className="text-center font-body text-[14px] tracking-[0.3px] text-warning"
         >
           ⚠ มีคนวงในซ่อนอยู่ในกลุ่ม
-        </p>
+        </aside>
       </section>
 
       <section className="mt-auto flex flex-col gap-3">

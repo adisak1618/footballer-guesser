@@ -426,7 +426,8 @@ export function Reveal({ roomId, round, mePlayerId, phase }: RevealProps) {
           </ul>
         </section>
 
-        <section className="flex flex-col gap-2">
+        {/* US-080 / Phase 5d.6 — Leaderboard as <aside> for ARIA landmark. */}
+        <aside aria-label="Leaderboard" className="flex flex-col gap-2">
           <p className="font-display text-[12px] uppercase tracking-[2px] text-center text-on-dark-soft">
             ── LEADERBOARD ──
           </p>
@@ -446,7 +447,7 @@ export function Reveal({ roomId, round, mePlayerId, phase }: RevealProps) {
               </li>
             ))}
           </ul>
-        </section>
+        </aside>
 
         {advanceError ? (
           <p
@@ -556,7 +557,8 @@ export function Reveal({ roomId, round, mePlayerId, phase }: RevealProps) {
         </ul>
       </section>
 
-      <section className="flex flex-col gap-2">
+      {/* US-080 / Phase 5d.6 — Leaderboard as <aside> for ARIA landmark. */}
+      <aside aria-label="Leaderboard" className="flex flex-col gap-2">
         <p className="font-display text-[12px] uppercase tracking-[2px] text-center text-on-light-soft">
           ── LEADERBOARD ──
         </p>
@@ -576,7 +578,7 @@ export function Reveal({ roomId, round, mePlayerId, phase }: RevealProps) {
             </li>
           ))}
         </ul>
-      </section>
+      </aside>
 
       {advanceError ? (
         <p

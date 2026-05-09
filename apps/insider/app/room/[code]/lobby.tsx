@@ -446,9 +446,12 @@ function LobbyView({
   return (
     <main className="relative mx-auto flex min-h-[100dvh] w-full max-w-[480px] flex-col gap-8 px-6 pt-6 pb-8">
       <header className="flex items-center justify-between">
+        {/* US-080 / Phase 5d.6 — min-h-11 enforces the 44px touch target on
+         * the back link; flex+items-center vertically centers the small text
+         * inside that hit-box. */}
         <Link
           href="/"
-          className="text-xs font-medium tracking-[0.3px] text-on-dark-muted underline-offset-4 hover:underline"
+          className="inline-flex min-h-11 items-center text-xs font-medium tracking-[0.3px] text-on-dark-muted underline-offset-4 hover:underline"
         >
           ← ออกจากห้อง
         </Link>

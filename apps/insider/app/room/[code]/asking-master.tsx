@@ -255,13 +255,17 @@ export function AskingMaster({
         </p>
       ) : null}
 
-      <section className="flex flex-col gap-2">
+      {/* US-080 / Phase 5d.6 — Response feed lives in <aside> so the asking
+       * phase exposes the ARIA-landmark trio (main/header/aside). The list
+       * itself is aria-live="polite" so screen readers announce new responses
+       * as they land via Realtime. */}
+      <aside aria-label="Master responses" className="flex flex-col gap-2">
         <button
           type="button"
           onClick={() => setFeedExpanded((v) => !v)}
           data-testid="master-feed-accordion-toggle"
           aria-expanded={feedExpanded}
-          className="flex w-full items-center justify-between gap-3 rounded-xl border border-hairline bg-surface px-4 py-3 text-left"
+          className="flex min-h-11 w-full items-center justify-between gap-3 rounded-xl border border-hairline bg-surface px-4 py-3 text-left"
         >
           <span className="font-body text-[13px] uppercase tracking-[0.3px] text-on-dark-soft">
             ตอบล่าสุด
@@ -276,6 +280,7 @@ export function AskingMaster({
         {feedExpanded ? (
           <ul
             data-testid="master-feed-list"
+            aria-live="polite"
             className="flex flex-col gap-1 rounded-xl border border-hairline bg-surface-elevated px-4 py-3 text-sm text-on-dark"
           >
             {responses.length === 0 ? (
@@ -294,7 +299,7 @@ export function AskingMaster({
             )}
           </ul>
         ) : null}
-      </section>
+      </aside>
 
       {guessError ? (
         <p
