@@ -92,14 +92,15 @@ test("rematch preserves lobby settings and advances rounds in game 2", async ({
     await expect(hostPage.locator("#lobby-rounds")).toHaveValue("2")
     await expect(guestPage.locator("#lobby-rounds")).toHaveValue("2")
 
-    // Category select reflects the locked-after-game-1 value.
-    // Default is 'worldwide-stars' (per migration 0012); host did not change
-    // it before starting game 1, so that's what gets locked in.
+    // Category select reflects the previously played value (default
+    // 'worldwide-stars' per migration 0012; host did not change it before
+    // game 1).
     await expect(hostPage.locator("#lobby-category")).toHaveValue(
       "worldwide-stars",
     )
-    // Once any round has been played, category select is disabled (locked).
-    await expect(hostPage.locator("#lobby-category")).toBeDisabled()
+    // Issue #14: after rematch, the category selector must be enabled again
+    // so players can pick a different category for the next game.
+    await expect(hostPage.locator("#lobby-category")).toBeEnabled()
 
     // Bug #2: Start game 2 and verify round 1 → round 2 advance.
     await startGameAsHost(hostPage)
@@ -173,7 +174,18 @@ test("rematch after foul-ended round persists settings and advances rounds", asy
     await expect(hostPage.locator("#lobby-rounds")).toHaveValue("1", {
       timeout: 15_000,
     })
-    await expect(hostPage.locator("#lobby-category")).toBeDisabled()
+    // Issue #14: category selector must be interactive on the post-rematch
+    // lobby so the host can pick a different category for game 2.
+    await expect(hostPage.locator("#lobby-category")).toBeEnabled()
+    await hostPage.locator("#lobby-category").selectOption("premier-league")
+    await expect(hostPage.locator("#lobby-category")).toHaveValue(
+      "premier-league",
+    )
+    await hostPage.getByTestId("lobby-settings-save").click()
+    await expect(guestPage.locator("#lobby-category")).toHaveValue(
+      "premier-league",
+      { timeout: 10_000 },
+    )
 
     // Game 2 starts and round 1 reaches NameCard for both players (Bug #2
     // would have stalled this on the post-rematch refetch race).
