@@ -44,7 +44,7 @@ create table round_state (
 );
 
 -- Atomic position counter per round
-create table round_positions (
+create table round_positions ( -- no-realtime
   room_id uuid references rooms(id) on delete cascade,
   round_number int not null,
   next_position int default 1,
@@ -64,7 +64,7 @@ create table round_events (
 );
 
 -- Football players (seeded in 0002_seed_players.sql)
-create table football_players (
+create table football_players ( -- no-realtime
   id uuid primary key default gen_random_uuid(),
   name text not null,
   category text not null,

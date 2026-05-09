@@ -1,0 +1,73 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`ResponseButton > error variant matches snapshot 1`] = `
+<button
+  class="flex min-h-[96px] flex-1 flex-col items-center justify-center gap-1 rounded-2xl px-6 text-on-dark transition-transform active:scale-[0.99] disabled:opacity-60 bg-error"
+  data-testid="master-respond-no"
+  type="button"
+>
+  <span
+    class="font-hero text-[40px] leading-none"
+  >
+    ✗
+  </span>
+  <span
+    class="font-display text-[28px] uppercase leading-none tracking-[1px]"
+  >
+    ไม่ใช่
+  </span>
+  <span
+    class="font-body text-[12px] uppercase tracking-[1px] opacity-80"
+  >
+    NO
+  </span>
+</button>
+`;
+
+exports[`ResponseButton > success variant matches snapshot 1`] = `
+<button
+  class="flex min-h-[96px] flex-1 flex-col items-center justify-center gap-1 rounded-2xl px-6 text-on-dark transition-transform active:scale-[0.99] disabled:opacity-60 bg-success"
+  data-testid="master-respond-yes"
+  type="button"
+>
+  <span
+    class="font-hero text-[40px] leading-none"
+  >
+    ✓
+  </span>
+  <span
+    class="font-display text-[28px] uppercase leading-none tracking-[1px]"
+  >
+    ใช่
+  </span>
+  <span
+    class="font-body text-[12px] uppercase tracking-[1px] opacity-80"
+  >
+    YES
+  </span>
+</button>
+`;
+
+exports[`ResponseButton > warning variant matches snapshot 1`] = `
+<button
+  class="flex min-h-[96px] flex-1 flex-col items-center justify-center gap-1 rounded-2xl px-6 text-on-dark transition-transform active:scale-[0.99] disabled:opacity-60 bg-warning"
+  data-testid="master-respond-unsure"
+  type="button"
+>
+  <span
+    class="font-hero text-[40px] leading-none"
+  >
+    ?
+  </span>
+  <span
+    class="font-display text-[28px] uppercase leading-none tracking-[1px]"
+  >
+    ไม่แน่ใจ
+  </span>
+  <span
+    class="font-body text-[12px] uppercase tracking-[1px] opacity-80"
+  >
+    UNSURE
+  </span>
+</button>
+`;

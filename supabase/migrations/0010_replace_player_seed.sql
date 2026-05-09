@@ -13,7 +13,7 @@ drop table if exists football_players cascade;
 -- ---------------------------------------------------------------------------
 -- Rich football player profile keyed by Wikidata QID (e.g. 'Q10520').
 -- ---------------------------------------------------------------------------
-create table football_players (
+create table football_players ( -- no-realtime
   id              text primary key,
   name            text not null,
   name_th         text,
@@ -31,7 +31,7 @@ create index football_players_nationalities_idx on football_players using gin (n
 -- ---------------------------------------------------------------------------
 -- Career club membership. One row per (player, club) pair.
 -- ---------------------------------------------------------------------------
-create table player_clubs (
+create table player_clubs ( -- no-realtime
   player_id text references football_players(id) on delete cascade,
   club_name text not null,
   primary key (player_id, club_name)
@@ -43,14 +43,14 @@ create index player_clubs_club_name_idx on player_clubs (club_name);
 -- The query DSL is stored as jsonb for future reference / admin tooling;
 -- the authoritative resolved set lives in category_players.
 -- ---------------------------------------------------------------------------
-create table categories (
+create table categories ( -- no-realtime
   slug     text primary key,
   label_en text not null,
   label_th text not null,
   query    jsonb not null
 );
 
-create table category_players (
+create table category_players ( -- no-realtime
   category_slug text references categories(slug) on delete cascade,
   player_id     text references football_players(id) on delete cascade,
   primary key (category_slug, player_id)

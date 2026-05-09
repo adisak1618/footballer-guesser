@@ -2,6 +2,7 @@
 
 # dependencies
 /node_modules
+**/node_modules
 /.pnp
 .pnp.*
 .yarn/*
@@ -16,6 +17,8 @@
 # next.js
 /.next/
 /out/
+apps/*/.next/
+apps/*/out/
 
 # production
 /build
@@ -32,6 +35,7 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.local.example
 
 # vercel
 .vercel
@@ -39,6 +43,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Turborepo
+.turbo/
 
 # Local "Save As" copies of design preview (use docs/mood-board.html instead)
 Headball — Design Preview.html
@@ -59,9 +66,16 @@ supabase/.branches/
 # Playwright
 /playwright-report/
 /test-results/
+**/playwright-report/
+**/test-results/
 
 # Ralph runtime scratch
 scripts/ralph/.last-branch
+apps/*/scripts/ralph/.last-branch
+.ralph/.last-branch
+
+# Git worktree scratch dirs (used by parallel agent sessions)
+.worktrees/
 
 # Wikidata raw fetches (regeneratable via `bun run seed:fetch`)
 /data/raw/
@@ -71,3 +85,4 @@ scripts/ralph/.last-branch
 
 # Supabase Studio scratch — auto-generated "Untitled query N.sql" snippets
 /supabase/snippets/
+.ralph/run.log

@@ -1,0 +1,101 @@
+/**
+ * Stadium Energy design tokens — canonical reference (per docs/DESIGN.md).
+ *
+ * This file documents the cross-game design tokens used by every app in the
+ * social-hub workspace. The aesthetic identity is Stadium Floodlight + Trading
+ * Card: dark navy backgrounds, jersey-bright player tag colors, Bebas Neue at
+ * 120-160px for the BIG NAME card.
+ *
+ * Today these tokens are also inlined into each app's globals.css inside a
+ * Tailwind v4 `@theme inline { ... }` block so Tailwind picks them up at build
+ * time. Treat THIS file as the authoritative documentation source. When a token
+ * changes here, mirror it into every app's globals.css until Tailwind v4
+ * supports importing `@theme` blocks across packages cleanly.
+ *
+ * Usage from CSS:
+ *   color: var(--color-goal);
+ *   font-family: var(--font-hero);
+ *
+ * Usage from Tailwind utilities (after `@theme inline` in globals.css picks
+ * these up):
+ *   class="bg-goal text-on-dark font-hero"
+ */
+
+:root {
+  /* ── Surfaces ─────────────────────────────────────────────────────── */
+  --color-ink: #0a0e1a;
+  --color-surface: #131826;
+  --color-surface-elevated: #1c2236;
+  --color-hairline: #2a3146;
+  --color-hairline-soft: #1a2030;
+  --color-canvas: #fafbfc;
+  --color-surface-soft: #f3f4f6;
+  --color-surface-card: #e9ebef;
+
+  /* ── Text ─────────────────────────────────────────────────────────── */
+  --color-on-dark: #fafbfc;
+  --color-on-dark-soft: #9ca3af;
+  --color-on-dark-muted: #6b7280;
+  --color-on-light: #0a0e1a;
+  --color-on-light-soft: #374151;
+  --color-on-light-muted: #6b7280;
+
+  /* ── Primary action (goal red) ────────────────────────────────────── */
+  --color-goal: #e63946;
+  --color-goal-active: #c1121f;
+  --color-goal-disabled: #7a1f26;
+
+  /* ── Player tags (jersey palette) ─────────────────────────────────── */
+  --color-tag-red: #e63946;
+  --color-tag-blue: #1d4ed8;
+  --color-tag-yellow: #fbbf24;
+  --color-tag-green: #16a34a;
+  --color-tag-purple: #a855f7;
+  --color-tag-orange: #f97316;
+  --color-tag-pink: #ec4899;
+  --color-tag-cyan: #06b6d4;
+
+  /* ── Semantic ─────────────────────────────────────────────────────── */
+  --color-success: #16a34a;
+  --color-warning: #fbbf24;
+  --color-error: #e63946;
+  --color-info: #1d4ed8;
+
+  /* ── Typography ───────────────────────────────────────────────────── */
+  /* Apps map these to Next.js font CSS variables (see app/layout.tsx). */
+  --font-hero: var(--font-bebas);          /* BIG NAME card 120-160px */
+  --font-display: var(--font-anton);       /* Section headings */
+  --font-body: var(--font-plex-thai);      /* Thai body copy */
+
+  /* ── Spacing scale ────────────────────────────────────────────────── */
+  /* Tailwind defaults are sufficient. Stadium-specific layout uses:
+   *   - `p-4` standard card padding
+   *   - `gap-2` chip groups
+   *   - `gap-4` between sections
+   * No custom spacing tokens defined. */
+
+  /* ── Motion ───────────────────────────────────────────────────────── */
+  --animate-hb-shake: hb-shake 400ms ease-in-out;
+  --animate-hb-flash: hb-flash 600ms ease-out forwards;
+  --animate-hb-pop: hb-pop 600ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes hb-shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-8px); }
+  40% { transform: translateX(8px); }
+  60% { transform: translateX(-6px); }
+  80% { transform: translateX(6px); }
+}
+
+@keyframes hb-flash {
+  0% { opacity: 0; }
+  20% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+@keyframes hb-pop {
+  0% { transform: scale(0.3); opacity: 0; }
+  60% { transform: scale(1.15); }
+  100% { transform: scale(1); opacity: 1; }
+}

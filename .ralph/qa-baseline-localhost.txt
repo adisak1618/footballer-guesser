@@ -1,0 +1,21 @@
+# /qa baseline — DEFERRED to Phase 4 (US-037)
+
+Phase 0 GATE was modified at the user's request to skip /qa-against-Vercel-preview because
+Vercel project setup (US-005) was deferred. Local-only dev for Phases 0-3.
+
+When Vercel is set up at Phase 4 (US-037), re-establish baseline by running:
+  /qa standard against headball-preview.vercel.app
+and saving the resulting health score in this file.
+
+Phase 0 verification was instead:
+  - bunx tsc --noEmit                     ✓ clean
+  - bun run lint                          ✓ clean
+  - bunx vitest run                       ✓ 57/57 pass
+  - bunx playwright test (after supabase) ✓ 14/14 pass
+  - apps/hub on :3001                     ✓ HTTP 200
+  - apps/insider on :3002                 ✓ HTTP 200
+  - root Headball on :3000                ✓ HTTP 200 via bun run dev
+
+Baseline date: 2026-05-08
+Branch: feat/multigame-platform
+HEAD at gate: cf826ec (chore: gitignore .next in monorepo apps)

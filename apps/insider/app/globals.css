@@ -1,0 +1,127 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+/* Discover utility usage in workspace ui package (Tailwind v4 doesn't
+ * auto-scan workspace symlinks). Stadium Energy tokens stay inlined below
+ * in @theme inline; see packages/ui/src/tokens.css for canonical reference. */
+@source "../../../packages/ui/src";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-geist-mono);
+  --font-heading: var(--font-sans);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+
+  /* Stadium Energy — surfaces */
+  --color-ink: #0a0e1a;
+  --color-surface: #131826;
+  --color-surface-elevated: #1c2236;
+  --color-hairline: #2a3146;
+  --color-hairline-soft: #1a2030;
+  --color-canvas: #fafbfc;
+  --color-surface-soft: #f3f4f6;
+  --color-surface-card: #e9ebef;
+
+  /* Stadium Energy — text */
+  --color-on-dark: #fafbfc;
+  --color-on-dark-soft: #9ca3af;
+  --color-on-dark-muted: #6b7280;
+  --color-on-light: #0a0e1a;
+  --color-on-light-soft: #374151;
+  --color-on-light-muted: #6b7280;
+
+  /* Stadium Energy — primary action */
+  --color-goal: #e63946;
+  --color-goal-active: #c1121f;
+  --color-goal-disabled: #7a1f26;
+
+  /* Stadium Energy — player tags */
+  --color-tag-red: #e63946;
+  --color-tag-blue: #1d4ed8;
+  --color-tag-yellow: #fbbf24;
+  --color-tag-green: #16a34a;
+  --color-tag-purple: #a855f7;
+  --color-tag-orange: #f97316;
+  --color-tag-pink: #ec4899;
+  --color-tag-cyan: #06b6d4;
+
+  /* Stadium Energy — semantic */
+  --color-success: #16a34a;
+  --color-warning: #fbbf24;
+  --color-error: #e63946;
+  --color-info: #1d4ed8;
+
+  /* Stadium Energy — fonts */
+  --font-hero: var(--font-bebas);
+  --font-display: var(--font-anton);
+  --font-body: var(--font-plex-thai);
+}
+
+:root {
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --primary: oklch(0.205 0 0);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: oklch(0.205 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --accent: oklch(0.97 0 0);
+  --accent-foreground: oklch(0.205 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.922 0 0);
+  --input: oklch(0.922 0 0);
+  --ring: oklch(0.708 0 0);
+  --radius: 0.625rem;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-ink text-on-dark;
+  }
+  html {
+    @apply font-sans;
+  }
+
+  /* US-080 / Phase 5d.6 — Global focus ring per a11y design review Pass 6.
+   * Every focusable element gets a 3px solid goal-red 2px-offset outline so
+   * the ring is visible across every Stadium Energy surface (including over
+   * tag-color player chips and the Insider warning-yellow scanline). Uses
+   * :focus-visible so mouse clicks don't trigger a ring while keyboard nav
+   * does. Outline is used (not box-shadow) so the ring sits OUTSIDE the
+   * element box and never gets clipped by overflow-hidden parents. */
+  button:focus-visible,
+  a:focus-visible,
+  input:focus-visible,
+  textarea:focus-visible,
+  select:focus-visible,
+  [tabindex]:not([tabindex="-1"]):focus-visible,
+  [role="button"]:focus-visible {
+    outline: 3px solid var(--color-goal);
+    outline-offset: 2px;
+  }
+}

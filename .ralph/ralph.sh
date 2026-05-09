@@ -1,0 +1,285 @@
+#!/bin/bash
+# Ralph Wiggum - Long-running AI agent loop
+# Usage: ./ralph.sh [--tool amp|claude] [max_iterations]
+
+# NOTE: removed `set -e` because the upstream script's `|| true` after the
+# claude pipeline does NOT actually catch all error paths under `set -e`
+# (subtle interaction between subshell-pipe-exit-code and assignment context).
+# We handle errors explicitly per command instead. This was the root cause of
+# "stuck on iteration 1" — the loop body's `echo "$OUTPUT" | grep -q ...` returns
+# non-zero when grep doesn't match, and under `set -e` that propagated through
+# the pipe-substitution into a script-level error.
+
+# Parse arguments
+TOOL="amp"  # Default to amp for backwards compatibility
+MAX_ITERATIONS=10
+
+while [[ $# -gt 0 ]]; do
+  case $1 in
+    --tool)
+      TOOL="$2"
+      shift 2
+      ;;
+    --tool=*)
+      TOOL="${1#*=}"
+      shift
+      ;;
+    *)
+      # Assume it's max_iterations if it's a number
+      if [[ "$1" =~ ^[0-9]+$ ]]; then
+        MAX_ITERATIONS="$1"
+      fi
+      shift
+      ;;
+  esac
+done
+
+# Validate tool choice
+if [[ "$TOOL" != "amp" && "$TOOL" != "claude" ]]; then
+  echo "Error: Invalid tool '$TOOL'. Must be 'amp' or 'claude'."
+  exit 1
+fi
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PRD_FILE="$SCRIPT_DIR/prd.json"
+PROGRESS_FILE="$SCRIPT_DIR/progress.txt"
+ARCHIVE_DIR="$SCRIPT_DIR/archive"
+LAST_BRANCH_FILE="$SCRIPT_DIR/.last-branch"
+
+# Archive previous run if branch changed
+if [ -f "$PRD_FILE" ] && [ -f "$LAST_BRANCH_FILE" ]; then
+  CURRENT_BRANCH=$(jq -r '.branchName // empty' "$PRD_FILE" 2>/dev/null || echo "")
+  LAST_BRANCH=$(cat "$LAST_BRANCH_FILE" 2>/dev/null || echo "")
+  
+  if [ -n "$CURRENT_BRANCH" ] && [ -n "$LAST_BRANCH" ] && [ "$CURRENT_BRANCH" != "$LAST_BRANCH" ]; then
+    # Archive the previous run
+    DATE=$(date +%Y-%m-%d)
+    # Strip "ralph/" prefix from branch name for folder
+    FOLDER_NAME=$(echo "$LAST_BRANCH" | sed 's|^ralph/||')
+    ARCHIVE_FOLDER="$ARCHIVE_DIR/$DATE-$FOLDER_NAME"
+    
+    echo "Archiving previous run: $LAST_BRANCH"
+    mkdir -p "$ARCHIVE_FOLDER"
+    [ -f "$PRD_FILE" ] && cp "$PRD_FILE" "$ARCHIVE_FOLDER/"
+    [ -f "$PROGRESS_FILE" ] && cp "$PROGRESS_FILE" "$ARCHIVE_FOLDER/"
+    echo "   Archived to: $ARCHIVE_FOLDER"
+    
+    # Reset progress file for new run
+    echo "# Ralph Progress Log" > "$PROGRESS_FILE"
+    echo "Started: $(date)" >> "$PROGRESS_FILE"
+    echo "---" >> "$PROGRESS_FILE"
+  fi
+fi
+
+# Track current branch
+if [ -f "$PRD_FILE" ]; then
+  CURRENT_BRANCH=$(jq -r '.branchName // empty' "$PRD_FILE" 2>/dev/null || echo "")
+  if [ -n "$CURRENT_BRANCH" ]; then
+    echo "$CURRENT_BRANCH" > "$LAST_BRANCH_FILE"
+  fi
+fi
+
+# Initialize progress file if it doesn't exist
+if [ ! -f "$PROGRESS_FILE" ]; then
+  echo "# Ralph Progress Log" > "$PROGRESS_FILE"
+  echo "Started: $(date)" >> "$PROGRESS_FILE"
+  echo "---" >> "$PROGRESS_FILE"
+fi
+
+echo "Starting Ralph - Tool: $TOOL - Max iterations: $MAX_ITERATIONS"
+
+# Diagnostic log file — every iteration appends a line so we can audit cadence
+# and spot early exits. View with: tail -f .ralph/run.log
+RUN_LOG="$SCRIPT_DIR/run.log"
+echo "[$(date '+%Y-%m-%d %H:%M:%S')] LAUNCH max=$MAX_ITERATIONS tool=$TOOL pending=$(jq '[.userStories[] | select(.passes == false)] | length' "$PRD_FILE" 2>/dev/null || echo ?) pid=$$" >> "$RUN_LOG"
+
+# Per-iteration hard timeout. claude --print won't return while any background
+# Bash subprocess (like a stray `next dev`) is alive. If the agent forgets the
+# cleanup step in CLAUDE.md, we cap the iteration at MAX_ITER_SECONDS and
+# force-kill leftovers so the loop can advance.
+MAX_ITER_SECONDS=${RALPH_ITER_TIMEOUT:-3600}  # default 1 hour per story
+
+# Track all watchdog PIDs we've spawned so we can clean them on exit.
+# Without this trap, killing ralph.sh externally orphans the watchdogs;
+# they survive and pkill dev servers minutes/hours later — wreaking havoc
+# on subsequent ralph.sh invocations.
+WATCHDOG_PIDS=()
+cleanup_watchdogs() {
+  for pid in "${WATCHDOG_PIDS[@]}"; do
+    kill "$pid" 2>/dev/null || true
+  done
+  echo "[$(date '+%H:%M:%S')] EXIT — cleaned ${#WATCHDOG_PIDS[@]} watchdog(s)" >> "$RUN_LOG" 2>/dev/null || true
+}
+trap cleanup_watchdogs EXIT INT TERM HUP
+
+# Pre-iteration cleanup: kill any leftover dev servers from a previous
+# crashed/stuck iteration so this iteration starts clean.
+preiter_cleanup() {
+  pkill -f "next dev" 2>/dev/null || true
+  pkill -f "next-server" 2>/dev/null || true
+  pkill -f "turbo run dev" 2>/dev/null || true
+  pkill -f "supabase functions serve" 2>/dev/null || true
+  # Don't kill: bunx supabase start (Docker), git, jq, the user's own shell
+  return 0
+}
+
+for i in $(seq 1 $MAX_ITERATIONS); do
+  echo ""
+  echo "==============================================================="
+  echo "  Ralph Iteration $i of $MAX_ITERATIONS ($TOOL)"
+  echo "==============================================================="
+  preiter_cleanup
+  ITER_PENDING_BEFORE=$(jq '[.userStories[] | select(.passes == false)] | length' "$PRD_FILE" 2>/dev/null || echo ?)
+  ITER_NEXT_BEFORE=$(jq -r '.userStories | map(select(.passes==false)) | .[0].id' "$PRD_FILE" 2>/dev/null || echo ?)
+  echo "[$(date '+%H:%M:%S')] ITER $i START — pending=$ITER_PENDING_BEFORE next=$ITER_NEXT_BEFORE timeout=${MAX_ITER_SECONDS}s" >> "$RUN_LOG"
+  ITER_START=$(date +%s)
+
+  # Spawn a watchdog: after MAX_ITER_SECONDS, kill any stray dev servers
+  # so claude --print can return cleanly. The watchdog also self-checks that
+  # its parent (ralph.sh) is still alive — if not, it self-destructs without
+  # firing pkill. This prevents orphan watchdogs from a previous run nuking
+  # dev servers spawned by a subsequent run.
+  RALPH_PID=$$
+  (
+    # Self-destruct check: poll once a minute, exit if parent died
+    end=$(( $(date +%s) + MAX_ITER_SECONDS ))
+    while [ "$(date +%s)" -lt "$end" ]; do
+      if ! kill -0 "$RALPH_PID" 2>/dev/null; then
+        # Parent ralph.sh died — abort silently, don't pkill anything
+        exit 0
+      fi
+      sleep 30
+    done
+    # Re-verify parent is still alive before nuking dev servers
+    if kill -0 "$RALPH_PID" 2>/dev/null; then
+      echo "[$(date '+%H:%M:%S')] WATCHDOG firing for ITER $i (parent $RALPH_PID alive) — killing dev servers" >> "$RUN_LOG"
+      pkill -f "next dev" 2>/dev/null || true
+      pkill -f "next-server" 2>/dev/null || true
+      pkill -f "turbo run dev" 2>/dev/null || true
+      pkill -f "supabase functions serve" 2>/dev/null || true
+    fi
+  ) &
+  WATCHDOG_PID=$!
+  WATCHDOG_PIDS+=("$WATCHDOG_PID")
+
+  # Run the agent in BACKGROUND, capture its output to a temp file. We poll
+  # prd.json for a passes-count increase to detect "agent finished its work"
+  # and force-kill the agent + descendants once detected. This avoids the
+  # claude --print "won't exit while children alive" hang when the agent
+  # leaks dev servers.
+  CLAUDE_OUT=$(mktemp /tmp/ralph-iter-${i}-XXXXXX.out)
+  PASSED_BEFORE=$(jq '[.userStories[] | select(.passes == true)] | length' "$PRD_FILE" 2>/dev/null || echo 0)
+  if [[ "$TOOL" == "amp" ]]; then
+    cat "$SCRIPT_DIR/prompt.md" | amp --dangerously-allow-all > "$CLAUDE_OUT" 2>&1 &
+  else
+    claude --dangerously-skip-permissions --print < "$SCRIPT_DIR/CLAUDE.md" > "$CLAUDE_OUT" 2>&1 &
+  fi
+  AGENT_PID=$!
+  echo "[$(date '+%H:%M:%S')] ITER $i AGENT_PID=$AGENT_PID polling for passes-flip" >> "$RUN_LOG"
+
+  # Poll loop: every 10s, check three conditions
+  #   (a) passes count increased → agent finished work, force-kill tree
+  #   (b) agent already exited on its own → done
+  #   (c) timeout → watchdog fires (separate path)
+  POLL_INTERVAL=10
+  WORK_DONE=0
+  while true; do
+    sleep $POLL_INTERVAL
+    # Has agent process exited on its own?
+    if ! kill -0 "$AGENT_PID" 2>/dev/null; then
+      WORK_DONE=1
+      echo "[$(date '+%H:%M:%S')] ITER $i agent exited naturally" >> "$RUN_LOG"
+      break
+    fi
+    # Has passes count gone up? (agent committed + flipped passes:true)
+    PASSED_NOW=$(jq '[.userStories[] | select(.passes == true)] | length' "$PRD_FILE" 2>/dev/null || echo "$PASSED_BEFORE")
+    if [ "$PASSED_NOW" -gt "$PASSED_BEFORE" ]; then
+      # Give the agent 30s to finalize (write progress.txt entry, etc.)
+      echo "[$(date '+%H:%M:%S')] ITER $i passes=$PASSED_BEFORE→$PASSED_NOW — granting 30s grace" >> "$RUN_LOG"
+      sleep 30
+      # Now force-kill the agent and its entire descendant tree
+      echo "[$(date '+%H:%M:%S')] ITER $i force-killing AGENT_PID=$AGENT_PID + descendants" >> "$RUN_LOG"
+      # Build descendant kill list (BSD pkill on macOS doesn't have -P with recurse, so manual)
+      DESCENDANTS=$(pgrep -P $AGENT_PID 2>/dev/null)
+      for desc in $DESCENDANTS; do
+        # Recurse one level
+        pgrep -P "$desc" 2>/dev/null
+      done | sort -u | xargs -r kill 2>/dev/null || true
+      kill -TERM "$AGENT_PID" 2>/dev/null || true
+      sleep 2
+      kill -KILL "$AGENT_PID" 2>/dev/null || true
+      # Belt-and-suspenders: nuke any dev servers the agent forgot
+      pkill -f "next dev" 2>/dev/null || true
+      pkill -f "next-server" 2>/dev/null || true
+      pkill -f "turbo run dev" 2>/dev/null || true
+      pkill -f "supabase functions serve" 2>/dev/null || true
+      WORK_DONE=1
+      break
+    fi
+    # Has watchdog timeout fired? (loop will detect agent dead next iteration)
+    if [ $(($(date +%s) - ITER_START)) -gt $MAX_ITER_SECONDS ]; then
+      echo "[$(date '+%H:%M:%S')] ITER $i timeout reached, force-killing" >> "$RUN_LOG"
+      kill -TERM "$AGENT_PID" 2>/dev/null || true
+      sleep 2
+      kill -KILL "$AGENT_PID" 2>/dev/null || true
+      pkill -f "next dev" 2>/dev/null || true
+      pkill -f "next-server" 2>/dev/null || true
+      pkill -f "turbo run dev" 2>/dev/null || true
+      WORK_DONE=2  # signals timeout, not work done
+      break
+    fi
+  done
+
+  # Capture the agent's output (whatever it wrote before being killed)
+  OUTPUT=$(cat "$CLAUDE_OUT" 2>/dev/null || echo "")
+  rm -f "$CLAUDE_OUT" 2>/dev/null
+  # Mirror to stderr so the user still sees it in the live terminal
+  echo "$OUTPUT" >&2
+
+  CHILD_EXIT=$WORK_DONE
+
+  # Cancel watchdog if claude returned before the timeout
+  kill $WATCHDOG_PID 2>/dev/null || true
+  wait $WATCHDOG_PID 2>/dev/null || true
+
+  ITER_DUR=$(( $(date +%s) - ITER_START ))
+  ITER_PENDING_AFTER=$(jq '[.userStories[] | select(.passes == false)] | length' "$PRD_FILE" 2>/dev/null || echo ?)
+  echo "[$(date '+%H:%M:%S')] ITER $i CHILD_EXIT=$CHILD_EXIT dur=${ITER_DUR}s pending_after=$ITER_PENDING_AFTER" >> "$RUN_LOG"
+
+  # Belt-and-suspenders: if the agent forgot the cleanup step in CLAUDE.md,
+  # this catches stray dev servers so they don't carry into the next iteration.
+  preiter_cleanup
+
+  # Check for completion signal — VERIFIED variant.
+  # Upstream ralph.sh blindly greps for the sentinel substring, which
+  # false-positives whenever the agent narrates the literal string
+  # "<promise>COMPLETE</promise>" mid-iteration. We additionally verify
+  # that prd.json has zero passes:false stories before honoring.
+  if echo "$OUTPUT" | grep -q "<promise>COMPLETE</promise>"; then
+    PENDING=$(jq '[.userStories[] | select(.passes == false)] | length' "$PRD_FILE" 2>/dev/null || echo 99)
+    if [ "$PENDING" = "0" ]; then
+      echo ""
+      echo "Ralph completed all tasks!"
+      echo "Completed at iteration $i of $MAX_ITERATIONS"
+      echo "[$(date '+%H:%M:%S')] EXIT 0 — all stories pass" >> "$RUN_LOG"
+      exit 0
+    else
+      echo ""
+      echo "WARNING: agent emitted COMPLETE signal but $PENDING stories still have passes:false."
+      echo "Treating as a false-positive and continuing the loop."
+      NEXT=$(jq -r '.userStories | map(select(.passes==false)) | .[0].id' "$PRD_FILE" 2>/dev/null || echo "?")
+      echo "Next pending: $NEXT"
+      echo "[$(date '+%H:%M:%S')] FALSE-POSITIVE COMPLETE signal — continuing (next=$NEXT)" >> "$RUN_LOG"
+    fi
+  fi
+
+  echo "Iteration $i complete. Continuing..."
+  echo "[$(date '+%H:%M:%S')] ITER $i END — about to sleep 2 + loop" >> "$RUN_LOG"
+  sleep 2
+done
+
+echo "[$(date '+%H:%M:%S')] LOOP EXHAUSTED — ran all $MAX_ITERATIONS iterations" >> "$RUN_LOG"
+
+echo ""
+echo "Ralph reached max iterations ($MAX_ITERATIONS) without completing all tasks."
+echo "Check $PROGRESS_FILE for status."
+exit 1

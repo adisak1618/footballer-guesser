@@ -1,0 +1,23 @@
+{
+  "name": "@social-hub/content",
+  "version": "0.0.1",
+  "private": true,
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@social-hub/core": "*"
+  },
+  "peerDependencies": {
+    "@supabase/supabase-js": "^2.105.1"
+  },
+  "devDependencies": {
+    "@supabase/supabase-js": "^2.105.1",
+    "vitest": "^4.1.5"
+  }
+}

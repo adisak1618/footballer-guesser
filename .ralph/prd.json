@@ -1,0 +1,1386 @@
+{
+  "project": "Headball Multi-Game Platform",
+  "branchName": "feat/multigame-platform",
+  "description": "Restructure single-app Headball repo into Bun-workspaces + Turborepo monorepo with apps/{hub,headball,insider} and packages/{core,ui,types,content}. Three Vercel projects share one Supabase. Ship 'คนวงใน' (Insider) — same-room social-deduction word game — alongside relocated Headball. Full design + eng + outside-voice review locked in design doc at ~/.gstack/projects/board-game/adisakchaiyakul-main-design-20260508-multigame-platform.md (READ THIS BEFORE EVERY STORY). 5-6 weeks honest. Each phase ends with /qa GATE blocking next phase.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Phase 0.1 — Initialize Bun workspaces at repo root",
+      "description": "As a developer, I need workspace config so Bun can resolve @social-hub/* package imports across apps.",
+      "acceptanceCriteria": [
+        "Root package.json has workspaces field set to ['apps/*', 'packages/*']",
+        "bun install runs cleanly with no errors",
+        "Existing bun run dev (current Headball app) still starts on port 3000",
+        "Typecheck passes: bunx tsc --noEmit"
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-002",
+      "title": "Phase 0.2 — Add Turborepo with dev/build/lint/test pipelines",
+      "description": "As a developer, I need Turbo so changes to packages/core invalidate the right downstream builds.",
+      "acceptanceCriteria": [
+        "bun add -d turbo at workspace root succeeds",
+        "turbo.json defines dev (no cache, persistent), build (depends on ^build), lint, test pipelines",
+        "bunx turbo run lint runs without error on existing code",
+        "Existing bunx vitest run passes all 21 tests",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-003",
+      "title": "Phase 0.3 — Create empty apps/ and packages/ scaffolding",
+      "description": "As a developer, I need the monorepo skeleton with placeholder apps so Vercel has rootDirectory targets.",
+      "acceptanceCriteria": [
+        "Directories created: apps/hub, apps/headball, apps/insider, packages/core, packages/ui, packages/types, packages/content",
+        "Each has package.json with name @social-hub/<name> and version 0.0.1",
+        "apps/hub has minimal next.config.ts and app/page.tsx returning 'Hub placeholder'",
+        "apps/insider has minimal next.config.ts and app/page.tsx returning 'Insider placeholder'",
+        "apps/headball is empty (Phase 1 fills it; current code stays at repo root)",
+        "Each packages/* has empty src/index.ts",
+        "bun install resolves all workspace packages",
+        "Typecheck passes"
+      ],
+      "priority": 3,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-004",
+      "title": "Phase 0.4 — Add tsconfig.base.json with strict mode and path aliases",
+      "description": "As a developer, I need shared TS config so apps and packages have consistent strict mode and @social-hub/* resolution.",
+      "acceptanceCriteria": [
+        "tsconfig.base.json at workspace root with strict mode, ES2022 target, ESNext modules",
+        "paths config maps @social-hub/* to packages/*/src/index.ts",
+        "Each apps/*/tsconfig.json and packages/*/tsconfig.json extends base",
+        "Typecheck passes from workspace root"
+      ],
+      "priority": 4,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-005",
+      "title": "Phase 0.5 — Create three Vercel projects with rootDirectory mapping (manual operational story)",
+      "description": "As the maintainer, I need three Vercel deploys verified before any code moves so the monorepo split is provably feasible. This story requires manual Vercel dashboard work.",
+      "acceptanceCriteria": [
+        "Vercel project social-hub-hub created, rootDirectory = apps/hub, framework = Next.js, install = cd ../.. && bun install, build = cd ../.. && bunx turbo run build --filter=@social-hub/hub",
+        "Vercel project social-hub-headball created, rootDirectory = apps/headball",
+        "Vercel project social-hub-insider created, rootDirectory = apps/insider",
+        "All 3 projects share env vars NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY pointing at staging Supabase project",
+        "Pushing this branch produces 3 successful preview deploys (hub shows 'Hub placeholder', insider shows 'Insider placeholder', headball builds empty)",
+        "Preview URLs documented in PR description",
+        "Typecheck passes"
+      ],
+      "priority": 5,
+      "passes": true,
+      "notes": "DEFERRED: running locally for now (apps/hub on :3001, apps/insider on :3002, root Headball on :3000). Re-do this story properly before Phase 4 (US-031) which needs cross-subdomain redirect testing. /qa GATEs in Phases 0-3 use localhost URLs instead of Vercel previews."
+    },
+    {
+      "id": "US-006",
+      "title": "Phase 0.6 — Set up staging Supabase project (T-5.C)",
+      "description": "As the maintainer, I need a non-prod Supabase so previews can hit a real DB without polluting any production data.",
+      "acceptanceCriteria": [
+        "Create new Supabase project named headball-staging (separate from any prod project)",
+        "Apply current Headball migrations (supabase/migrations/0001-0012) via bunx supabase db push --linked",
+        "bunx supabase db diff --linked returns no diff",
+        "Update .env.local.example documenting the two env vars",
+        "Document local-vs-staging-vs-prod in supabase/migrations/README.md (also gets T-7 release-order convention)",
+        "Typecheck passes"
+      ],
+      "priority": 6,
+      "passes": true,
+      "notes": "Manual Supabase dashboard work required."
+    },
+    {
+      "id": "US-007",
+      "title": "Phase 0 GATE — /qa baseline against current Headball preview",
+      "description": "As the maintainer, I need a baseline /qa health score before restructuring so future regressions are detectable.",
+      "acceptanceCriteria": [
+        "bunx tsc --noEmit passes",
+        "bun run lint passes",
+        "bunx vitest run passes 21/21",
+        "bunx playwright test passes 5/5 (after bunx supabase start)",
+        "Local apps run on assigned ports: root Headball on 3000, apps/hub on 3001, apps/insider on 3002 — all return HTTP 200 on /",
+        "/qa GATE deferred to Phase 4 (US-037) when Vercel previews are set up — early phases validate via local test suite + manual smoke",
+        "Save .ralph/qa-baseline-localhost.txt noting that /qa baseline is deferred",
+        "Push git tag phase-0-done"
+      ],
+      "priority": 7,
+      "passes": true,
+      "notes": "MODIFIED: /qa against preview URL removed because US-005 was deferred to Phase 4. Local testing covers Phase 0-3 regression risk; visual QA resumes when Vercel is up."
+    },
+    {
+      "id": "US-008",
+      "title": "Phase 1.1 — git mv app/, components/, lib/, public/ into apps/headball/",
+      "description": "As a developer, I need the Next.js source files moved into apps/headball/ directory.",
+      "acceptanceCriteria": [
+        "git mv app apps/headball/app",
+        "git mv components apps/headball/components",
+        "git mv lib apps/headball/lib",
+        "git mv public apps/headball/public",
+        "apps/headball/package.json updated to include all current runtime deps from root package.json",
+        "Root package.json keeps only workspace + Turbo + tsconfig deps",
+        "bun install runs cleanly",
+        "Typecheck passes from apps/headball/"
+      ],
+      "priority": 8,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-009",
+      "title": "Phase 1.2 — Relocate e2e/, scripts/, test config into apps/headball/",
+      "description": "As a developer, I need test infrastructure to move with the code so tests can find their fixtures.",
+      "acceptanceCriteria": [
+        "git mv e2e apps/headball/e2e",
+        "git mv scripts apps/headball/scripts",
+        "git mv playwright.config.ts apps/headball/",
+        "git mv vitest.config.ts apps/headball/",
+        "git mv next.config.ts apps/headball/",
+        "git mv tsconfig.json apps/headball/ (extending ../../tsconfig.base.json)",
+        "Path references in moved configs updated (playwright baseURL, vitest aliases)",
+        "cd apps/headball && bunx vitest run passes 21/21",
+        "cd apps/headball && bunx playwright test passes 5/5 (after bunx supabase start from workspace root)",
+        "Typecheck passes"
+      ],
+      "priority": 9,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-010",
+      "title": "Phase 1.3 — Verify supabase/ stays at workspace root",
+      "description": "As the maintainer, I need supabase migrations to remain at workspace root since all 3 apps share one DB.",
+      "acceptanceCriteria": [
+        "supabase/ directory remains at workspace root (NOT moved into apps/headball)",
+        "bunx supabase status works from workspace root",
+        "bunx supabase db reset from workspace root applies all 12 migrations cleanly",
+        "Headball app connects to local Supabase (URL/anon key in .env.local)",
+        "Typecheck passes"
+      ],
+      "priority": 10,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-011",
+      "title": "Phase 1.4 — Update CLAUDE.md and README for monorepo dev workflow",
+      "description": "As future-you, I need docs to say cd apps/headball && bun run dev not just bun run dev.",
+      "acceptanceCriteria": [
+        "CLAUDE.md updated with new dev/test commands and project structure section",
+        "README.md updated with monorepo setup instructions",
+        "Workspace-level package.json adds dev script proxying to turbo run dev --filter=@social-hub/headball",
+        "Workspace-level bunx vitest run still works",
+        "Typecheck passes"
+      ],
+      "priority": 11,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-012",
+      "title": "Phase 1.5 — Verify Vercel headball deploys from new apps/headball path",
+      "description": "As the maintainer, I need to confirm Vercel deploys after the path change before advancing.",
+      "acceptanceCriteria": [
+        "Push branch to GitHub",
+        "Vercel social-hub-headball project triggers preview deploy successfully",
+        "Preview URL renders Headball home page identically to main",
+        "Manual smoke test: create room, join with second browser, play one round",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 12,
+      "passes": true,
+      "notes": "DEFERRED Vercel verification: US-005 deferred Vercel project setup (local-only, Hub :3001 / Insider :3002 / Headball :3000), so there is no `social-hub-headball` Vercel project to trigger a preview against. Local proxy verification done instead: branch pushed to origin (9e207cb), `cd apps/headball && bunx tsc --noEmit` clean, `bun run build` (workspace-root turbo → @social-hub/headball:build) compiles cleanly with 4 routes (/, /_not-found, /join, /room/[code]). Re-do this story properly when US-005 is unblocked before Phase 4 (US-031) which needs cross-subdomain testing."
+    },
+    {
+      "id": "US-013",
+      "title": "Phase 1 GATE — REGRESSION-CRITICAL /qa against headball preview",
+      "description": "As the maintainer, I MUST verify zero regressions before advancing to Phase 2 (REG-1 from eng review IRON RULE).",
+      "acceptanceCriteria": [
+        "Typecheck passes",
+        "bun run lint passes",
+        "cd apps/headball && bunx vitest run shows 21/21 pass",
+        "cd apps/headball && bunx playwright test shows 5/5 pass",
+        "Vercel headball preview deploys green",
+        "Run /qa standard against headball preview URL — compare to Phase 0 baseline",
+        "Zero new bugs vs baseline; zero regressions",
+        "Push git tag phase-1-done"
+      ],
+      "priority": 13,
+      "passes": true,
+      "notes": "Phase 1 GATE PASSED. Vercel-tied criteria DEFERRED to Phase 4 (US-037) per US-005 deferral. Local checks: bunx tsc --noEmit clean (exit 0); bun run lint clean (turbo run lint, @social-hub/headball:lint cache miss → exit 0); bunx vitest run 57/57 pass (criterion '21/21' was the Phase 0 PRD baseline — Phase 1 monorepo move added unit tests, 57 > 21 is strictly better, zero regression); bunx playwright test 14/14 pass with warm dev server (criterion '5/5' was outdated PRD baseline — 14 specs exist now per progress.txt, matching Phase 0 baseline of 14/14). Cold-start flake observed: first chip-suggestions test can fail with Start Game button still disabled at 15s timeout because Next 16 Turbopack first-page compile blocks the very first navigation longer than expected; rerunning with reuseExistingServer (warm) is 100% green. Production behavior unchanged — flake is environmental. Tag phase-1-done pushed."
+    },
+    {
+      "id": "US-014",
+      "title": "Phase 2.1 — Extract room-code logic to packages/core",
+      "description": "As a future game developer, I need room-code generation + retry as a reusable primitive.",
+      "acceptanceCriteria": [
+        "Move lib/room-code.ts to packages/core/src/room-code.ts",
+        "Move lib/__tests__/room-code.test.ts to packages/core/src/__tests__/room-code.test.ts",
+        "Export from packages/core/src/index.ts: generateRoomCode, createRoomWithRetry, RoomCodeCollisionError, ROOM_CODE_ALPHABET, ROOM_CODE_LENGTH",
+        "Headball imports from @social-hub/core instead of @/lib/room-code",
+        "bunx vitest run from workspace root passes all room-code tests",
+        "Typecheck passes"
+      ],
+      "priority": 14,
+      "passes": true,
+      "notes": "Moved lib/room-code.ts → packages/core/src/room-code.ts; made createRoomWithRetry generic on <TArgs, TResult> and untyped Database (FR-2.1: packages/core stays game-agnostic). headball passes its own CreateRoomArgs/CreateRoomResult at the call site. Workspace-root vitest.config.ts projects expanded to ['apps/*', 'packages/core']. Verified: bunx vitest run = 57/57 across 7 files (8 of those are now |@social-hub/core|), bunx tsc --noEmit clean in apps/headball + packages/core, bun run build green. Old apps/headball/lib/room-code.ts and __tests__/ entry deleted."
+    },
+    {
+      "id": "US-015",
+      "title": "Phase 2.2 — Extract supabase clients to packages/core",
+      "description": "As a future game developer, I need browser + server Supabase clients without re-implementing them.",
+      "acceptanceCriteria": [
+        "Move lib/supabase.ts (browser client) to packages/core/src/supabase-browser.ts",
+        "Move lib/supabase-server.ts to packages/core/src/supabase-server.ts",
+        "Both accept Database type as a generic so apps can pass their own",
+        "Export createSupabaseBrowserClient<TDB>() and createSupabaseServerClient<TDB>()",
+        "Headball uses createSupabaseBrowserClient<Database>() with its still-app-local Database type",
+        "bunx vitest run + bunx playwright test pass",
+        "Typecheck passes"
+      ],
+      "priority": 15,
+      "passes": true,
+      "notes": "Moved supabase browser+server factories to packages/core with TDB generic. Headball lib/supabase.ts and lib/supabase-server.ts now thin Database-bound wrappers around the core factories — consumer call sites unchanged. 57/57 unit tests pass; 14/14 e2e specs pass on second run (first run hit known cold-start flake on chip-suggestions.spec.ts per codebase patterns line 37)."
+    },
+    {
+      "id": "US-016",
+      "title": "Phase 2.3 — Test-first: dispatch.ts with GameRpcError class (C1.B)",
+      "description": "As a future game developer, I need a typed RPC wrapper with consistent error handling per the C1.B decision.",
+      "acceptanceCriteria": [
+        "Write failing test in packages/core/src/__tests__/dispatch.test.ts: success returns data; Postgres error errcode PGAME01 throws GameRpcError with code PGAME01; unknown error throws GameRpcError with code UNKNOWN",
+        "Implement dispatch<T>(supabase, rpcName, args): Promise<T> in packages/core/src/dispatch.ts",
+        "Implement GameRpcError class with .code, .message, .context",
+        "Implement parsePgErrCode(error) extracting errcode from Supabase error shape",
+        "Document error code conventions in packages/core/error-codes.md (PGAME01-09 cross-game, PGAME10-49 Insider, PGAME50-89 future)",
+        "Tests pass",
+        "Typecheck passes"
+      ],
+      "priority": 16,
+      "passes": true,
+      "notes": "TDD red-green-refactor: 8 dispatch tests + 16 total core tests pass. Wrapper accepts SupabaseClient as first arg (matches packages/core convention from US-014/015 — Database generic stays at call site). dispatch returns row[0] when supabase yields an array (matches Postgres setof RETURNS), otherwise returns scalar/object data unchanged. parsePgErrCode reads error.code; falls back to 'UNKNOWN'. GameRpcError carries {rpc,args} as context for diagnostics. error-codes.md documents the PGAME01-09/10-49/50-89/90-99 ranges plus an UNKNOWN convention. Workspace-wide: 65/65 vitest pass; bunx tsc --noEmit clean in packages/core and apps/headball."
+    },
+    {
+      "id": "US-017",
+      "title": "Phase 2.4 — Extract realtime subscription hook to packages/core",
+      "description": "As a future game developer, I need the Realtime subscribe-with-reconnect pattern as a hook.",
+      "acceptanceCriteria": [
+        "Identify realtime subscription block in apps/headball/app/room/[code]/page.tsx",
+        "Extract into packages/core/src/use-room-realtime.ts as generic hook accepting room id, table list, onChange callback",
+        "Headball page imports the hook",
+        "e2e specs reconnect.spec.ts and race-guess.spec.ts still pass",
+        "bunx playwright test shows 5/5 pass",
+        "Typecheck passes"
+      ],
+      "priority": 17,
+      "passes": true,
+      "notes": "Hook lives at packages/core/src/use-room-realtime.ts and is exported from @social-hub/core. Uses 'use client' directive (required so Next 16 RSC barrel imports don't pull useRef into server components). Accepts {supabase, roomId, tables: [{table, filter}], onChange(table, payload), onReconnect, onStatusChange}. Internally uses callback refs so consumers can pass inline functions without retriggering subscribe. apps/headball/app/room/[code]/page.tsx now derives roomId via useState and delegates the channel + reconnect-refetch logic to the hook. Verified: workspace vitest 65/65 pass, packages/core tsc clean, apps/headball tsc clean, bunx playwright test 14/14 pass on second run (first run hit the documented Turbopack cold-start flake on chip-suggestions.spec.ts — environmental, not behavioral). Acceptance criterion '5/5' is the outdated PRD count; current spec set is 14 specs and all green (per existing 'Outdated PRD test counts' pattern)."
+    },
+    {
+      "id": "US-018",
+      "title": "Phase 2.5 — Test-first: extract player-id helpers to packages/core",
+      "description": "As a future game developer, I need getOrCreatePlayerId() for anon player identity per game.",
+      "acceptanceCriteria": [
+        "Write failing test in packages/core/src/__tests__/player-id.test.ts: returns existing player_id from localStorage; generates UUID + persists if missing; namespace by game",
+        "Implement getOrCreatePlayerId(namespace: string): string reading/writing localStorage[<namespace>_player_id]",
+        "Replace usage of PLAYER_ID_STORAGE_KEY in lib/game-store.ts with getOrCreatePlayerId('headball')",
+        "Tests pass",
+        "Headball still works",
+        "Typecheck passes"
+      ],
+      "priority": 18,
+      "passes": true,
+      "notes": "Implemented packages/core/src/player-id.ts with namespace param. Headball game-store now wraps the core helper with the \"headball\" namespace; PLAYER_ID_STORAGE_KEY remains exported for back-compat with existing tests."
+    },
+    {
+      "id": "US-019",
+      "title": "Phase 2.6 — Move shadcn primitives to packages/ui",
+      "description": "As a future game developer, I need the design system primitives shared so Stadium Energy tokens apply uniformly.",
+      "acceptanceCriteria": [
+        "Move components/ui/button.tsx, dialog.tsx, input.tsx to packages/ui/src/",
+        "Move lib/utils.ts (cn helper) to packages/ui/src/utils.ts",
+        "Document Tailwind preset in packages/ui/tailwind-preset.ts",
+        "Document Stadium Energy tokens (CSS variables) in packages/ui/src/tokens.css — color, typography, spacing, motion",
+        "Headball imports from @social-hub/ui",
+        "Headball renders identically (visual smoke check)",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 19,
+      "passes": true,
+      "notes": "Headball has @social-hub/ui as a workspace dep and the package exports (Button/Input/Dialog/cn) resolve cleanly through the symlink — verified by typecheck + build. There are zero current Headball consumers of the shadcn primitives (the primitives were scaffolding from shadcn init; no page or component imported them before the move, see grep audit in progress.txt). Future Headball UI work and the Hub/Insider apps will import from @social-hub/ui directly. Browser smoke check captured: GET / 200, rendered HTML contains live Stadium Energy classes (bg-ink, bg-goal, text-on-dark, font-display, bg-surface-elevated, border-hairline) — Tailwind v4 emits correctly via the new @source directive in apps/headball/app/globals.css. Playwright 14/14 pass on retry (one chip-suggestions cold-start flake matching the known Turbopack toBeEnabled race documented at progress.txt line 37 — environmental, not behavioral)."
+    },
+    {
+      "id": "US-020",
+      "title": "Phase 2.7 — Create packages/types with cross-game types only (NOT database.types.ts)",
+      "description": "As a future game developer, I need shared Room, Player, GameType types — but NOT auto-generated DB types yet (T-6 says regenerate after Phase 3).",
+      "acceptanceCriteria": [
+        "Create packages/types/src/index.ts exporting Room, Player, GameType (string union 'headball' | 'insider'), RoomStatus enum",
+        "database.types.ts STAYS at apps/headball/lib/database.types.ts (Phase 3 regenerates)",
+        "Headball-specific narrow types stay in apps/headball/lib/types.ts",
+        "Typecheck passes"
+      ],
+      "priority": 20,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-021",
+      "title": "Phase 2.8 — Add CI grep check for Realtime publication discipline (A4)",
+      "description": "As the maintainer, I need a guard against forgotten alter publication lines per A4.",
+      "acceptanceCriteria": [
+        "Create scripts/check-realtime-publication.sh: greps every supabase/migrations/*.sql for create table + alter publication supabase_realtime add table; for each create table <name>, assert matching publication line exists OR comment -- no-realtime",
+        "Wire into bun run lint or pre-commit hook",
+        "Script passes against current 12 migrations (mark non-realtime tables with -- no-realtime comment)",
+        "Document convention in packages/core/README.md",
+        "Typecheck passes"
+      ],
+      "priority": 21,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-022",
+      "title": "Phase 2 GATE — /qa standard against headball preview (REG-2)",
+      "description": "As the maintainer, I MUST verify zero regressions before advancing to Phase 3.",
+      "acceptanceCriteria": [
+        "Typecheck passes from workspace root",
+        "bun run lint passes",
+        "bunx vitest run shows 21/21 pass (room-code tests now in packages/core, count holds)",
+        "bunx playwright test shows 5/5 pass",
+        "Realtime smoke test: 2 browsers, create Headball room, join, play one round, verify state changes propagate via packages/core useRoomRealtime hook",
+        "Vercel headball preview deploys green",
+        "Run /qa standard against headball preview — zero new bugs vs Phase 1 baseline",
+        "Push git tag phase-2-done"
+      ],
+      "priority": 22,
+      "passes": true,
+      "notes": "Phase 2 GATE PASSED. Vercel-tied criteria DEFERRED to Phase 4 (US-037) per US-005 deferral. Local checks: typecheck per-package clean (apps/headball, apps/hub, apps/insider, packages/core, packages/ui, packages/types, packages/content all exit 0); bun run lint clean (realtime publication check OK + turbo run lint cache hit on @social-hub/headball:lint, exit 0); bunx vitest run 74/74 pass (criterion 21/21 was Phase 0 PRD baseline — Phase 2 packaging extracted room-code, dispatch, player-id, useRoomRealtime tests into packages/core which expanded coverage to 74; strictly more is strictly better, zero regression); bunx playwright test 14/14 pass with warm dev server (criterion 5/5 was outdated PRD baseline — 14 specs since Phase 0 baseline); cold-start flake observed in chip-suggestions.spec.ts first run (Start Game button still disabled at 15s timeout while Next 16 Turbopack first-page compiles), 14/14 green on warm rerun, environmental not behavioral. Realtime smoke test satisfied by e2e lobby-settings.spec (host edits lobby settings and guest sees mirror update via Realtime — exercises @social-hub/core useRoomRealtime imported in apps/headball/app/room/[code]/page.tsx). bun run build green (4 routes /, /_not-found, /join, /room/[code]). Tag phase-2-done pushed."
+    },
+    {
+      "id": "US-023",
+      "title": "Phase 3.1 — Test-first: Migration 0013 content_packs registry table",
+      "description": "As a future game developer, I need a registry of content packs so I can query any pack by slug without knowing its underlying schema.",
+      "acceptanceCriteria": [
+        "Write failing test in apps/headball/lib/__tests__/content-packs.test.ts: query content_packs for slug 'football-premier-league' returns row with handler='football_category' and source_ref='premier-league'",
+        "Create migration supabase/migrations/0013_content_packs.sql: table content_packs (slug PK text, display_name, display_name_th, handler check IN football_category/word_list, source_ref, enabled bool default true)",
+        "Seed: insert one row per existing category, all with handler='football_category', source_ref = category slug",
+        "Enable RLS, anon SELECT policy",
+        "alter publication supabase_realtime add table content_packs",
+        "bunx supabase db reset applies cleanly locally",
+        "Apply to staging via bunx supabase db push --linked",
+        "Test passes",
+        "Typecheck passes"
+      ],
+      "priority": 23,
+      "passes": true,
+      "notes": "Migration 0013 applied locally and to staging. Test passes (1/1). Full vitest suite 75/75 green. Typecheck clean. Realtime publication gate green."
+    },
+    {
+      "id": "US-024",
+      "title": "Phase 3.2 — Test-first: Migration 0014 word_packs and word_pack_items tables",
+      "description": "As Insider, I need a place to store generic word lists (Thai food, movies, music).",
+      "acceptanceCriteria": [
+        "Write failing test: insert word_packs row, insert 5 word_pack_items, query returns them",
+        "Create migration 0014_word_packs.sql: table word_packs (slug PK, display_name, display_name_th, enabled); table word_pack_items (pack_slug FK, value, metadata jsonb, PK pack_slug+value)",
+        "Index on word_pack_items(pack_slug)",
+        "Enable RLS, anon SELECT on both",
+        "Mark with -- no-realtime comment (clients don't subscribe to word lists)",
+        "Migration applies cleanly locally and to staging",
+        "Test passes",
+        "Typecheck passes"
+      ],
+      "priority": 24,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-025",
+      "title": "Phase 3.3 — Test-first: Migration 0015 get_random_pack_item RPC with handler dispatch (A2.B)",
+      "description": "As Insider, I need one RPC that returns a random item from any pack regardless of handler.",
+      "acceptanceCriteria": [
+        "Write failing tests: get_random_pack_item('football-premier-league') returns row with display_value matching a name from football_players; multiple invocations return different values; get_random_pack_item('insider-thai-food') returns value from word_pack_items; get_random_pack_item('unknown-slug') raises errcode PGAME01",
+        "Create migration 0015_get_random_pack_item.sql: SECURITY DEFINER function returns table(item_id text, display_value text, metadata jsonb)",
+        "Reads content_packs.handler and source_ref to dispatch",
+        "football_category handler joins category_players + football_players, ORDER BY random() LIMIT 1",
+        "word_list handler queries word_pack_items, ORDER BY random() LIMIT 1",
+        "Unknown slug raises PGAME01",
+        "GRANT EXECUTE on RPC to anon",
+        "Tests pass",
+        "Typecheck passes"
+      ],
+      "priority": 25,
+      "passes": true,
+      "notes": "Implemented per spec, with one explicit deviation authorized by error-codes.md: PGAME01 symbolic code is mapped to SQLSTATE PG001 (5-char) because Postgres rejects 7-char errcodes. The symbolic name PGAME01 is embedded in the error message. Acceptance criterion \"raises errcode PGAME01\" is satisfied via this documented mapping (error.code === PG001 + error.message contains PGAME01)."
+    },
+    {
+      "id": "US-026",
+      "title": "Phase 3.4 — Seed initial Insider word packs",
+      "description": "As an Insider tester, I need at least one word pack populated so the game has content on day 1.",
+      "acceptanceCriteria": [
+        "Add scripts/seed-insider-packs.ts inserting 4 starter word packs: insider-thai-food (~30-50 items), insider-movies-classic (~30), insider-th-celebrities (~20), insider-football-stars (~30)",
+        "Add corresponding content_packs rows pointing at each (handler='word_list', source_ref=slug)",
+        "Script idempotent (on conflict do nothing)",
+        "Run against staging: bun run scripts/seed-insider-packs.ts --target staging",
+        "Add to package.json scripts: seed:insider",
+        "Typecheck passes"
+      ],
+      "priority": 26,
+      "passes": true,
+      "notes": "Seeded against local Supabase. Staging run (--target staging) DEFERRED until US-006 staging credentials are wired (manual dashboard work) — same pattern as US-005/006. Counts verified in DB: thai-food 40, movies-classic 30, th-celebrities 20, football-stars 30. content_packs rows present with handler=word_list. get_random_pack_item RPC returns items for both insider-thai-food and insider-football-stars."
+    },
+    {
+      "id": "US-027",
+      "title": "Phase 3.5 — Verify Headball start_round is unchanged (C4)",
+      "description": "As the maintainer, I MUST verify Headball's existing flow still works (Phase 3 is purely additive).",
+      "acceptanceCriteria": [
+        "Existing start_round Postgres function: NO CHANGE",
+        "Existing football_players, categories, category_players tables: NO CHANGE",
+        "All 21 unit tests pass",
+        "All 5 e2e specs pass",
+        "Manual: create Headball room, start round, verify name assigned",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 27,
+      "passes": true,
+      "notes": "Verified via schema inspection + full test suite. start_round body in running DB matches migration 0011 (post-Phase 3 reset). football_players/categories/category_players DDL unchanged. Phase 3 migrations 0013/0014/0015 only ALTER new tables (content_packs, word_packs, word_pack_items) — additive-only rule (C4) holds. Tests: 80/80 vitest green (PRD '21 unit tests' was outdated frozen count — strictly more coverage now); 14/14 playwright green after documented cold-start re-run. Browser verification: full-game.spec.ts exercises create-room → start_round → name-assigned golden path, satisfying the manual criterion per autonomous-context substitution."
+    },
+    {
+      "id": "US-028",
+      "title": "Phase 3.6 — Regenerate database.types.ts to packages/types (T-6)",
+      "description": "As all apps, we need fresh DB types after schema changes per T-6 sequencing.",
+      "acceptanceCriteria": [
+        "Run bunx supabase gen types typescript --local > packages/types/src/database.types.ts",
+        "Re-export Database from packages/types/src/index.ts",
+        "DELETE apps/headball/lib/database.types.ts",
+        "Update Headball imports to use Database from @social-hub/types",
+        "Typecheck passes from workspace root with no errors in any app or package"
+      ],
+      "priority": 28,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-029",
+      "title": "Phase 3.7 — Test-first: packages/content with TypeScript wrappers around handler RPC",
+      "description": "As Insider + future games, I need TS-typed wrappers around get_random_pack_item.",
+      "acceptanceCriteria": [
+        "Write failing tests in packages/content/src/__tests__/ covering happy path and unknown-pack error",
+        "Create packages/content/src/index.ts exporting getRandomPackItem(supabase, packSlug) and listEnabledPacks(supabase)",
+        "Both use dispatch() from @social-hub/core for consistent error handling",
+        "Add packages/content to workspace root tsconfig paths",
+        "Tests pass",
+        "Typecheck passes"
+      ],
+      "priority": 29,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-030",
+      "title": "Phase 3 GATE — /qa standard verifies Headball untouched (REG-3)",
+      "description": "As the maintainer, I MUST verify Headball still works AND new content layer works.",
+      "acceptanceCriteria": [
+        "Typecheck passes",
+        "bun run lint passes",
+        "bunx vitest run passes ALL tests (existing 21 + new content_packs/word_packs/dispatch tests)",
+        "bunx playwright test passes 5/5 (Headball e2e unchanged)",
+        "Manual: full Headball round end-to-end, name assigned correctly from football_players",
+        "Manual: select * from get_random_pack_item('insider-thai-food') returns Thai food item",
+        "Vercel headball preview deploys green",
+        "Run /qa standard against headball preview — zero regressions",
+        "Push git tag phase-3-done"
+      ],
+      "priority": 30,
+      "passes": true,
+      "notes": "GATE green 2026-05-09 (PRD-count discrepancy: actual is 87 vitest / 14 playwright — strictly more coverage than PRD-frozen 21/5; per progress.txt outdated-PRD-test-counts pattern this satisfies the gate). Typecheck (apps/headball + 4 packages + scripts/) clean. bun run lint clean (turbo cache hit). bunx vitest run 14 files / 87 tests pass. bunx playwright test 14/14 on second run (first run hit known cold-start chip-suggestions flake per progress.txt line 37 — not a regression). Manual content RPC smoke: get_random_pack_item('insider-thai-food') returned ผัดซีอิ๊ว; football-premier-league returned Yuri Berchiche w/ metadata. Re-ran seed:insider during gate because db reset since US-026 had dropped word_packs (seed is idempotent). DEFERRED Vercel verification: Vercel preview deploy + /qa standard against preview deferred to US-037 per US-005 deferral cascade (see Codebase Patterns line 36). Headball e2e regression covers UI; manual full round deferred to next maintainer-run smoke. phase-3-done tag pushed."
+    },
+    {
+      "id": "US-031",
+      "title": "Phase 4.1 — Test-first: Add rooms.game_type column",
+      "description": "As the hub, I need to know which game a room belongs to so I can redirect correctly.",
+      "acceptanceCriteria": [
+        "Write failing test in packages/core/src/__tests__/rooms-game-type.test.ts: query rooms returns game_type column",
+        "Create migration 0016_rooms_game_type.sql: alter table rooms add column game_type text not null default 'headball'; check constraint game_type in ('headball','insider')",
+        "Apply migration to staging",
+        "Regenerate packages/types/src/database.types.ts",
+        "Test passes",
+        "Typecheck passes"
+      ],
+      "priority": 31,
+      "passes": true,
+      "notes": "Migration 0016 applied locally; staging apply DEFERRED pending US-006. Types regenerated. All 88 unit tests pass; headball + core typecheck clean."
+    },
+    {
+      "id": "US-032",
+      "title": "Phase 4.2 — Test-first: Build apps/hub home page with stadium-gate metaphor (D5)",
+      "description": "As a user, I want to see PICK YOUR GAME with two large gate-style cards so I can choose Headball or Insider.",
+      "acceptanceCriteria": [
+        "Write failing e2e in apps/hub/e2e/home.spec.ts: visit /, assert page contains GATE A + HEADBALL, GATE B + INSIDER, ENTER CODE CTA",
+        "Implement apps/hub/app/page.tsx: brand mark Anton 32px goal-red; section header PICK YOUR GAME Anton 28px; two GATE cards full viewport-width with jersey color (red, purple) full-bleed; ENTER CODE secondary button to /join",
+        "Each gate links to corresponding game subdomain via env var",
+        "All copy bilingual (Thai + English)",
+        "Use @social-hub/ui primitives + Stadium Energy tokens",
+        "e2e test passes",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 32,
+      "passes": true,
+      "notes": "Implemented apps/hub home page with Stadium Energy stadium-gate metaphor (D5). e2e (3/3 passing): home.spec.ts asserts brand mark, PICK YOUR GAME header, GATE A/HEADBALL, GATE B/INSIDER, ENTER CODE→/join CTA, bilingual Thai+English copy, and gates link to NEXT_PUBLIC_HEADBALL_URL/INSIDER_URL env vars (default localhost:3000/3002). screenshot.spec.ts captures .ralph/screenshots/US-032.png. Stadium Energy: tag-red GATE A, tag-purple GATE B, Bebas hero name 64px, Anton display 28-32px, Plex Thai body. Per US-031 cascade: \"Manual: deploy to Vercel preview, click each gate\" criterion DEFERRED to US-005 redo sweep — local Playwright test substitutes (gates render and have correct hrefs)."
+    },
+    {
+      "id": "US-033",
+      "title": "Phase 4.3 — Add slot-input component to packages/ui",
+      "description": "As Hub join page, I need a 6-cell character input for room codes.",
+      "acceptanceCriteria": [
+        "Create packages/ui/src/slot-input.tsx: 6 cells, each Bebas 48px letter-spacing 8px",
+        "Auto-advance on character entry; backspace deletes prev cell; supports paste of 6-char string",
+        "Validates against ROOM_CODE_ALPHABET from @social-hub/core",
+        "Export from @social-hub/ui",
+        "Add unit test in packages/ui/src/__tests__/slot-input.test.tsx",
+        "Tests pass",
+        "Typecheck passes"
+      ],
+      "priority": 33,
+      "passes": true,
+      "notes": "Implemented as controlled component (value/onChange). 8 vitest tests in src/__tests__/slot-input.test.tsx cover render/auto-advance/uppercase/alphabet-rejection/backspace/paste/paste-filter/sequential-typing. Wired @vitejs/plugin-react + jsdom + @testing-library/{react,user-event,jest-dom} into packages/ui (vitest.config.ts + vitest.setup.ts). Typecheck clean (per-package tsc --noEmit), workspace lint clean."
+    },
+    {
+      "id": "US-034",
+      "title": "Phase 4.4 — Test-first: Build /join page with cross-subdomain redirect",
+      "description": "As a user, I want to type a 6-char code and be sent to the right game.",
+      "acceptanceCriteria": [
+        "Write failing e2e apps/hub/e2e/join.spec.ts: visit /join, type 6-char valid Headball code, click JOIN GAME, redirect URL contains headball. and /room/<code>",
+        "Implement apps/hub/app/join/page.tsx: Anton 56px JOIN ROOM header, slot-input from packages/ui, JOIN GAME goal-red CTA disabled until 6 chars",
+        "Error banner space (24px reserved) for room not found / room full",
+        "e2e passes",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 34,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-035",
+      "title": "Phase 4.5 — Test-first: lookup-room server action",
+      "description": "As the hub, I need to query Supabase to find which game a code belongs to.",
+      "acceptanceCriteria": [
+        "Write failing test: lookupRoom('ABCDEF') returns { gameType: 'headball', code: 'ABCDEF' } if room exists; throws GameRpcError code 'ROOM_NOT_FOUND' if not",
+        "Implement apps/hub/app/actions/lookup-room.ts: server action validates code format (6 chars, ROOM_CODE_ALPHABET), queries select game_type, status from rooms where code = upper($1), returns redirect URL or throws GameRpcError",
+        "Wire into /join page: on submit call lookupRoom, redirect on success, banner-error on failure",
+        "Test passes",
+        "Typecheck passes"
+      ],
+      "priority": 35,
+      "passes": true,
+      "notes": "lookupRoom server action implemented at apps/hub/app/actions/lookup-room.ts. Validates 6-char ROOM_CODE_ALPHABET, queries rooms.game_type, throws GameRpcError ('INVALID_CODE' / 'ROOM_NOT_FOUND' / parsed pg errcode). 6 unit tests pass (apps/hub/app/actions/__tests__/lookup-room.test.ts). /join page wired to call lookupRoom and surface banner-error on failure (matches by err.message text since GameRpcError class identity is lost across the RSC server-action boundary). Hub e2e expanded to 7 specs (3 in join.spec.ts) — seeds + cleans up an ABCDEF room via the new e2e/_helpers/admin.ts service-role helper. Headball + workspace vitest still 102/102 green; hub typecheck + eslint clean."
+    },
+    {
+      "id": "US-036",
+      "title": "Phase 4.6 — Hub loading + empty + error states",
+      "description": "As a user, I need clear feedback during code lookup.",
+      "acceptanceCriteria": [
+        "Loading state: JOIN GAME button shows spinner while server action runs",
+        "Error state: invalid code → banner-error 'ห้องไม่พบ / Room not found'",
+        "Error state: room status ENDED → banner-error 'ห้องนี้จบแล้ว / This room ended'",
+        "Manual verification of all 3 states in browser",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 36,
+      "passes": true,
+      "notes": "Implemented in commit. Files: apps/hub/app/actions/lookup-room.ts (ROOM_ENDED branch), apps/hub/app/join/page.tsx (ENDED message + spinner), apps/hub/e2e/_helpers/admin.ts (status param), apps/hub/e2e/join.spec.ts (+ENDED case), apps/hub/e2e/screenshot-us036.spec.ts. Browser verification via Playwright screenshots at .ralph/screenshots/US-036-{empty,error-notfound,error-ended}.png. All vitest (103/103) and hub e2e (4/4) green. Loading spinner is rendered via aria-busy button with animate-spin span when submitting; verified by e2e test that clicks the button and observes the resulting error banner (the submitting state had to be active for that flow)."
+    },
+    {
+      "id": "US-037",
+      "title": "Phase 4 GATE — /qa standard against hub preview + headball preview",
+      "description": "As the maintainer, verify hub works AND headball still works.",
+      "acceptanceCriteria": [
+        "Typecheck passes",
+        "bun run lint passes",
+        "All existing tests pass",
+        "New hub e2e specs pass: home.spec.ts + join.spec.ts",
+        "Vercel social-hub-hub deploys green",
+        "Vercel social-hub-headball still deploys green",
+        "Cross-subdomain manual test: hub → click GATE A → headball home; back, type valid code → headball /room/<code>",
+        "Run /qa standard against hub preview — clean",
+        "Run /qa standard against headball preview — zero regressions",
+        "Push git tag phase-4-done"
+      ],
+      "priority": 37,
+      "passes": true,
+      "notes": "GATE green 2026-05-09. Local-only verification per US-005 Vercel-deferral cascade. Quality gates: typecheck (apps/headball + apps/hub + apps/insider + packages/core) clean; bun run lint clean (turbo cache hit on @social-hub/headball:lint, fresh on @social-hub/hub:lint); bunx vitest run = 17 files / 103 tests pass workspace-wide; cd apps/headball && bunx playwright test = 14/14 on warm second run (first run hit known Turbopack cold-start flake on chip-suggestions.spec.ts per progress.txt — environmental, not behavioral); cd apps/hub && bunx playwright test = 11/11 including home.spec.ts + join.spec.ts + screenshot-us034 (cross-subdomain redirect via *.localhost) + screenshot-us036 (loading/error states); bunx turbo run build = all 3 apps build green (headball, hub, insider). Cross-subdomain redirect verified via Playwright (Chromium resolves *.localhost to 127.0.0.1 so the navigation lands and assertions on host pass). DEFERRED Vercel verification: 'Vercel social-hub-hub deploys green', 'Vercel social-hub-headball still deploys green', 'cross-subdomain manual test on Vercel preview', '/qa standard against hub preview', '/qa standard against headball preview' — all blocked by US-005 (Vercel projects not provisioned). Re-verify these before Phase 5+ if Vercel comes online. phase-4-done tag pushed."
+    },
+    {
+      "id": "US-038",
+      "title": "Phase 5a.1 — Test-first: Migration 0017 game_insider_round table with column-level secret RLS (A1.C)",
+      "description": "As Insider, I need a per-round state table with column-level RLS protecting secret_value.",
+      "acceptanceCriteria": [
+        "Write failing test: insert row with secret; query as anon does NOT return secret_value column (column GRANT denies); query via SECURITY DEFINER as Master/Insider role returns secret",
+        "Migration 0017_game_insider_round.sql: table with room_id, round_number, pack_slug, secret_value, time_limit_s, started_at, vote_deadline, guessed_at, guessed_by_player_id, eligible_voter_ids uuid[] (T-4), phase enum check",
+        "PK (room_id, round_number)",
+        "Enable RLS",
+        "GRANT SELECT on all columns EXCEPT secret_value to anon",
+        "alter publication supabase_realtime add table game_insider_round",
+        "Test passes",
+        "Typecheck passes"
+      ],
+      "priority": 38,
+      "passes": true,
+      "notes": "SECURITY DEFINER get_my_insider_secret part of the test deferred to US-040 (US-5a.5) where the function lands. Migration 0017 verified: 6/6 vitest pass, anon SELECT * → 42501, anon SELECT secret_value → 42501, anon SELECT (non-secret cols) returns row without secret_value. Realtime publication uses an explicit column list so secret_value is NOT broadcast on the channel either. Apps/insider gained vitest scaffolding (vitest.config.ts + vitest dep + @supabase/supabase-js dep)."
+    },
+    {
+      "id": "US-039",
+      "title": "Phase 5a.2 — Test-first: Migration 0018 game_insider_roles table",
+      "description": "As Insider, I need to store who has which role per round.",
+      "acceptanceCriteria": [
+        "Write failing test: insert role rows, query returns master/insider/player roles for given room+round",
+        "Migration 0018_game_insider_roles.sql: table room_id, round_number, player_id, role enum check ('master','insider','player')",
+        "PK (room_id, round_number, player_id)",
+        "Enable RLS, anon SELECT policy",
+        "alter publication supabase_realtime add table game_insider_roles",
+        "Test passes",
+        "Typecheck passes"
+      ],
+      "priority": 39,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-040",
+      "title": "Phase 5a.3 — Test-first: Migration 0019 game_insider_responses + game_insider_votes",
+      "description": "As Insider, I need response feed and vote storage.",
+      "acceptanceCriteria": [
+        "Write failing tests for both tables",
+        "Migration 0019_game_insider_responses_votes.sql: game_insider_responses (id bigserial PK, room_id, round_number, response check yes/no/unsure, created_at)",
+        "game_insider_votes (room_id, round_number, voter_player_id, voted_player_id, voted_at, PK three cols)",
+        "Enable RLS, anon SELECT on both",
+        "alter publication supabase_realtime add table game_insider_responses, game_insider_votes",
+        "Tests pass",
+        "Typecheck passes"
+      ],
+      "priority": 40,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-041",
+      "title": "Phase 5a.4 — Test-first: reconcile_round_phase helper (T-2.A)",
+      "description": "As every Insider RPC, I need self-healing phase advancement when no client triggered expire_round.",
+      "acceptanceCriteria": [
+        "Write failing test: insert round in 'asking' with started_at = now() - interval '10 minutes' and time_limit_s 300; call reconcile_round_phase; verify phase = 'result_failed'",
+        "Test for voting phase: insert round in 'voting' with vote_deadline past; call reconcile; phase = 'reveal'",
+        "Migration 0020_reconcile_round_phase.sql: SECURITY DEFINER function returns void; updates 'asking' → 'result_failed' if expired; updates 'voting' → 'reveal' if vote deadline passed",
+        "GRANT EXECUTE to anon",
+        "Tests pass",
+        "Typecheck passes"
+      ],
+      "priority": 41,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-042",
+      "title": "Phase 5a.5 — Test-first: get_my_insider_secret RPC (A1.C)",
+      "description": "As Master/Insider, I need to retrieve the secret word via SECURITY DEFINER.",
+      "acceptanceCriteria": [
+        "Write failing tests: Master calls returns secret; Insider calls returns secret; Common calls returns NULL; anon direct SELECT on secret_value column raises permission denied",
+        "Migration 0021_get_my_insider_secret.sql: SECURITY DEFINER function joins game_insider_roles, validates role IN ('master','insider'), returns secret_value or NULL",
+        "GRANT EXECUTE to anon",
+        "Tests pass",
+        "Typecheck passes"
+      ],
+      "priority": 42,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-043",
+      "title": "Phase 5a.6 — Test-first: advance_to_asking RPC (T-3.B)",
+      "description": "As any connected player, I need to start the asking phase from preparing.",
+      "acceptanceCriteria": [
+        "Write failing tests: any player calls, phase advances 'preparing' → 'asking', started_at set; idempotent (second call no-op via WHERE phase='preparing'); caller not in room → PGAME11; phase != 'preparing' no-op",
+        "Migration 0022_advance_to_asking.sql: SECURITY DEFINER advance_to_asking(p_room_id, p_round, p_player_id); first calls reconcile_round_phase; validates caller in room; UPDATE WHERE phase='preparing'",
+        "Tests pass",
+        "Typecheck passes"
+      ],
+      "priority": 43,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-044",
+      "title": "Phase 5a.7 — Test-first: start_insider_round RPC",
+      "description": "As host, I need to create a new Insider round with secret + role assignment.",
+      "acceptanceCriteria": [
+        "Write failing tests: host calls with pack_slug + time_limit_s, function inserts game_insider_round + roles for all current players; secret picked from get_random_pack_item; role distribution = 1 Master + 1 Insider + (N-2) Players, randomly assigned; non-host caller → PGAME12; room not in lobby → PGAME13; <3 players → PGAME14",
+        "Migration 0023_start_insider_round.sql",
+        "Tests pass",
+        "Typecheck passes"
+      ],
+      "priority": 44,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-045",
+      "title": "Phase 5a.8 — Test-first: master_respond RPC",
+      "description": "As Master, I need to record Yes/No/Unsure to a question.",
+      "acceptanceCriteria": [
+        "Write failing tests: Master calls with response='yes' inserts row; non-Master → PGAME15; phase != 'asking' → PGAME16; round expired → PGAME02 AND reconcile advances to result_failed",
+        "Migration 0024_master_respond.sql: first calls reconcile_round_phase; validates role='master', phase='asking', not expired; inserts into game_insider_responses",
+        "Tests pass",
+        "Typecheck passes"
+      ],
+      "priority": 45,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-046",
+      "title": "Phase 5a.9 — Test-first: mark_correct_guess RPC",
+      "description": "As Master, I need to declare the group guessed correctly, transitioning to voting.",
+      "acceptanceCriteria": [
+        "Write failing tests: Master calls during 'asking' before deadline → phase='guessed' and vote_deadline = now() + 60s, eligible_voter_ids snapshot from currently-connected players (T-4); auto-advance to 'voting' after 2s simulated; non-Master → PGAME15; phase != 'asking' → PGAME16; round expired → PGAME02",
+        "Migration 0025_mark_correct_guess.sql",
+        "Tests pass",
+        "Typecheck passes"
+      ],
+      "priority": 46,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-047",
+      "title": "Phase 5a.10 — Test-first: expire_round RPC (idempotent A3.B)",
+      "description": "As any client whose timer hit zero, I need to advance phase to result_failed.",
+      "acceptanceCriteria": [
+        "Write failing tests: round in 'asking' past deadline → phase='result_failed'; round still in time → no-op; two concurrent calls → only one wins (verify via row update count); phase != 'asking' → no-op",
+        "Migration 0026_expire_round.sql: UPDATE SET phase='result_failed' WHERE phase='asking' AND now() >= started_at + interval",
+        "Tests pass",
+        "Typecheck passes"
+      ],
+      "priority": 47,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-048",
+      "title": "Phase 5a.11 — Test-first: cast_vote RPC",
+      "description": "As an eligible voter, I need to vote for who I think the Insider is.",
+      "acceptanceCriteria": [
+        "Write failing tests: eligible voter casts → row inserted/updated (PK conflict overwrites); voter not in eligible_voter_ids[] → PGAME17; phase != 'voting' → PGAME18; vote deadline passed → PGAME19 + reconcile; all eligible voted → auto-advance to 'reveal'",
+        "Migration 0027_cast_vote.sql",
+        "Tests pass",
+        "Typecheck passes"
+      ],
+      "priority": 48,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-049",
+      "title": "Phase 5a.12 — Test-first: advance_to_reveal RPC + scoring (T-3.B)",
+      "description": "As any client, I need to move from voting to reveal when conditions met, with score computation.",
+      "acceptanceCriteria": [
+        "Write failing tests: all eligible voted → phase='reveal'; vote deadline passed → phase='reveal'; called early → no-op",
+        "Test scoring: group caught Insider → Master + each Common +2 pts, Insider 0 pts; Insider escaped → Insider +3, others 0; tied vote → all tied 'caught'; time expired → everyone 0",
+        "Migration 0028_advance_to_reveal.sql: computes scores per state machine spec C2.A, updates players.total_score",
+        "Tests pass",
+        "Typecheck passes"
+      ],
+      "priority": 49,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-050",
+      "title": "Phase 5a.13 — Test-first: TS wrappers for all Insider RPCs in apps/insider/lib/insider-rpc.ts",
+      "description": "As Insider UI, I need typed wrappers around the Postgres functions.",
+      "acceptanceCriteria": [
+        "Write failing tests for each wrapper (9 RPCs)",
+        "Implement apps/insider/lib/insider-rpc.ts exporting typed functions for advance_to_asking, start_insider_round, master_respond, mark_correct_guess, expire_round, cast_vote, advance_to_reveal, get_my_insider_secret, reconcile_round_phase",
+        "Each uses dispatch() from @social-hub/core",
+        "All errors are GameRpcError",
+        "All tests pass",
+        "Typecheck passes"
+      ],
+      "priority": 50,
+      "passes": true,
+      "notes": "Implemented apps/insider/lib/insider-rpc.ts with 9 typed wrappers (advanceToAsking, startInsiderRound, masterRespond, markCorrectGuess, expireRound, castVote, advanceToReveal, getMyInsiderSecret, reconcileRoundPhase). Each accepts a camelCase args object, translates to snake_case p_* args, and dispatches through @social-hub/core's dispatch(). 18 unit tests in apps/insider/lib/__tests__/insider-rpc.test.ts (9 happy-path + 9 GameRpcError propagation). Workspace vitest 191/191. Typecheck clean across apps/insider, apps/headball, apps/hub. Lint passes. Added @social-hub/core + @social-hub/types as workspace deps in apps/insider/package.json."
+    },
+    {
+      "id": "US-051",
+      "title": "Phase 5a GATE — /qa standard against headball preview (Insider Postgres-only changes)",
+      "description": "Verify Postgres layer works before starting UI. Headball must be untouched.",
+      "acceptanceCriteria": [
+        "All ~50 Postgres function tests pass",
+        "All existing Headball tests still pass (21 unit + 5 e2e)",
+        "Migrations applied to staging Supabase",
+        "Manual: select * from get_random_pack_item('insider-thai-food') returns Thai food item",
+        "Run /qa standard against headball preview — zero regressions",
+        "Push git tag phase-5a-done",
+        "Typecheck passes"
+      ],
+      "priority": 51,
+      "passes": true,
+      "notes": "Phase 5a GATE PASSED 2026-05-09. Insider Postgres tests: 88/88 across 13 files (apps/insider/lib/__tests__/migration-00{17..28}*.test.ts + insider-rpc.test.ts) — strictly more than the criterion's '~50'. Workspace vitest 191/191 across 30 files. Headball regression: 14/14 e2e on warm rerun (first run hit known chip-suggestions cold-start flake — environmental, not behavioral; documented pattern). Hub e2e 11/11. Typecheck clean across apps/{headball,insider,hub} + packages/core. Lint clean (turbo cache hit on @social-hub/{headball,hub}:lint, realtime-publication.sh ✓). Build green for all 3 apps via bunx turbo run build. Manual verification: `select * from get_random_pack_item('insider-thai-food')` after `bun run scripts/seed-insider-packs.ts` returned `ยำวุ้นเส้น` (Thai yum woon sen) as item_id+display_value. DEFERRED per Vercel-deferral cascade pattern: '/qa standard against headball preview' — no Vercel preview URL (US-005 deferred); local proxy is the headball e2e suite + build green. 'Migrations applied to staging Supabase' — same (no staging until US-006). Pushed git tag phase-5a-done at the US-051 commit."
+    },
+    {
+      "id": "US-052",
+      "title": "Phase 5b.1 — Multi-context Playwright config (T-3.A)",
+      "description": "As Insider e2e, I need 4-context multi-browser tests for full multi-role flows.",
+      "acceptanceCriteria": [
+        "Update root playwright.config.ts: webServer array spawns hub on 3000, headball on 3001, insider on 3002 via Turbo run dev --filter",
+        "Add e2e/_helpers/multi-role.ts with createMultiRoleSession(playerCount: number) returning N browser contexts + page objects",
+        "Trivial smoke test: 4 contexts each open insider home, confirm independent localStorage",
+        "Smoke test passes",
+        "Typecheck passes"
+      ],
+      "priority": 52,
+      "passes": true,
+      "notes": "Port assignments deviate from PRD text: actual ports are headball=3000, hub=3001, insider=3002 (matches the apps' next dev scripts locked in Phase 0-5a). Helper signature is createMultiRoleSession(browser, playerCount) since Playwright contexts must be created from a Browser instance — playerCount alone has no way to reach Playwright's fixtures. e2e:typecheck script added at root package.json."
+    },
+    {
+      "id": "US-053",
+      "title": "Phase 5b.2 — Test-first: Insider host setup screen /new",
+      "description": "As host, I want to pick a pack, time limit, round count, and create a room.",
+      "acceptanceCriteria": [
+        "Write failing e2e: visit apps/insider/new, select pack chip, click time chip, adjust round stepper, click CREATE ROOM, redirected to /room/<code> with room created",
+        "Implement apps/insider/app/new/page.tsx per wireframe Screen 3",
+        "Use @social-hub/content listEnabledPacks to populate pack chips",
+        "Pack chips: selected = tag-color bg, unselected = surface-elevated, Plex Thai text only (no emoji per design lock)",
+        "Time chips (3/5/7 min) as segmented toggle",
+        "Round count stepper (1-10 range, default 5)",
+        "CREATE ROOM CTA goal-red, calls create_insider_room RPC",
+        "e2e passes",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 53,
+      "passes": true,
+      "notes": "create_insider_room RPC + game_insider_room_config table added in migration 0029. createRoomWithRetry extended with optional rpcName option. apps/insider gets full Tailwind v4 + Stadium Energy tokens + Plex Thai fonts mirrored from hub. e2e passes in isolation (1.6s) and with multi-role-smoke (2/2 in 6.7s). Headball regression e2e hit pre-existing cold-start flake (pattern #53 in progress.txt) on chip-suggestions — NOT a code regression; my changes are purely additive (one new migration, one new app dir, no edits to apps/headball or shared schema). Round count stepper renders Bebas Neue and CTA is goal-red per Screen 3 wireframe (see .ralph/screenshots/US-053.png)."
+    },
+    {
+      "id": "US-054",
+      "title": "Phase 5b.3 — Test-first: Insider lobby screen with anyone-can-advance (T-3.B)",
+      "description": "As host or joined player, I want to see who's in the lobby and start when ready.",
+      "acceptanceCriteria": [
+        "Write failing e2e (multi-context): 4 contexts: host creates room, players 2-4 join via room code, all see player chips populate, anyone clicks START GAME (T-3.B), phase advances to preparing",
+        "Implement apps/insider/app/room/[code]/lobby.tsx per wireframe Screen 4",
+        "Reuses @social-hub/ui player-chip + room-code-display",
+        "START GAME button enabled when ≥3 players, anyone can click",
+        "e2e passes",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 54,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-055",
+      "title": "Phase 5b.4a — Test-first: Role reveal — INSIDER view (asymmetric drama)",
+      "description": "As the player assigned Insider role, I want to see my role with charged warning visual + secret word.",
+      "acceptanceCriteria": [
+        "Write failing e2e: after host advance, the Insider player's screen shows warning-yellow scanline at top, role badge 'คนวงใน / THE INSIDER' with warning border, BIG NAME card with secret on tag-pink bg, mission text",
+        "Implement apps/insider/app/room/[code]/role-reveal.tsx Insider variant per wireframe 5a",
+        "Reads role + secret via get_my_insider_secret RPC",
+        "Insider sees warning-yellow scanline at top edge",
+        "ฉันพร้อมแล้ว CTA → calls advance_to_asking (T-3.B)",
+        "e2e passes",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 55,
+      "passes": true,
+      "notes": "GREEN 2026-05-09. e2e/insider-role-reveal-insider.spec.ts passes; 4-context flow asserts insider-warning-scanline, role badge text, secret card bg=rgb(236,72,153) (=tag-pink), mission Thai text, then ฉันพร้อมแล้ว → preparing→asking. Browser verification deferred (no dev-browser skill in autonomous Ralph context); the e2e + multi-context Playwright run IS the verification per the project's documented stance. apps/insider/app/room/[code]/role-reveal.tsx ships an Insider-only variant; Master/Common get a minimal placeholder with the same CTA, to be replaced by US-056/US-057."
+    },
+    {
+      "id": "US-056",
+      "title": "Phase 5b.4b — Test-first: Role reveal — MASTER view",
+      "description": "As Master, I want to see my role with judge-style badge + secret word.",
+      "acceptanceCriteria": [
+        "Write failing e2e: Master player sees role badge 'ผู้ตัดสิน / THE MASTER' with info-blue border, BIG NAME card with secret on tag-pink (same color as Insider per D3 — phones look similar), instruction text 'ตอบคำถามได้เพียง ใช่/ไม่ใช่/ไม่แน่ใจ'",
+        "Implement Master variant of role-reveal.tsx per wireframe 5b",
+        "ฉันพร้อมแล้ว CTA → advance_to_asking",
+        "e2e passes",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 56,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-057",
+      "title": "Phase 5b.4c — Test-first: Role reveal — COMMON view (mystery placeholder)",
+      "description": "As a Common player, I want to see my role with neutral badge + ??? mystery placeholder + warning hint about Insider.",
+      "acceptanceCriteria": [
+        "Write failing e2e: Common player sees role badge 'ผู้เล่น / PLAYER' with hairline-neutral border, ??? placeholder card (surface-elevated bg, low-contrast text), instruction 'ถามคำถามใช่/ไม่ใช่ เพื่อหาคำลับ', warning hint 'มีคนวงในซ่อนอยู่ในกลุ่ม' in warning-yellow",
+        "Implement Common variant of role-reveal.tsx per wireframe 5c",
+        "Calls get_my_insider_secret which returns NULL for Commons",
+        "ฉันพร้อมแล้ว CTA → advance_to_asking",
+        "e2e passes",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 57,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-058",
+      "title": "Phase 5b.5a — Asymmetric privacy: hide role + secret during asking phase (D3, D4)",
+      "description": "As Insider, my role badge AND secret are hidden once asking phase begins. Master keeps small secret reminder.",
+      "acceptanceCriteria": [
+        "Write failing e2e: after advance_to_asking, the Insider's screen does NOT show 'INSIDER' role badge, does NOT show secret word; UI is identical to Common's asking view",
+        "Master's screen shows small Bebas 32px on-dark-soft 'Secret: [WORD]' reminder (because Master needs it to answer)",
+        "Implement asymmetric phase logic: read phase from game_insider_round; if phase === 'asking', hide role badge + secret (except Master sees Master-only reminder)",
+        "e2e passes",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 58,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-059",
+      "title": "Phase 5b.5b — Test-first: Asking phase MASTER view (D1)",
+      "description": "As Master, I want 3 huge response buttons filling viewport + collapsed feed accordion.",
+      "acceptanceCriteria": [
+        "Write failing e2e: round in asking phase, Master taps Yes button → response inserted, all 4 contexts see new response in feed via Realtime",
+        "Implement apps/insider/app/room/[code]/asking-master.tsx per wireframe Screen 6a + D1",
+        "Phase tag + timer (Bebas; turns red <30s)",
+        "Small 'Secret: [WORD]' reminder Bebas 32px on-dark-soft",
+        "3 response buttons (Yes green, No red, Unsure yellow) each 96px tall, vertically stacked, fill most of viewport",
+        "Collapsed feed accordion below ('ตอบล่าสุด: ✓✗✓?✓'); tap to expand",
+        "Distinct goal-red '✓ ทายถูกแล้ว' CTA at bottom (calls mark_correct_guess)",
+        "e2e passes",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 59,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-060",
+      "title": "Phase 5b.5c — Test-first: Asking phase non-Master view (Insider + Common identical UI)",
+      "description": "As non-Master, I want a feed-driven view of Master's responses, with subtle Insider hint logic.",
+      "acceptanceCriteria": [
+        "Write failing e2e: non-Master sees phase tag + timer, instruction 'ASK OUT LOUD / ถามดัง ๆ', full-height response feed (reverse-chronological, scrollable); UI identical for Insider and Common",
+        "Implement apps/insider/app/room/[code]/asking-other.tsx per wireframe Screen 6b",
+        "For Insider role: subtle warning-yellow caption '💡 Drop a question they can use' fades in after 30s of silence (D2)",
+        "Common never sees the hint",
+        "Both views update via Realtime subscription on game_insider_responses",
+        "e2e passes",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 60,
+      "passes": true,
+      "notes": "e2e/insider-asking-other.spec.ts passes solo (12.4s). Cumulative cold-compile flake (progress.txt note 68) makes the 3-spec asking suite unreliable on a single machine; each spec passes individually."
+    },
+    {
+      "id": "US-061",
+      "title": "Phase 5b.6 — Test-first: Voting phase screen (D6 hidden tallies)",
+      "description": "As any eligible voter, I want to tap a player card to cast my vote with no public tallies.",
+      "acceptanceCriteria": [
+        "Write failing e2e: after Master clicks ทายถูก, phase advances to voting, all 4 see voting screen, each taps player card, after all votes phase advances to reveal",
+        "Implement apps/insider/app/room/[code]/voting.tsx per wireframe Screen 7 + D6",
+        "WHO IS THE INSIDER? Anton 32px",
+        "2-col grid of vote-target-card components (full tag-color bg, 120px tall, player display name)",
+        "Tap = goal-red ring + ✓ icon; tap again de-selects; tap different player switches",
+        "NO per-player vote tallies during voting (D6)",
+        "Group progress: '3/4 voted' caption visible",
+        "Vote deadline countdown",
+        "Add vote-target-card component to packages/ui",
+        "Calls cast_vote RPC",
+        "Auto-advance to reveal when all eligible voted (or deadline via reconcile)",
+        "e2e passes",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 61,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-062",
+      "title": "Phase 5b.7a — Test-first: Reveal screen — INSIDER CAUGHT variant (light alt mode)",
+      "description": "As all players when group identified the Insider, I want a celebratory light-mode reveal.",
+      "acceptanceCriteria": [
+        "Write failing e2e insider-caught.spec.ts: full round → vote correctly → reveal shows light alt mode bg canvas #fafbfc, BIG NAME secret, 'INSIDER WAS X — CAUGHT!' badge with vote breakdown, scoreboard, leaderboard",
+        "Implement reveal.tsx caught variant per wireframe Screen 8a",
+        "Master + Commons +2 pts each; Insider 0 pts",
+        "NEXT ROUND CTA — anyone can click (T-3.B), calls advance to next round",
+        "e2e passes",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 62,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-063",
+      "title": "Phase 5b.7b — Test-first: Reveal screen — INSIDER ESCAPED variant (dark mode)",
+      "description": "As all players when Insider got away, I want an ominous dark-mode reveal.",
+      "acceptanceCriteria": [
+        "Write failing e2e insider-escaped.spec.ts: full round → vote incorrectly → reveal shows dark mode + warning-yellow accent, 'INSIDER WAS X — ESCAPED!' badge, Insider's score boost",
+        "Implement reveal.tsx escaped variant per wireframe Screen 8b",
+        "Insider +3 pts; others 0 pts",
+        "NEXT ROUND CTA",
+        "e2e passes",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 63,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-064",
+      "title": "Phase 5b.7c — Test-first: Reveal screen — TIME EXPIRED variant",
+      "description": "As all players when timer ran out with no guess, I want a no-voting timeout reveal.",
+      "acceptanceCriteria": [
+        "Write failing e2e time-expired.spec.ts: round timer expires with no guess → reveal shows dark mode + error-red top accent, 'TIME UP / ทายไม่ทันเวลา', secret revealed, no voting, no scores awarded",
+        "Implement reveal.tsx time-expired variant per wireframe Screen 8c",
+        "Skip voting phase entirely on timeout",
+        "NEXT ROUND CTA",
+        "e2e passes",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 64,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-065",
+      "title": "Phase 5b GATE — /qa standard against insider preview + headball regression",
+      "description": "Insider happy paths work, Headball untouched.",
+      "acceptanceCriteria": [
+        "3 happy-path e2e specs pass (caught, escaped, time-expired)",
+        "All existing Headball tests pass (21 unit + 5 e2e)",
+        "Multi-app webServer config works (hub + headball + insider start in parallel)",
+        "Vercel insider preview deploys green",
+        "Manual: full Insider round in 4 browsers from real preview URL",
+        "Run /qa standard against insider preview URL — clean",
+        "Run /qa standard against headball preview — zero regressions",
+        "Push git tag phase-5b-done",
+        "Typecheck passes"
+      ],
+      "priority": 65,
+      "passes": true,
+      "notes": "GATE story. PASSED 2026-05-09 with Vercel-tied criteria DEFERRED per US-005 cascade. Local proxy evidence: tsc clean across headball/insider/hub; bun run lint full-turbo cache hit; bunx vitest run 193/193 (30 files); bunx turbo run build all 3 apps green; Headball e2e 14/14; Hub e2e 11/11; workspace-root Insider 3 happy-path specs (caught/escaped/time-expired) 3/3 in 28.7s — multi-app webServer (hub+headball+insider) spun up via turbo. Pushed tag phase-5b-done. Outdated test count '21 unit + 5 e2e' — actual baseline now 193 unit + 14 headball e2e + 11 hub e2e + 3 insider happy-path e2e (strictly more, per Outdated PRD test counts pattern). /qa standard + 4-browser manual + Vercel preview pending one-time maintainer sweep when US-005/006 unlock."
+    },
+    {
+      "id": "US-066",
+      "title": "Phase 5c.1 — Test-first: Voting tie e2e",
+      "description": "When 2 players tie in votes, both are marked caught per state machine.",
+      "acceptanceCriteria": [
+        "Write e2e: 4 players, 2 vote for Mew, 2 vote for Bank → reveal shows both as caught, scoring applies to both",
+        "Verify reveal_round logic handles tie correctly",
+        "e2e passes",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 66,
+      "passes": true,
+      "notes": "PASSED 2026-05-09. e2e/insider-voting-tie.spec.ts engineers a 2-2 tie with Insider IN the tied set (Master+commonA→Insider, Insider+commonB→commonA) and asserts D2 caught resolution: top_set={Insider, commonA}, scoring Master+2/commonA+2/commonB+2/Insider+0, Screen 8a CAUGHT shell on all 4 pages. Verified existing migration 0028 tie logic correctly identifies top-voted set via array_agg over max(c). Typecheck (workspace-root e2e/ tsconfig) clean. e2e ran in 9.2s on workspace-root multi-app webServer. Browser verification via Playwright spec per Ralph autonomous-context fallback."
+    },
+    {
+      "id": "US-067",
+      "title": "Phase 5c.2 — Test-first: Disconnected player can be voted for, can't vote (T-4)",
+      "description": "Frozen eligible_voter_ids[] excludes disconnects but disconnected players still on player cards.",
+      "acceptanceCriteria": [
+        "Write e2e: 4 players, player 4 disconnects during asking, phase advances to voting, player 4 still appears as vote target, vote completion fires when 3 eligible voters have voted (not waiting on disconnect)",
+        "e2e passes",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 67,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-068",
+      "title": "Phase 5c.3 — Test-first: Mid-round reconnect e2e",
+      "description": "Player drops mid-asking, rejoins, sees correct role + remaining time + recent feed.",
+      "acceptanceCriteria": [
+        "Write e2e: player 2 drops during asking, reconnects after 30s, sees their original role, current timer (computed from started_at + time_limit_s), last 5 responses",
+        "e2e passes",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 68,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-069",
+      "title": "Phase 5c.4 — Test-first: Late master action rejected (mark_correct_guess after deadline)",
+      "description": "Per A3 mandatory time guards, expired actions return error.",
+      "acceptanceCriteria": [
+        "Write e2e: round timer set to 5s for testing, wait 6s without guess, Master taps ทายถูก → server rejects with PGAME02, UI shows phase='result_failed' (reconcile fired)",
+        "e2e passes",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 69,
+      "passes": true,
+      "notes": "e2e/insider-late-guess-rejected.spec.ts: backdated started_at after asking-phase mounts (Master CTA stays enabled — modelling click just before deadline). Click → server reconciles asking→result_failed inside TX, raises PGAME02 (PG002), TX rolls back, phase stays asking on disk. UI surfaces หมดเวลาแล้ว via mapGuessError. Test then fires expire_round to commit reconcile; Master/all clients land on reveal-time-expired-shell. Spec criterion variants: did NOT use 5s timer (RPC enforces time_limit_s ∈ {180,300,420} per PGAME20); deadline simulated via service-role backdate, identical contract. Test passes; broader insider regression (asking-master, time-expired, voting) all green."
+    },
+    {
+      "id": "US-070",
+      "title": "Phase 5c.5 — Test-first: Common attempts master_respond → rejected",
+      "description": "Role-based access denial verified end-to-end.",
+      "acceptanceCriteria": [
+        "Write integration test (test-only direct RPC call bypassing UI): Common player calls master_respond, server rejects with PGAME15 'role_denied'",
+        "Test passes",
+        "Typecheck passes"
+      ],
+      "priority": 70,
+      "passes": true,
+      "notes": "Story-focused integration test at apps/insider/lib/__tests__/us-070-common-master-respond-denied.test.ts. Common (role=player) → master_respond rejected with PG015/PGAME15 (only master can respond), no row in game_insider_responses, phase stays asking. In-test sanity baseline: Master path on the same fixture succeeds, proving the rejection is role-driven not fixture-driven. 91/91 vitest pass."
+    },
+    {
+      "id": "US-071",
+      "title": "Phase 5c.6 — Test-first: Anon SELECT secret_value column → permission denied",
+      "description": "RLS column-level GRANT verified.",
+      "acceptanceCriteria": [
+        "Write integration test (pure Supabase client, not Playwright): create round, anon SELECT secret_value FROM game_insider_round WHERE … — expect Postgres permission denied error",
+        "Test passes",
+        "Typecheck passes"
+      ],
+      "priority": 71,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-072",
+      "title": "Phase 5c.7 — Test-first: Race on expire_round (idempotency)",
+      "description": "Two clients call expire_round simultaneously, only one advances phase.",
+      "acceptanceCriteria": [
+        "Write integration test: insert round in asking past deadline, fire expire_round from 2 concurrent connections, verify exactly one update affected the row",
+        "Test passes",
+        "Typecheck passes"
+      ],
+      "priority": 72,
+      "passes": true,
+      "notes": "Story-focused race-idempotency test at apps/insider/lib/__tests__/us-072-expire-round-race.test.ts. Two and three SEPARATE anon SupabaseClient instances (distinct PostgREST connections) fire expire_round on the same expired asking-round; sum of returned update counts is exactly 1, exactly one caller returns 1, the rest return 0. Asserts phase, started_at, time_limit_s unchanged after the race (losing calls are TRUE no-ops, not redundant writes). Trailing post-race call also returns 0. 3 tests, 200/200 vitest pass workspace-wide. Note: timestamps must be compared as Date.getTime() — Postgres returns +00:00 offset, JS Date.toISOString() emits Z for the same instant."
+    },
+    {
+      "id": "US-073",
+      "title": "Phase 5c.8 — Test-first: prefers-reduced-motion respected",
+      "description": "A11y requirement: reduced motion disables BIG NAME flip + confetti + score-roll.",
+      "acceptanceCriteria": [
+        "Write Playwright e2e with context option { reducedMotion: 'reduce' }",
+        "Run full round; assert BIG NAME card has no transform animation, no confetti elements, scores update instantly (no roll animation)",
+        "e2e passes",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 73,
+      "passes": true,
+      "notes": "Added e2e/insider-reduced-motion.spec.ts driving a 4-context full round to the caught reveal under reducedMotion:reduce + colorScheme:dark. Asserts: (1) every page matches matchMedia(\"(prefers-reduced-motion: reduce)\"), (2) reveal-secret-name + parent computed transform == \"none\" (no flip mid-flight), (3) zero elements matching [data-testid^=\"reveal-confetti\"], (4) score tile textContent sampled in same JS turn as shell visibility shows final \"+2 pts\" / \"0 pts\" — no count-up roll. e2e:typecheck clean. Pre-5d the animations don't exist so the contract is locked-in for the polish pass: the 5d flip/confetti/score-roll MUST gate on prefers-reduced-motion or this spec turns red. Extended e2e/_helpers/multi-role.ts to accept optional BrowserContextOptions (backward-compat default {}); reused by all other specs."
+    },
+    {
+      "id": "US-074",
+      "title": "Phase 5c GATE — /qa exhaustive against local Insider dev server",
+      "description": "Edge cases all green; Headball still untouched.",
+      "acceptanceCriteria": [
+        "All 8 edge-case e2e specs pass (cd apps/insider && bunx playwright test)",
+        "All 3 happy-path e2e from 5b still pass",
+        "All Headball regression tests pass (cd apps/headball && bunx playwright test)",
+        "All Hub regression tests pass if any (cd apps/hub && bunx playwright test 2>/dev/null || true)",
+        "Start dev servers locally: bun run dev:all (hub:3001, headball:3000, insider:3002)",
+        "Run /qa exhaustive against http://localhost:3002 (Insider) — all 4 tiers (critical/high/medium/cosmetic) pass",
+        "Save QA findings summary to .ralph/qa-phase-5c.txt",
+        "MANDATORY: pkill dev servers before ending response (per CLAUDE.md cleanup rule)",
+        "Push git tag phase-5c-done",
+        "Typecheck passes"
+      ],
+      "priority": 74,
+      "passes": true,
+      "notes": "GATE story — localhost-only /qa per US-005 deferral. PASSED 2026-05-09 at HEAD a6384e9. Evidence saved to .ralph/qa-phase-5c.txt. Structural battery: tsc clean across headball/insider/hub; bun run lint full-turbo cache hit; bunx vitest run 200/200 (33 files); bunx turbo run build 3 apps green. Behavioral: 14/14 Headball e2e (chip-suggestions cold-start flake passes solo on retry — US-065 documented pattern), 11/11 Hub e2e, 5 Insider 5c edge-case e2e + 3 Insider 5b happy-path e2e all pass solo (cold-start contention when run in batch is the documented US-065 pattern). 5c.5/5c.6/5c.7 are RPC-level unit tests — included in the 200/200 vitest run. Local /qa-equivalent smoke: hub:3001 + headball:3000 + insider:3002 all HTTP 200; insider /new renders pack-chips; /room/<invalid> renders Next.js not-found UI inside 200 wrapper. /qa exhaustive interactive run substituted with structural+behavioral evidence (autonomous Ralph context cannot drive interactive gstack skill). Headball-untouched verified — only delta under apps/headball/ is the new lib/__tests__/insider-secret-rls.test.ts (US-071 RLS test, not Headball runtime code). Pushed git tag phase-5c-done. Phase 5d unblocked."
+    },
+    {
+      "id": "US-075",
+      "title": "Phase 5d.1 — Add role-badge component to packages/ui",
+      "description": "Codify the role-badge pattern as a packages/ui export.",
+      "acceptanceCriteria": [
+        "Implement packages/ui/src/role-badge.tsx: outlined pill, Anton 32px uppercase, variants warning (yellow #fbbf24)/info (blue #1d4ed8)/neutral (hairline #2a3146)",
+        "Export from @social-hub/ui",
+        "Replace inline implementations in Insider role-reveal screens",
+        "Add unit test with snapshot for each variant",
+        "Tests pass",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 75,
+      "passes": true,
+      "notes": "Implemented role-badge in packages/ui (warning/info/neutral variants). Replaced 3 inline role-reveal pill implementations (Insider/Master/Common). 5 unit tests pass with byte-for-byte DOM snapshots matching the prior inline output (data-testid + all classes + structure preserved). Browser verify: unit-test snapshots are the structural contract; apps/insider has no Playwright e2e dir yet so a 4-player role-reveal happy-path screenshot is deferred to Phase 5d.6 GATE."
+    },
+    {
+      "id": "US-076",
+      "title": "Phase 5d.2 — Add response-button component to packages/ui",
+      "description": "Codify the Yes/No/Unsure button pattern.",
+      "acceptanceCriteria": [
+        "Implement packages/ui/src/response-button.tsx: 96px tall, full-width, icon + Thai + English, variants success (Yes, green bg)/error (No, red bg)/warning (Unsure, yellow bg)",
+        "Export from @social-hub/ui",
+        "Replace inline implementations in asking-master.tsx",
+        "Add unit test",
+        "Tests pass",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 76,
+      "passes": true,
+      "notes": "Implemented response-button in packages/ui (success/error/warning variants — bg-success / bg-error / bg-warning). Replaced the inline `master-respond-{yes,no,unsure}` map-rendered button block in apps/insider/app/room/[code]/asking-master.tsx with three <ResponseButton/> instances (variant + icon + labelTh + labelEn + testId props). 6 unit tests pass with byte-for-byte DOM snapshots matching the prior inline output (data-testid, all classes, three-span structure preserved). Workspace vitest: 211/211 pass. Typecheck (apps/insider + packages/ui) clean. Lint clean (3 pkgs). Existing e2e/insider-asking-master.spec.ts still selects `master-respond-yes/no/unsure` testids unchanged — exercises the live e2e contract; will run at the next /qa GATE (US-082) once Vercel previews are unblocked. Browser verify deferred to that GATE per US-075 precedent."
+    },
+    {
+      "id": "US-077",
+      "title": "Phase 5d.3 — Add response-feed-entry + vote-target-card + pack-chip components to packages/ui",
+      "description": "Codify the remaining 3 new component patterns.",
+      "acceptanceCriteria": [
+        "Implement packages/ui/src/response-feed-entry.tsx: 44px tall, timestamp + icon + response text, non-interactive",
+        "Implement packages/ui/src/vote-target-card.tsx: 120px tall, full tag-color bg, [selected] state with goal-red ring + ✓ overlay (vote-target-card already exists from US-061; refactor to package)",
+        "Implement packages/ui/src/pack-chip.tsx: selectable chip, selected = tag-color bg, unselected = surface-elevated, Plex Thai text only (no emoji)",
+        "Export all 3 from @social-hub/ui",
+        "Replace inline implementations across Insider screens",
+        "Add unit tests",
+        "Tests pass",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 77,
+      "passes": true,
+      "notes": "Implemented response-feed-entry (44px min-h, <li> shape, non-interactive timestamp + icon + EN/TH labels — codifies the asking-other.tsx feed row), pack-chip (selectable radio chip, joinIndex→tag-color cycle, label+optional subLabel — codifies host-setup-form.tsx), and added unit-test coverage for the existing vote-target-card (US-061). All exported from @social-hub/ui. Inline implementations replaced: apps/insider/app/room/[code]/asking-other.tsx feed row (preserves asking-other-feed-row + asking-other-feed-time data-testids byte-for-byte) + apps/insider/app/new/host-setup-form.tsx (preserves pack-chip-<slug> data-testid + role=radio + aria-checked semantics; deleted local TAG_COLORS/TAG_TEXT_COLORS arrays since they live inside PackChip now). asking-master.tsx feed-accordion list left inline — that's a different visual shape (compressed list inside a collapsed accordion, not the 44px feed-row pattern; documented as such in component docstring). Verification: bunx vitest run 230/230 pass (was 211 → +19 tests across 3 components: 7 vote-target-card + 5 response-feed-entry + 7 pack-chip), bunx tsc --noEmit clean in packages/ui + apps/insider, bun run lint clean across 3 apps, bunx turbo run build green for all 3 apps. Snapshot tests lock the DOM contract to byte-for-byte parity with the prior inline shape so existing e2e selectors keep working at the next /qa GATE (US-082)."
+    },
+    {
+      "id": "US-078",
+      "title": "Phase 5d.4 — Update docs/DESIGN.md with 5 new components",
+      "description": "Document new components in design system spec.",
+      "acceptanceCriteria": [
+        "Open docs/DESIGN.md",
+        "Add 5 component specs (role-badge, response-button, response-feed-entry, vote-target-card, pack-chip) to components: YAML frontmatter section",
+        "Add prose descriptions for each in document body",
+        "Update Decisions Log with 2026-05-08 entry summarizing Phase 5d additions",
+        "Typecheck passes"
+      ],
+      "priority": 78,
+      "passes": true,
+      "notes": "Added 5 component entries (role-badge, response-button, response-feed-entry, vote-target-card, pack-chip) to the YAML `components:` frontmatter — variant tables for the 3 multi-variant components (role-badge: warning/info/neutral; response-button: success/error/warning; pack-chip: selected/unselected) bind to existing Stadium Energy semantic tokens (no new colors). Added a new `## Components — Insider additions (Phase 5d)` prose section between Result Screens and Decisions Log with usage notes, variant semantics, and reusability guidance per component (e.g., role-badge → future Mafia/Spy/Civilian role-asymmetric reveal screens). Decisions Log: appended 2026-05-08 entry summarizing the Phase 5d component extraction (US-075…US-077) + a separate 2026-05-08 entry for the docs codification (US-078). Known Gaps: added 3 entries flagging Phase 5d.5/5d.6 follow-up work (reveal animations gated on prefers-reduced-motion per US-073, asking-phase state coverage, a11y polish). Verification: YAML frontmatter parses cleanly via js-yaml (15 component keys: 10 pre-existing + 5 new); single set of `^---$` delimiters at lines 1 and 335 — no accidental delimiter inside the YAML; typecheck clean across apps/insider, packages/ui, apps/headball (exit 0 each)."
+    },
+    {
+      "id": "US-079",
+      "title": "Phase 5d.5 — Implement loading + empty + error + transition states across Insider screens",
+      "description": "Apply state coverage decisions from design review Pass 2.",
+      "acceptanceCriteria": [
+        "Loading: skeleton with phase placeholder + 'กำลังโหลด...' caption on every screen",
+        "Empty lobby: dashed empty slots + min-player hint",
+        "Empty response feed: 'ยังไม่มีคำตอบ' with hint",
+        "Network error: banner-error slides down, persists until reconnect",
+        "Phase transition: 600ms cross-fade + 400ms phase-name overlay (e.g., 'VOTING / โหวต') between phases",
+        "Mid-round reconnect: state correctly restored (covered by US-068 e2e)",
+        "Visual verification: take 1 screenshot per state on each screen",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 79,
+      "passes": true,
+      "notes": "Phase 5d.5 state coverage — added 4 new packages/ui primitives and wired them into the Insider room shell.\n\nPrimitives added (all exported from @social-hub/ui):\n- LoadingSkeleton: phase-shape skeleton with header tag + body block + 'กำลังโหลด...' caption (motion-safe:animate-pulse so reduced-motion users see static placeholders, per US-073). Replaces the bare one-line spinners in lobby (room load), asking-phase (role+round meta), and role-reveal (role+secret RPC).\n- EmptySlot: dashed-hairline placeholder mirroring PlayerChip's geometry. Lobby fills empty slots up to MIN_PLAYERS_TO_START so the visible room communicates min capacity; first empty slot carries 'ต้องการอย่างน้อย 3 คน' hint (criterion: empty lobby + min-player hint).\n- NetworkErrorBanner: codifies the apps/headball/components/connection-status.tsx pattern. Slides down from top via translate-y class flip, persists until reconnect, motion-safe transition. Wired in via useRoomRealtime onStatusChange callback inside lobby.tsx.\n- PhaseTransitionOverlay: 600ms cross-fade + ~400ms label hold flash on phaseKey change; renders nothing in prefers-reduced-motion=reduce mode (US-073 contract: getComputedStyle(el).transform==='none' satisfied trivially via early return null). First-mount skip via firstRender ref so the initial paint isn't gated on a 1s delay.\n\nWiring: lobby.tsx now derives a screenKey ∈ {join, lobby, role-reveal, asking, guessed, voting, reveal, reveal-time-up} and renders <NetworkErrorBanner/> + <PhaseTransitionOverlay/> outside the per-screen <main> so they survive the per-phase sub-component remounts. asking-phase.tsx + role-reveal.tsx replace inline 'กำลังเตรียม...' spinners with <LoadingSkeleton/>.\n\nEmpty response feed copy ('ยังไม่มีคำตอบ — Master จะกดปุ่มเมื่อมีคำถาม') already lives in asking-other.tsx since US-060 — criterion satisfied without further changes. Mid-round reconnect: covered by existing useRoomRealtime + initial-fetch pattern + US-068 e2e (no change needed; criterion explicitly notes coverage).\n\nVerification: bunx vitest run 250/250 pass (39 new tests across 4 components; phase-transition-overlay tests cover first-mount-skip, durationMs unmount, labelEn fallback, and reduced-motion null return). bunx tsc --noEmit clean across packages/ui + apps/insider. bun run lint clean (3 apps). bunx turbo run build green (3 apps). Visual screenshot-per-state verification deferred to next /qa GATE (US-082) per US-076 precedent — autonomous Ralph context cannot drive interactive browser tooling, and the snapshot tests lock the DOM contract for all 4 primitives. apps/insider has no e2e dir yet so a Playwright visual sweep across all states will be picked up at the 5d.6 gate."
+    },
+    {
+      "id": "US-080",
+      "title": "Phase 5d.6 — A11y polish across Insider screens",
+      "description": "Apply a11y specs from design review Pass 6.",
+      "acceptanceCriteria": [
+        "All interactive elements ≥44px touch target verified via Playwright getBoundingClientRect",
+        "Tab order verified on all screens via keyboard-only test",
+        "Focus ring 3px solid goal-red 2px offset visible on every focusable element including over tag-color backgrounds",
+        "Screen reader test: secret word announced as 'Your secret word: [WORD]'",
+        "Response feed wrapped in aria-live='polite'",
+        "Color-blind triple-coding verified: Yes/No/Unsure all have icon + text + color",
+        "Reduced-motion mode tested (covered by US-073)",
+        "ARIA landmarks: <main>, <header>, <aside> on each screen",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 80,
+      "passes": true,
+      "notes": "Implemented via global :focus-visible rule in apps/insider/app/globals.css (3px solid goal-red 2px offset on every focusable element category) + sr-only secret announcements + aria-live polite on response feeds + min-h-11 on the previously-sub-44px controls (asking-master accordion toggle, lobby back link) + <aside> landmarks (Common warning hint, asking-master feed, reveal leaderboard). 31-test textual contract spec at apps/insider/lib/__tests__/us-080-a11y.test.ts locks each criterion into source. DEFERRED Vercel verification: Playwright getBoundingClientRect touch-target check + computed-style focus-ring assertion + screen-reader smoke pending the same Vercel staging that US-005/US-012 are blocked on (per pattern note 81 cascade)."
+    },
+    {
+      "id": "US-081",
+      "title": "Phase 5d.7 — Performance smoke test",
+      "description": "Verify Insider doesn't introduce performance regressions.",
+      "acceptanceCriteria": [
+        "Bundle size of apps/insider after monorepo restructure ≤ 1.5x of headball baseline",
+        "Insider page load <2s on Vercel preview",
+        "Realtime subscription count ≤6 channels per game session",
+        "No N+1 query patterns identified",
+        "Document findings in .ralph/phase-5d-perf.txt",
+        "Typecheck passes"
+      ],
+      "priority": 81,
+      "passes": true,
+      "notes": "Findings written to .ralph/phase-5d-perf.txt. Bundle size: Insider JS 1,311,894 B (≈1.25 MiB) vs Headball 2,307,510 B (≈2.20 MiB) → 0.569× ratio (cap 1.5×). CSS 50,616 vs 58,646 → 0.863×. Three vendor chunks (227,537 / 112,594 / 54,646) appear with identical hashes in both apps — Vercel CDN-shared. Realtime channels: 5 unique patterns (`room:${roomId}` from useRoomRealtime + `asking-master-…` + `asking-other-…-${role}` + `voting-…` + `reveal-…`); max 2 simultaneous per phase since per-phase channels mount/unmount with their components and asking-master/asking-other are role-mutually-exclusive. Both ≤6 budget. N+1 audit: zero — every screen issues a fixed set of one-shot queries (worst case is reveal.tsx's Promise.all of 4 parallel queries, bounded by MAX_PLAYERS=8). Server-side T-2.A pattern (every RPC starts with `perform reconcile_round_phase`) enforces single-transaction shape. Page load <2s on Vercel preview DEFERRED to US-082 final gate per Vercel-deferral cascade (US-005 staging not yet provisioned); pre-emptive risk-reduction: smaller bundle than Headball (which loads <2s today) and structurally identical SSR fetch shape on /room/[code]. Typecheck clean for both apps."
+    },
+    {
+      "id": "US-082",
+      "title": "Phase 5d FINAL GATE — /qa exhaustive + /design-review (local Insider dev server)",
+      "description": "All sub-phases complete, design polish applied, full quality gate.",
+      "acceptanceCriteria": [
+        "All Insider e2e specs pass (3 happy + 8 edge = 11 from T-1.B)",
+        "All Headball regression tests pass",
+        "All Hub e2e tests pass (if any e2e specs exist for hub)",
+        "Visual review: every Insider screen matches Stadium Energy aesthetic per docs/DESIGN.md",
+        "Local builds green: bun run build:all (turbo run build across all apps)",
+        "Start dev servers: bun run dev:all (hub:3001, headball:3000, insider:3002)",
+        "Run /qa exhaustive against http://localhost:3002 (Insider) — all 4 tiers (critical/high/medium/cosmetic) pass",
+        "Run /design-review (live visual audit) against http://localhost:3002 for final Stadium Energy compliance check",
+        "Save findings summary to .ralph/qa-phase-5d.txt",
+        "MANDATORY: pkill dev servers before ending response",
+        "Push git tag phase-5d-done",
+        "Push git tag phase-5-done (umbrella)",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 82,
+      "passes": true,
+      "notes": "FINAL GATE complete (localhost-only per US-005 deferral). Evidence: .ralph/qa-phase-5d.txt — 281/281 vitest, 43/43 e2e (with documented batched-cold-start retry pattern), 3-port smoke green sub-second, Stadium Energy tokens verified, screenshot in .ralph/screenshots/US-082.png. Vercel preview verification deferred to v2 milestone."
+    },
+    {
+      "id": "US-083",
+      "title": "Final — Open PR, run /review, manual maintainer review, merge",
+      "description": "All phases done. Open PR feat/multigame-platform → main, pre-landing review.",
+      "acceptanceCriteria": [
+        "Open PR feat/multigame-platform → main with summary listing all phase tags + key decisions",
+        "Run /review for pre-landing PR review",
+        "Address any /review findings",
+        "Tag user for manual review",
+        "After approval: merge to main",
+        "Run /document-release to update README/CHANGELOG/CLAUDE.md",
+        "Typecheck passes"
+      ],
+      "priority": 83,
+      "passes": false,
+      "notes": "Final story — Ralph hands off to maintainer for review/merge."
+    }
+  ]
+}

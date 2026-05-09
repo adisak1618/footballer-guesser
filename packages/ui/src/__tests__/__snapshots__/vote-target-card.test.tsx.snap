@@ -1,0 +1,40 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`VoteTargetCard > selected variant matches snapshot (goal ring + check overlay) 1`] = `
+<button
+  aria-label="Vote ALICE"
+  aria-pressed="true"
+  class="relative flex min-h-[120px] w-full flex-col items-center justify-center gap-1 rounded-2xl px-4 py-3 transition-transform active:scale-[0.99] disabled:opacity-60 bg-tag-red text-on-dark ring-4 ring-goal ring-offset-2 ring-offset-ink"
+  data-testid="vote-target-card-alice"
+  type="button"
+>
+  <span
+    class="font-display text-[24px] uppercase leading-none tracking-[1px]"
+  >
+    ALICE
+  </span>
+  <span
+    aria-hidden="true"
+    class="absolute right-3 top-3 flex h-7 w-7 items-center justify-center rounded-full bg-goal text-on-dark"
+    data-testid="vote-target-check"
+  >
+    ✓
+  </span>
+</button>
+`;
+
+exports[`VoteTargetCard > unselected variant matches snapshot 1`] = `
+<button
+  aria-label="Vote ALICE"
+  aria-pressed="false"
+  class="relative flex min-h-[120px] w-full flex-col items-center justify-center gap-1 rounded-2xl px-4 py-3 transition-transform active:scale-[0.99] disabled:opacity-60 bg-tag-red text-on-dark"
+  data-testid="vote-target-card-alice"
+  type="button"
+>
+  <span
+    class="font-display text-[24px] uppercase leading-none tracking-[1px]"
+  >
+    ALICE
+  </span>
+</button>
+`;
