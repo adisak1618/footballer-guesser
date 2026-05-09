@@ -48,8 +48,15 @@ else
 fi
 
 if [ -n "$DEV_PIDS" ]; then
-  echo "  ⚠ leaked dev servers detected (pids: $DEV_PIDS) — would block claude exit"
-  echo "    fix: pkill -f 'next dev'; pkill -f 'next-server'; pkill -f 'turbo run dev'"
+  # Distinguish "actively used" vs "leaked":
+  #   - dev servers + agent alive    = actively used (agent running e2e/qa) — fine
+  #   - dev servers + no agent       = leaked from a previous iteration — would block next
+  if [ -n "$CLAUDE_PIDS" ]; then
+    echo "  · dev servers running (pids: $DEV_PIDS) — likely in use by current GATE/UI iteration"
+  else
+    echo "  ⚠ leaked dev servers detected (pids: $DEV_PIDS) — would block next claude exit"
+    echo "    fix: pkill -f 'next dev'; pkill -f 'next-server'; pkill -f 'turbo run dev'"
+  fi
 fi
 
 # ── RUN LOG (most recent activity) ──────────────────────────────
@@ -76,20 +83,32 @@ echo ""
 echo "VERDICT:"
 if [ -z "$RALPH_PIDS" ] && [ "$DONE" = "$TOTAL" ]; then
   echo "  ✓ ALL DONE — every story passes"
+elif [ -z "$RALPH_PIDS" ] && [ -n "$DEV_PIDS" ]; then
+  echo "  ⚠ Ralph not running but dev servers leaked from a previous run."
+  echo "    Clean up before re-launching:"
+  echo "      pkill -f 'next dev'; pkill -f 'next-server'; pkill -f 'turbo run dev'"
 elif [ -z "$RALPH_PIDS" ]; then
   echo "  · Ralph not running. $((TOTAL - DONE)) stories remain. Re-launch with:"
   echo "      ./.ralph/ralph.sh --tool claude 30"
-elif [ -n "$DEV_PIDS" ]; then
-  echo "  ✗ STUCK — dev servers leaked are blocking claude --print exit."
-  echo "      Kill them: pkill -f 'next dev'; pkill -f 'next-server'"
 elif [ -n "$CLAUDE_PIDS" ]; then
   if [ "${CPU:-0}" != "0" ] && [ -n "$CPU" ]; then
-    echo "  ✓ HEALTHY — claude --print is actively working (CPU=$CPU%)"
+    if [ -n "$DEV_PIDS" ]; then
+      echo "  ✓ HEALTHY — agent is actively working a UI/GATE story (CPU=$CPU%, dev servers in use)"
+    else
+      echo "  ✓ HEALTHY — agent is actively working (CPU=$CPU%)"
+    fi
   else
-    echo "  ⚠ POSSIBLY STUCK — claude --print is alive but %CPU=$CPU."
-    echo "    If the elapsed time is >15min and CPU stays near 0%, check for"
-    echo "    leaked dev servers (pgrep -af 'next dev')."
+    if [ -n "$DEV_PIDS" ]; then
+      echo "  · agent alive at low CPU — likely in test/qa phase using dev servers (CPU=$CPU%)"
+      echo "    Test/QA suites can take 20-40 min for GATE stories. Be patient."
+    else
+      echo "  ⚠ POSSIBLY STUCK — agent alive but %CPU=$CPU and no dev servers."
+      echo "    If elapsed time >30min, watchdog will eventually fire."
+    fi
   fi
+elif [ -n "$DEV_PIDS" ]; then
+  echo "  ✗ STUCK — dev servers leaked AND no agent process. Watchdog may eventually fire."
+  echo "      Kill manually to recover faster: pkill -f 'next dev'; pkill -f 'next-server'"
 else
   echo "  ⚠ ralph.sh alive without claude --print child — between iterations,"
   echo "    or the bash loop hung after a child exit. Wait 10s and re-check."
