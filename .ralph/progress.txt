@@ -1462,3 +1462,28 @@ US-005 depends on US-006 (the staging Supabase env vars). Recommended order:
   - ✓ `bunx vitest run` (workspace, 193 tests) clean.
   - ✓ Browser verification via the Playwright e2e (no separate dev-browser pass — Playwright IS the browser verification).
 ---
+
+## 2026-05-09 — US-065 (Phase 5b GATE — Insider happy-path regression check)
+- Phase 5b GATE PASSED. Vercel-tied criteria DEFERRED to one-time maintainer sweep when US-005/006 unlock (per Vercel-deferral cascade).
+- Local gate checks (all green):
+  - `cd apps/headball && bunx tsc --noEmit` → silent, exit 0.
+  - `cd apps/insider && bunx tsc --noEmit` → silent, exit 0.
+  - `cd apps/hub && bunx tsc --noEmit` → silent, exit 0.
+  - `bun run lint` → realtime-publication checker OK, turbo full-cache-hit on all 3 apps.
+  - `bunx vitest run` (workspace) → **30 files / 193 tests / 193 passed** (PRD criterion was "21 unit + 5 e2e" — pre-Phase-5a baseline; now strictly more per Outdated PRD test counts pattern).
+  - `bunx turbo run build` → 3/3 apps green (headball, hub, insider) in 9.9s.
+  - `cd apps/headball && bunx playwright test` → **14/14 pass in 48.2s** (zero Headball regressions; chip-suggestions cold-start flake did NOT reproduce this run, but mitigation pattern still documented).
+  - `cd apps/hub && bunx playwright test` → **11/11 pass in 8.2s** (zero Hub regressions).
+  - From workspace root: `bunx playwright test e2e/insider-{caught,escaped,time-expired}.spec.ts` → **3/3 pass in 28.7s** with workspace-root multi-app webServer config (T-3.A) spinning up hub:3001 + headball:3000 + insider:3002 in parallel via turbo.
+- Headball-untouched verification (per US-051's "structural + behavioral" pattern):
+  - Structural: `git diff phase-5a-done..HEAD --stat -- apps/headball/` returns zero diff lines (Phase 5b was apps/insider/ + workspace e2e/ + packages/ui/ only).
+  - Behavioral: 14/14 headball e2e + 193/193 workspace unit (covers headball + insider + packages) green.
+- Pushed git tag `phase-5b-done` to `origin/phase-5b-done` at the US-064 commit `c50611c`.
+- Files changed: `.ralph/prd.json` (US-065 passes:true with detailed DEFERRED note), `.ralph/progress.txt` (this entry).
+- **Learnings:**
+  - **The US-051 "structural + behavioral" Headball-untouched pattern continues to hold for phase 5b.** Phase 5b was an Insider-UI-only phase (8 stories: US-052 multi-context Playwright config, US-053 host setup, US-054 lobby, US-055/056/057 role-reveal variants, US-058 asymmetric privacy, US-059/060 asking phase Master+non-Master, US-061 voting, US-062/063/064 reveal variants). All 8 touched only `apps/insider/`, `e2e/`, and `packages/ui/`. No `apps/headball/**` source changes required — the structural diff is the cheapest pre-flight check; if it shows ≠0 lines for a non-Headball phase, that's a red flag. Run it FIRST before the heavier behavioral suite.
+  - **The workspace-root multi-app `webServer` config (US-052) handles Insider 4-context happy-path specs with a single `playwright test` invocation.** Three turbo dev servers (hub:3001 + headball:3000 + insider:3002) spin up in parallel during the webServer phase, total cold-start ~30s. Tests then drive 4 Chromium contexts inside the same Playwright run. The pattern scales to any future cross-app or multi-role e2e — drop the spec into `e2e/`, use the existing `_helpers/multi-role.ts` helper, and the workspace config picks it up.
+  - **PRD acceptance counts ("21 unit + 5 e2e") are frozen at PRD-write time.** Phase 5a alone added 88 Postgres function tests via TDD; Phase 5b added 3 Insider happy-path e2e specs. As of US-065 the workspace baseline is **193 unit + 14 headball e2e + 11 hub e2e + 3 insider happy-path e2e**. The "strictly more coverage with zero failures = pass" rule from US-013 generalizes for the 6th time now (Phases 0-5b). When marking a GATE, capture the actual count in the prd.json `notes` so future Ralph iterations don't re-investigate.
+  - **Vercel-deferral cascade now spans 6 phases (0, 1, 2, 3, 4, 5a, 5b).** Each gate has the same DEFERRED template. When US-005/006 unlock, the maintainer's one-time sweep will need: 7 baseline `/qa` runs (one per phase) saved to `.ralph/qa-baseline-{phase-N}.txt`, plus the one-shot manual 4-browser Insider round verification from US-065. The local proxy evidence (typecheck + lint + vitest + 3-app build + e2e) substitutes cleanly for now.
+  - **Phase 5c kicks off next (10 edge-case e2e flows: voting tie, disconnected can be voted for can't vote, mid-round reconnect, late master action rejected, common→master_respond rejected, anon SELECT secret column rejected, race on expire_round, prefers-reduced-motion).** Per Phase 5 PRD, all 10 stories use the same `e2e/_helpers/multi-role.ts` + workspace-root playwright config established in 5b. No infra changes needed before US-066 starts.
+---

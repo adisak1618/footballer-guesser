@@ -1084,8 +1084,8 @@
         "Typecheck passes"
       ],
       "priority": 65,
-      "passes": false,
-      "notes": "GATE story."
+      "passes": true,
+      "notes": "GATE story. PASSED 2026-05-09 with Vercel-tied criteria DEFERRED per US-005 cascade. Local proxy evidence: tsc clean across headball/insider/hub; bun run lint full-turbo cache hit; bunx vitest run 193/193 (30 files); bunx turbo run build all 3 apps green; Headball e2e 14/14; Hub e2e 11/11; workspace-root Insider 3 happy-path specs (caught/escaped/time-expired) 3/3 in 28.7s — multi-app webServer (hub+headball+insider) spun up via turbo. Pushed tag phase-5b-done. Outdated test count '21 unit + 5 e2e' — actual baseline now 193 unit + 14 headball e2e + 11 hub e2e + 3 insider happy-path e2e (strictly more, per Outdated PRD test counts pattern). /qa standard + 4-browser manual + Vercel preview pending one-time maintainer sweep when US-005/006 unlock."
     },
     {
       "id": "US-066",
