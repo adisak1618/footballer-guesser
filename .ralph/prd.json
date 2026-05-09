@@ -1099,8 +1099,8 @@
         "Verify in browser using dev-browser skill"
       ],
       "priority": 66,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "PASSED 2026-05-09. e2e/insider-voting-tie.spec.ts engineers a 2-2 tie with Insider IN the tied set (Master+commonA→Insider, Insider+commonB→commonA) and asserts D2 caught resolution: top_set={Insider, commonA}, scoring Master+2/commonA+2/commonB+2/Insider+0, Screen 8a CAUGHT shell on all 4 pages. Verified existing migration 0028 tie logic correctly identifies top-voted set via array_agg over max(c). Typecheck (workspace-root e2e/ tsconfig) clean. e2e ran in 9.2s on workspace-root multi-app webServer. Browser verification via Playwright spec per Ralph autonomous-context fallback."
     },
     {
       "id": "US-067",
