@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
+import { ResponseFeedEntry } from "@social-hub/ui"
 import type { MasterResponse } from "@/lib/insider-rpc"
 import { supabase } from "@/lib/supabase"
 
@@ -190,25 +191,15 @@ export function AskingOther({
           </li>
         ) : (
           reversed.map((r) => (
-            <li
+            <ResponseFeedEntry
               key={r.id}
-              data-testid="asking-other-feed-row"
-              className="flex items-center justify-between gap-3 rounded-lg bg-surface px-3 py-2"
-            >
-              <span
-                data-testid="asking-other-feed-time"
-                className="font-body text-xs tabular-nums text-on-dark-soft"
-              >
-                {formatRelative(r.created_at, nowMs)}
-              </span>
-              <span className="flex items-center gap-2 font-display text-[18px] uppercase leading-none tracking-[1px] text-on-dark">
-                <span aria-hidden>{RESPONSE_ICON[r.response]}</span>
-                <span>{RESPONSE_LABEL_EN[r.response]}</span>
-                <span className="font-body text-xs text-on-dark-soft">
-                  / {RESPONSE_LABEL_TH[r.response]}
-                </span>
-              </span>
-            </li>
+              testId="asking-other-feed-row"
+              timeTestId="asking-other-feed-time"
+              timestamp={formatRelative(r.created_at, nowMs)}
+              icon={RESPONSE_ICON[r.response]}
+              labelEn={RESPONSE_LABEL_EN[r.response]}
+              labelTh={RESPONSE_LABEL_TH[r.response]}
+            />
           ))
         )}
       </ul>

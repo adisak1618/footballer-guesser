@@ -1,0 +1,92 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`ResponseFeedEntry > renders timestamp + icon + EN/TH labels (asking-other shape) 1`] = `
+<ul>
+  <li
+    class="flex min-h-[44px] items-center justify-between gap-3 rounded-lg bg-surface px-3 py-2"
+    data-testid="asking-other-feed-row"
+  >
+    <span
+      class="font-body text-xs tabular-nums text-on-dark-soft"
+      data-testid="asking-other-feed-time"
+    >
+      0:05
+    </span>
+    <span
+      class="flex items-center gap-2 font-display text-[18px] uppercase leading-none tracking-[1px] text-on-dark"
+    >
+      <span
+        aria-hidden="true"
+      >
+        ✓
+      </span>
+      <span>
+        YES
+      </span>
+      <span
+        class="font-body text-xs text-on-dark-soft"
+      >
+        / 
+        ใช่
+      </span>
+    </span>
+  </li>
+</ul>
+`;
+
+exports[`ResponseFeedEntry > renders without labelEn (icon + TH only) 1`] = `
+<ul>
+  <li
+    class="flex min-h-[44px] items-center justify-between gap-3 rounded-lg bg-surface px-3 py-2"
+    data-testid="row-only-th"
+  >
+    <span
+      class="font-body text-xs tabular-nums text-on-dark-soft"
+    >
+      0:12
+    </span>
+    <span
+      class="flex items-center gap-2 font-display text-[18px] uppercase leading-none tracking-[1px] text-on-dark"
+    >
+      <span
+        aria-hidden="true"
+      >
+        ✗
+      </span>
+      <span
+        class="font-body text-xs text-on-dark-soft"
+      >
+        / 
+        ไม่ใช่
+      </span>
+    </span>
+  </li>
+</ul>
+`;
+
+exports[`ResponseFeedEntry > renders without labelTh (icon + EN only) 1`] = `
+<ul>
+  <li
+    class="flex min-h-[44px] items-center justify-between gap-3 rounded-lg bg-surface px-3 py-2"
+    data-testid="row-only-en"
+  >
+    <span
+      class="font-body text-xs tabular-nums text-on-dark-soft"
+    >
+      0:18
+    </span>
+    <span
+      class="flex items-center gap-2 font-display text-[18px] uppercase leading-none tracking-[1px] text-on-dark"
+    >
+      <span
+        aria-hidden="true"
+      >
+        ?
+      </span>
+      <span>
+        UNSURE
+      </span>
+    </span>
+  </li>
+</ul>
+`;

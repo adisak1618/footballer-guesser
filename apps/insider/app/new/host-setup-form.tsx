@@ -3,31 +3,10 @@
 import { useEffect, useMemo, useRef, useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
 import type { EnabledPack } from "@social-hub/content"
+import { PackChip } from "@social-hub/ui"
 import { createInsiderRoomAction } from "@/app/actions/create-insider-room"
 import { getOrCreatePlayerId } from "@/lib/player-id"
 import { displayNameSchema } from "@/lib/schemas"
-
-const TAG_COLORS = [
-  "bg-tag-red",
-  "bg-tag-blue",
-  "bg-tag-yellow",
-  "bg-tag-green",
-  "bg-tag-purple",
-  "bg-tag-orange",
-  "bg-tag-pink",
-  "bg-tag-cyan",
-] as const
-
-const TAG_TEXT_COLORS = [
-  "text-on-dark", // red
-  "text-on-dark", // blue
-  "text-ink", // yellow
-  "text-on-dark", // green
-  "text-on-dark", // purple
-  "text-on-dark", // orange
-  "text-on-dark", // pink
-  "text-ink", // cyan
-] as const
 
 const TIME_OPTIONS: ReadonlyArray<{ value: 180 | 300 | 420; label: string }> = [
   { value: 180, label: "3 MIN" },
@@ -155,38 +134,22 @@ export function HostSetupForm({ packs }: Props) {
         >
           {packs.map((pack) => {
             const isSelected = packSlug === pack.slug
-            const tagIdx =
-              (packIndexBySlug.get(pack.slug) ?? 0) % TAG_COLORS.length
-            const selectedBg = TAG_COLORS[tagIdx]
-            const selectedText = TAG_TEXT_COLORS[tagIdx]
+            const tagIdx = packIndexBySlug.get(pack.slug) ?? 0
+            const showSubLabel = Boolean(
+              pack.displayNameTh &&
+                pack.displayName !== pack.displayNameTh,
+            )
             return (
-              <button
+              <PackChip
                 key={pack.slug}
-                type="button"
-                role="radio"
-                aria-checked={isSelected}
+                joinIndex={tagIdx}
+                label={pack.displayNameTh ?? pack.displayName}
+                subLabel={showSubLabel ? pack.displayName : undefined}
+                selected={isSelected}
                 disabled={isPending}
-                onClick={() => setPackSlug(pack.slug)}
-                data-testid={`pack-chip-${pack.slug}`}
-                className={`min-h-16 rounded-xl border px-4 py-3 text-left transition-colors ${
-                  isSelected
-                    ? `${selectedBg} ${selectedText} border-transparent shadow-md`
-                    : "border-hairline bg-surface-elevated text-on-dark active:bg-surface"
-                } disabled:opacity-60`}
-              >
-                <span className="block font-display text-base uppercase tracking-[0.5px]">
-                  {pack.displayNameTh ?? pack.displayName}
-                </span>
-                {pack.displayNameTh && pack.displayName !== pack.displayNameTh ? (
-                  <span
-                    className={`block text-xs ${
-                      isSelected ? "opacity-90" : "text-on-dark-soft"
-                    }`}
-                  >
-                    {pack.displayName}
-                  </span>
-                ) : null}
-              </button>
+                onTap={() => setPackSlug(pack.slug)}
+                testId={`pack-chip-${pack.slug}`}
+              />
             )
           })}
         </div>
