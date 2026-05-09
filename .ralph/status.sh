@@ -23,7 +23,10 @@ echo "NEXT:      $NEXT  $NEXT_TITLE"
 echo ""
 echo "PROCESSES:"
 RALPH_PIDS=$(pgrep -f "ralph\.sh --tool" 2>/dev/null | tr '\n' ' ')
-CLAUDE_PIDS=$(pgrep -f "claude --print" 2>/dev/null | tr '\n' ' ')
+# Match claude with --print flag anywhere in args. cmux injects --session-id and
+# --settings between "claude" and "--print", so a literal "claude --print" substring
+# match misses the real process. Use regex instead.
+CLAUDE_PIDS=$(pgrep -f "claude.*--print" 2>/dev/null | tr '\n' ' ')
 DEV_PIDS=$(pgrep -f "next dev|next-server|turbo run dev" 2>/dev/null | tr '\n' ' ')
 
 if [ -n "$RALPH_PIDS" ]; then
