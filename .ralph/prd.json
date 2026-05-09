@@ -1195,8 +1195,8 @@
         "Verify in browser using dev-browser skill"
       ],
       "priority": 73,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Added e2e/insider-reduced-motion.spec.ts driving a 4-context full round to the caught reveal under reducedMotion:reduce + colorScheme:dark. Asserts: (1) every page matches matchMedia(\"(prefers-reduced-motion: reduce)\"), (2) reveal-secret-name + parent computed transform == \"none\" (no flip mid-flight), (3) zero elements matching [data-testid^=\"reveal-confetti\"], (4) score tile textContent sampled in same JS turn as shell visibility shows final \"+2 pts\" / \"0 pts\" — no count-up roll. e2e:typecheck clean. Pre-5d the animations don't exist so the contract is locked-in for the polish pass: the 5d flip/confetti/score-roll MUST gate on prefers-reduced-motion or this spec turns red. Extended e2e/_helpers/multi-role.ts to accept optional BrowserContextOptions (backward-compat default {}); reused by all other specs."
     },
     {
       "id": "US-074",
