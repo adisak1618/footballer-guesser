@@ -16,10 +16,11 @@ type InsiderRole = "master" | "insider" | "player"
 interface AskingPhaseProps {
   roomId: string
   round: number
+  roundTotal: number
   mePlayerId: string
 }
 
-export function AskingPhase({ roomId, round, mePlayerId }: AskingPhaseProps) {
+export function AskingPhase({ roomId, round, roundTotal, mePlayerId }: AskingPhaseProps) {
   const [role, setRole] = useState<InsiderRole | null>(null)
   const [secret, setSecret] = useState<string | null>(null)
   const [startedAt, setStartedAt] = useState<string | null>(null)
@@ -87,6 +88,7 @@ export function AskingPhase({ roomId, round, mePlayerId }: AskingPhaseProps) {
       <AskingMaster
         roomId={roomId}
         round={round}
+        roundTotal={roundTotal}
         mePlayerId={mePlayerId}
         secret={secret}
         startedAt={startedAt}
@@ -102,6 +104,7 @@ export function AskingPhase({ roomId, round, mePlayerId }: AskingPhaseProps) {
     <AskingOther
       roomId={roomId}
       round={round}
+      roundTotal={roundTotal}
       role={otherRole}
       startedAt={startedAt}
       timeLimitS={timeLimitS ?? 0}

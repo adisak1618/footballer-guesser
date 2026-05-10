@@ -175,3 +175,143 @@ describe("Issue #16 — Insider asking phase simplification", () => {
     })
   })
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Issue #23 — Round counter X/Y on every mid-game Insider screen.
+//
+// Source-text contract: the in-game header components must render
+// "ROUND X / Y" (asking) or "ROUND X / Y RESULT" (reveal), and the round-
+// total prop must be plumbed through the asking + voting + reveal stack.
+// LobbyView's Start CTA must flip to "Start Round next / total" once at
+// least one round has been played, and stay "Start Game" for the initial
+// lobby. roundTotal > 1 is the canonical case (default Insider rooms ship
+// with max_rounds = 5).
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("Issue #23 — Round counter X/Y mid-game", () => {
+  describe("AskingHeader (asking-header.tsx)", () => {
+    const src = read("asking-header.tsx")
+
+    it("declares round + roundTotal as numeric props", () => {
+      expect(src).toMatch(/round:\s*number/)
+      expect(src).toMatch(/roundTotal:\s*number/)
+    })
+
+    it("renders the ROUND X / Y counter in the header", () => {
+      expect(src).toMatch(/data-testid="asking-round-counter"/)
+      // Bound directly to the props — guards against a stale "ROUND 1 / 1"
+      // literal slipping in.
+      expect(src).toMatch(/ROUND \{round\} \/ \{roundTotal\}/)
+    })
+
+    it("uses Stadium Energy tokens for the counter (font-display + tabular-nums)", () => {
+      const counter = src.match(
+        /asking-round-counter"[\s\S]*?<\/span>/,
+      )
+      expect(counter).not.toBeNull()
+      const [block] = counter ?? [""]
+      expect(block).toMatch(/font-display/)
+      expect(block).toMatch(/tabular-nums/)
+      expect(block).toMatch(/uppercase/)
+    })
+  })
+
+  describe("Asking router + sub-screens plumb roundTotal", () => {
+    it("AskingPhase declares + forwards roundTotal", () => {
+      const src = read("asking-phase.tsx")
+      expect(src).toMatch(/roundTotal:\s*number/)
+      // Forwarded to BOTH the master and the non-master sub-screen.
+      expect(src).toMatch(/<AskingMaster[\s\S]*?roundTotal=\{roundTotal\}/)
+      expect(src).toMatch(/<AskingOther[\s\S]*?roundTotal=\{roundTotal\}/)
+    })
+
+    it("AskingMaster forwards roundTotal to AskingHeader", () => {
+      const src = read("asking-master.tsx")
+      expect(src).toMatch(/roundTotal:\s*number/)
+      expect(src).toMatch(/<AskingHeader[\s\S]*?roundTotal=\{roundTotal\}/)
+    })
+
+    it("AskingOther forwards roundTotal to AskingHeader", () => {
+      const src = read("asking-other.tsx")
+      expect(src).toMatch(/roundTotal:\s*number/)
+      expect(src).toMatch(/<AskingHeader[\s\S]*?roundTotal=\{roundTotal\}/)
+    })
+  })
+
+  describe("Voting plumbs roundTotal", () => {
+    const src = read("voting.tsx")
+
+    it("declares roundTotal in VotingProps", () => {
+      expect(src).toMatch(/roundTotal:\s*number/)
+    })
+  })
+
+  describe("Reveal renders ROUND X / Y RESULT in all three variants", () => {
+    const src = read("reveal.tsx")
+
+    it("re-uses the existing maxRounds prop (added by Issue #17) as the round total", () => {
+      // Issue #17 already shipped maxRounds: number on RevealProps for the
+      // final-round gate; #23 piggybacks on that same prop for the header
+      // copy, so we don't introduce a parallel roundTotal field.
+      expect(src).toMatch(/maxRounds:\s*number/)
+      expect(src).toMatch(/\{[^}]*maxRounds[^}]*\}\s*:\s*RevealProps/)
+    })
+
+    it("escaped + caught variants render ROUND X / Y RESULT (binds to props)", () => {
+      // All three reveal-round-header occurrences should now be ROUND {round} / {maxRounds} RESULT.
+      const matches = src.match(/ROUND \{round\} \/ \{maxRounds\} RESULT/g) ?? []
+      // Three variants: time-expired (label), escaped (header), caught (header).
+      expect(matches.length).toBeGreaterThanOrEqual(3)
+      // Pre-#23 literal must be gone (caught/escaped).
+      expect(src).not.toMatch(/>\s*ROUND \{round\} RESULT\s*</)
+    })
+
+    it("time-expired variant header includes / Y RESULT", () => {
+      // The 8c TIME-UP variant's pre-header label was "ROUND {round}";
+      // it now reads "ROUND {round} / {maxRounds} RESULT".
+      const block = src.match(
+        /reveal-time-expired-round-label"[\s\S]*?<\/p>/,
+      )
+      expect(block).not.toBeNull()
+      const [label] = block ?? [""]
+      expect(label).toMatch(/ROUND \{round\} \/ \{maxRounds\} RESULT/)
+    })
+  })
+
+  describe("Lobby surfaces max_rounds + LobbyView CTA copy", () => {
+    const src = read("lobby.tsx")
+
+    it("InsiderRoom selects max_rounds from supabase", () => {
+      // Type field — Issue #17 made max_rounds non-nullable since the
+      // scoreboard's final-round gate depends on it.
+      expect(src).toMatch(/max_rounds:\s*number/)
+      // …and the SELECT list must include max_rounds (otherwise the type
+      // is a lie at runtime — Supabase only returns what you ask for).
+      expect(src).toMatch(
+        /\.select\(\s*"id, code, status, host_player_id, current_round, max_rounds"\s*\)/,
+      )
+    })
+
+    it("forwards roundTotal to AskingPhase + Voting; Reveal uses maxRounds (Issue #17)", () => {
+      // Phase router derives roundTotal from room.max_rounds.
+      expect(src).toMatch(/const roundTotal\s*=\s*room\.max_rounds/)
+      expect(src).toMatch(/<AskingPhase[\s\S]*?roundTotal=\{roundTotal\}/)
+      expect(src).toMatch(/<Voting[\s\S]*?roundTotal=\{roundTotal\}/)
+      // Reveal already takes maxRounds (added by Issue #17 for the final-round gate).
+      expect(src).toMatch(/<Reveal[\s\S]*?maxRounds=\{room\.max_rounds\}/)
+    })
+
+    it("Start CTA flips to Start Round next/total once a round has been played", () => {
+      // Initial lobby gate: current_round < 1 keeps "Start Game".
+      expect(src).toMatch(/currentRound >= 1/)
+      // Next-round number is current_round + 1.
+      expect(src).toMatch(/nextRound\s*=\s*currentRound\s*\+\s*1/)
+      // Between-rounds copy uses both nextRound and roundTotal.
+      expect(src).toMatch(
+        /Start Round \$\{nextRound\} \/ \$\{roundTotal\}/,
+      )
+      // Initial copy still present.
+      expect(src).toMatch(/"Start Game →"/)
+    })
+  })
+})

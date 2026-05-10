@@ -328,8 +328,11 @@ export function Reveal({
         className="relative mx-auto flex min-h-[100dvh] w-full max-w-[480px] flex-col gap-6 border-t-4 border-error bg-ink px-6 pt-8 pb-10 text-on-dark"
       >
         <header className="flex flex-col items-center gap-2 text-center">
-          <p className="font-display text-[20px] uppercase leading-none tracking-[2px] text-on-dark-soft">
-            ROUND {round}
+          <p
+            data-testid="reveal-time-expired-round-label"
+            className="font-display text-[20px] uppercase leading-none tracking-[2px] text-on-dark-soft"
+          >
+            ROUND {round} / {maxRounds} RESULT
           </p>
           <h1
             data-testid="reveal-time-expired-header"
@@ -447,7 +450,7 @@ export function Reveal({
             data-testid="reveal-round-header"
             className="font-display text-[40px] uppercase leading-none tracking-[1px] text-on-dark"
           >
-            ROUND {round} RESULT
+            ROUND {round} / {maxRounds} RESULT
           </h1>
         </header>
 
@@ -601,7 +604,7 @@ export function Reveal({
           data-testid="reveal-round-header"
           className="font-display text-[40px] uppercase leading-none tracking-[1px] text-on-light"
         >
-          ROUND {round} RESULT
+          ROUND {round} / {maxRounds} RESULT
         </h1>
       </header>
 
