@@ -44,7 +44,10 @@ interface InsiderRoom {
   status: string
   host_player_id: string | null
   current_round: number | null
-  max_rounds: number | null
+  // Issue #17 — total rounds for the match. Drives the "is this the final
+  // round?" branch on the reveal screen so the round-end scoreboard can flip
+  // to a final-results view at the bottom of the last round.
+  max_rounds: number
 }
 
 const MAX_PLAYERS = 8
@@ -224,7 +227,7 @@ export function Lobby({ code }: { code: string }) {
   // `game_insider_round` (added in US-058) drives the per-phase routing below.
   if (room.status === "PLAYING") {
     const round = room.current_round ?? 1
-    const roundTotal = room.max_rounds ?? round
+    const roundTotal = room.max_rounds
     if (roundPhase === "asking") {
       return shell(
         <AskingPhase
@@ -251,9 +254,10 @@ export function Lobby({ code }: { code: string }) {
         <Reveal
           roomId={room.id}
           round={round}
-          roundTotal={roundTotal}
           mePlayerId={me.player_id}
           phase={roundPhase}
+          isHost={room.host_player_id === me.player_id}
+          maxRounds={room.max_rounds}
         />,
       )
     }
@@ -435,12 +439,12 @@ function LobbyView({
 
   const canStart = players.length >= MIN_PLAYERS_TO_START
 
-  // Between-rounds CTA shows next round number once at least one round has
-  // been played. Initial lobby (current_round < 1) keeps the welcome copy.
-  // Companion follow-up (#?) covers the end-of-game state where current_round
-  // has already reached max_rounds.
+  // Issue #23 — between-rounds CTA shows next round number once at least one
+  // round has been played. Initial lobby (current_round < 1) keeps the
+  // welcome copy; companion follow-up covers the end-of-game state where
+  // current_round has already reached max_rounds.
   const currentRound = room.current_round ?? 0
-  const roundTotal = room.max_rounds ?? 0
+  const roundTotal = room.max_rounds
   const isBetweenRounds = currentRound >= 1
   const nextRound = currentRound + 1
   const startCtaCopy = isPending

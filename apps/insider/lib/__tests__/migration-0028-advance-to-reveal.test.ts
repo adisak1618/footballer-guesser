@@ -189,12 +189,12 @@ async function readScores(roomId: string): Promise<Record<string, number>> {
 async function readRound(roomId: string) {
   const { data, error } = await admin
     .from("game_insider_round")
-    .select("phase, scored_at")
+    .select("phase, scored_at, outcome")
     .eq("room_id", roomId)
     .eq("round_number", 1)
     .single()
   if (error) throw error
-  return data as { phase: string; scored_at: string | null }
+  return data as { phase: string; scored_at: string | null; outcome: string | null }
 }
 
 beforeAll(async () => {
@@ -223,6 +223,7 @@ describe("advance_to_reveal (migration 0028) — Phase 5a.12", () => {
     const round = await readRound(f.roomId)
     expect(round.phase).toBe("reveal")
     expect(round.scored_at).not.toBeNull()
+    expect(round.outcome).toBe("INSIDER_CAUGHT")
 
     const scores = await readScores(f.roomId)
     expect(scores[f.masterId]).toBe(2)
@@ -250,6 +251,7 @@ describe("advance_to_reveal (migration 0028) — Phase 5a.12", () => {
     const round = await readRound(f.roomId)
     expect(round.phase).toBe("reveal")
     expect(round.scored_at).not.toBeNull()
+    expect(round.outcome).toBe("INSIDER_ESCAPED")
 
     const scores = await readScores(f.roomId)
     expect(scores[f.insiderId]).toBe(3)
@@ -274,6 +276,7 @@ describe("advance_to_reveal (migration 0028) — Phase 5a.12", () => {
     const round = await readRound(f.roomId)
     expect(round.phase).toBe("reveal")
     expect(round.scored_at).not.toBeNull()
+    expect(round.outcome).toBe("INSIDER_CAUGHT")
 
     const scores = await readScores(f.roomId)
     expect(scores[f.masterId]).toBe(2)
@@ -321,6 +324,7 @@ describe("advance_to_reveal (migration 0028) — Phase 5a.12", () => {
     const round = await readRound(f.roomId)
     expect(round.phase).toBe("result_failed")
     expect(round.scored_at).not.toBeNull()
+    expect(round.outcome).toBe("WORD_NOT_GUESSED")
 
     const scores = await readScores(f.roomId)
     expect(scores[f.masterId]).toBe(0)
@@ -329,10 +333,12 @@ describe("advance_to_reveal (migration 0028) — Phase 5a.12", () => {
     expect(scores[f.playerBId]).toBe(0)
   })
 
-  it("vote deadline passed with zero votes → reveal + everyone 0 (Time expired)", async () => {
+  it("vote deadline passed with zero votes → reveal + INSIDER_ESCAPED (issue #17)", async () => {
     // phase=voting, deadline -30s, no votes recorded at all. reconcile flips
-    // voting→reveal; advance_to_reveal sees zero votes and stamps scored_at
-    // without applying any score updates.
+    // voting→reveal; advance_to_reveal sees the word DID get guessed (we're
+    // not in result_failed) and the Insider was NOT identified (no votes), so
+    // per issue #17 / migration 0035 the outcome is INSIDER_ESCAPED → +3 to
+    // the insider, others 0.
     const f = await createRound(ROOM_CODES.deadlineNoVotes, {
       phase: "voting",
       voteDeadlineIso: new Date(Date.now() - 30 * 1000).toISOString(),
@@ -344,10 +350,11 @@ describe("advance_to_reveal (migration 0028) — Phase 5a.12", () => {
     const round = await readRound(f.roomId)
     expect(round.phase).toBe("reveal")
     expect(round.scored_at).not.toBeNull()
+    expect(round.outcome).toBe("INSIDER_ESCAPED")
 
     const scores = await readScores(f.roomId)
     expect(scores[f.masterId]).toBe(0)
-    expect(scores[f.insiderId]).toBe(0)
+    expect(scores[f.insiderId]).toBe(3)
     expect(scores[f.playerAId]).toBe(0)
     expect(scores[f.playerBId]).toBe(0)
   })

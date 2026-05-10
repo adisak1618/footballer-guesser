@@ -249,14 +249,17 @@ describe("Issue #23 — Round counter X/Y mid-game", () => {
   describe("Reveal renders ROUND X / Y RESULT in all three variants", () => {
     const src = read("reveal.tsx")
 
-    it("declares roundTotal in RevealProps and destructures it", () => {
-      expect(src).toMatch(/roundTotal:\s*number/)
-      expect(src).toMatch(/\{[^}]*roundTotal[^}]*\}\s*:\s*RevealProps/)
+    it("re-uses the existing maxRounds prop (added by Issue #17) as the round total", () => {
+      // Issue #17 already shipped maxRounds: number on RevealProps for the
+      // final-round gate; #23 piggybacks on that same prop for the header
+      // copy, so we don't introduce a parallel roundTotal field.
+      expect(src).toMatch(/maxRounds:\s*number/)
+      expect(src).toMatch(/\{[^}]*maxRounds[^}]*\}\s*:\s*RevealProps/)
     })
 
     it("escaped + caught variants render ROUND X / Y RESULT (binds to props)", () => {
-      // Both reveal-round-header occurrences should now be ROUND {round} / {roundTotal} RESULT.
-      const matches = src.match(/ROUND \{round\} \/ \{roundTotal\} RESULT/g) ?? []
+      // All three reveal-round-header occurrences should now be ROUND {round} / {maxRounds} RESULT.
+      const matches = src.match(/ROUND \{round\} \/ \{maxRounds\} RESULT/g) ?? []
       // Three variants: time-expired (label), escaped (header), caught (header).
       expect(matches.length).toBeGreaterThanOrEqual(3)
       // Pre-#23 literal must be gone (caught/escaped).
@@ -265,13 +268,13 @@ describe("Issue #23 — Round counter X/Y mid-game", () => {
 
     it("time-expired variant header includes / Y RESULT", () => {
       // The 8c TIME-UP variant's pre-header label was "ROUND {round}";
-      // it now reads "ROUND {round} / {roundTotal} RESULT".
+      // it now reads "ROUND {round} / {maxRounds} RESULT".
       const block = src.match(
         /reveal-time-expired-round-label"[\s\S]*?<\/p>/,
       )
       expect(block).not.toBeNull()
       const [label] = block ?? [""]
-      expect(label).toMatch(/ROUND \{round\} \/ \{roundTotal\} RESULT/)
+      expect(label).toMatch(/ROUND \{round\} \/ \{maxRounds\} RESULT/)
     })
   })
 
@@ -279,8 +282,9 @@ describe("Issue #23 — Round counter X/Y mid-game", () => {
     const src = read("lobby.tsx")
 
     it("InsiderRoom selects max_rounds from supabase", () => {
-      // Type field …
-      expect(src).toMatch(/max_rounds:\s*number\s*\|\s*null/)
+      // Type field — Issue #17 made max_rounds non-nullable since the
+      // scoreboard's final-round gate depends on it.
+      expect(src).toMatch(/max_rounds:\s*number/)
       // …and the SELECT list must include max_rounds (otherwise the type
       // is a lie at runtime — Supabase only returns what you ask for).
       expect(src).toMatch(
@@ -288,12 +292,13 @@ describe("Issue #23 — Round counter X/Y mid-game", () => {
       )
     })
 
-    it("forwards roundTotal (max_rounds fallback) to AskingPhase / Voting / Reveal", () => {
-      // Single derivation site near the phase router (room.max_rounds ?? round).
-      expect(src).toMatch(/const roundTotal\s*=\s*room\.max_rounds\s*\?\?\s*round/)
+    it("forwards roundTotal to AskingPhase + Voting; Reveal uses maxRounds (Issue #17)", () => {
+      // Phase router derives roundTotal from room.max_rounds.
+      expect(src).toMatch(/const roundTotal\s*=\s*room\.max_rounds/)
       expect(src).toMatch(/<AskingPhase[\s\S]*?roundTotal=\{roundTotal\}/)
       expect(src).toMatch(/<Voting[\s\S]*?roundTotal=\{roundTotal\}/)
-      expect(src).toMatch(/<Reveal[\s\S]*?roundTotal=\{roundTotal\}/)
+      // Reveal already takes maxRounds (added by Issue #17 for the final-round gate).
+      expect(src).toMatch(/<Reveal[\s\S]*?maxRounds=\{room\.max_rounds\}/)
     })
 
     it("Start CTA flips to Start Round next/total once a round has been played", () => {
