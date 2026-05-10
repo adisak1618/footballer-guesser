@@ -7,6 +7,9 @@
 | #3    | Guess input: autocomplete / typo-tolerance                     | :green_circle: | feat/3-guess-input-typo-tolerance | https://github.com/adisak1618/footballer-guesser/pull/6 | 4349510351 | merged |
 | #7    | Rematch: settings not persisted + game-2 scoreboard stall      | :green_circle: | fix/7-rematch-settings-and-game2-stall | https://github.com/adisak1618/footballer-guesser/pull/10 | 4350638674 | merged |
 | #8    | GuessResult: non-top-N correct mislabeled as ทายผิด            | :green_circle: | fix/8-guess-result-correct-zero-pts | https://github.com/adisak1618/footballer-guesser/pull/9 | 4350638829 | merged |
+| #17   | Insider: multi-round scoring system (5-round match)            | :green_circle: | feat/17-insider-multi-round-scoring | https://github.com/adisak1618/footballer-guesser/pull/22 | 4413279081 | merged |
+| #23   | Insider: show round counter X/Y during play                    | :yellow_circle: |        |    | 4414990529 | workspace:18 / surface:24 — session 1778406803 |
+| #24   | Insider: between-rounds + game-end UX                          | :red_circle: |        |    | 4414990561 | deferred — dispatch after #23 merges (depends on #23 plumbing; DB-mutating) |
 
 Status legend:
 - :red_circle: Not started
