@@ -300,3 +300,50 @@ export async function reconcileRoundPhase(
     },
   )
 }
+
+// Issue #24 — between-rounds host edits the pack via change_insider_pack
+// (migration 0036). Errors surface as GameRpcError with code in {PG004,
+// PG012, PG013, PG020}.
+export interface ChangeInsiderPackArgs {
+  roomId: string
+  playerId: string
+  packSlug: string
+}
+
+export async function changeInsiderPack(
+  supabase: SupabaseClient,
+  args: ChangeInsiderPackArgs,
+): Promise<void> {
+  await dispatch<Record<string, unknown>, void>(
+    supabase,
+    "change_insider_pack",
+    {
+      p_room_id: args.roomId,
+      p_player_id: args.playerId,
+      p_pack_slug: args.packSlug,
+    },
+  )
+}
+
+// Issue #24 — host wipes per-round state via reset_insider_game (migration
+// 0037). Used both for mid-game reset and end-of-game PLAY AGAIN /
+// BACK TO LOBBY. Errors surface as GameRpcError with code in {PG004, PG012,
+// PG013}.
+export interface ResetInsiderGameArgs {
+  roomId: string
+  playerId: string
+}
+
+export async function resetInsiderGame(
+  supabase: SupabaseClient,
+  args: ResetInsiderGameArgs,
+): Promise<void> {
+  await dispatch<Record<string, unknown>, void>(
+    supabase,
+    "reset_insider_game",
+    {
+      p_room_id: args.roomId,
+      p_player_id: args.playerId,
+    },
+  )
+}

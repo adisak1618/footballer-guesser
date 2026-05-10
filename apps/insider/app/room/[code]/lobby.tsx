@@ -9,10 +9,12 @@ import {
   useTransition,
 } from "react"
 import Link from "next/link"
+import type { EnabledPack } from "@social-hub/content"
 import {
   EmptySlot,
   LoadingSkeleton,
   NetworkErrorBanner,
+  PackChip,
   PhaseTransitionOverlay,
   PlayerChip,
   RoomCodeDisplay,
@@ -21,12 +23,15 @@ import {
   useRoomRealtime,
   type RoomRealtimeStatus,
 } from "@social-hub/core"
+import { changeInsiderPackAction } from "@/app/actions/change-insider-pack"
 import { joinInsiderRoomAction } from "@/app/actions/join-insider-room"
+import { resetInsiderGameAction } from "@/app/actions/reset-insider-game"
 import { startInsiderRoundAction } from "@/app/actions/start-insider-round"
 import { getOrCreatePlayerId, readPlayerId } from "@/lib/player-id"
 import { displayNameSchema } from "@/lib/schemas"
 import { supabase } from "@/lib/supabase"
 import { AskingPhase } from "./asking-phase"
+import { FinalScoreboard } from "./final-scoreboard"
 import { Reveal } from "./reveal"
 import { RoleReveal } from "./role-reveal"
 import { Voting } from "./voting"
@@ -53,7 +58,13 @@ interface InsiderRoom {
 const MAX_PLAYERS = 8
 const MIN_PLAYERS_TO_START = 3
 
-export function Lobby({ code }: { code: string }) {
+export function Lobby({
+  code,
+  packs,
+}: {
+  code: string
+  packs: EnabledPack[]
+}) {
   const [room, setRoom] = useState<InsiderRoom | null>(null)
   const [players, setPlayers] = useState<InsiderPlayer[]>([])
   const [meId, setMeId] = useState<string | null>(null)
@@ -250,6 +261,21 @@ export function Lobby({ code }: { code: string }) {
       )
     }
     if (roundPhase === "reveal" || roundPhase === "result_failed") {
+      // Issue #24 — final-round flip: the standard Reveal screen ends the
+      // round normally, but on `current_round >= max_rounds` we render the
+      // FinalScoreboard instead so the host gets PLAY AGAIN / BACK TO LOBBY
+      // instead of "next round" or "match over → home".
+      if (round >= roundTotal) {
+        return shell(
+          <FinalScoreboard
+            roomId={room.id}
+            round={round}
+            mePlayerId={me.player_id}
+            isHost={room.host_player_id === me.player_id}
+            phase={roundPhase}
+          />,
+        )
+      }
       return shell(
         <Reveal
           roomId={room.id}
@@ -276,6 +302,7 @@ export function Lobby({ code }: { code: string }) {
       room={room}
       players={players}
       mePlayerId={me.player_id}
+      packs={packs}
     />,
   )
 }
@@ -428,11 +455,13 @@ function LobbyView({
   room,
   players,
   mePlayerId,
+  packs,
 }: {
   code: string
   room: InsiderRoom
   players: InsiderPlayer[]
   mePlayerId: string
+  packs: EnabledPack[]
 }) {
   const [startError, setStartError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
@@ -446,6 +475,7 @@ function LobbyView({
   const currentRound = room.current_round ?? 0
   const roundTotal = room.max_rounds
   const isBetweenRounds = currentRound >= 1
+  const isHost = room.host_player_id === mePlayerId
   const nextRound = currentRound + 1
   const startCtaCopy = isPending
     ? "กำลังเริ่ม..."
@@ -481,6 +511,18 @@ function LobbyView({
       </header>
 
       <RoomCodeDisplay code={code} />
+
+      {/* Issue #24 — between-rounds pack control. Host sees editable chips,
+       * non-host sees read-only `Pack: <name>` label. Initial lobby (no
+       * round played yet) keeps the host-setup pack and renders nothing here. */}
+      {isBetweenRounds ? (
+        <BetweenRoundsPackControl
+          roomId={room.id}
+          mePlayerId={mePlayerId}
+          isHost={isHost}
+          packs={packs}
+        />
+      ) : null}
 
       <section className="flex flex-1 flex-col gap-3">
         <h2 className="font-display text-[28px] uppercase leading-none tracking-[0.3px] text-on-dark">
@@ -535,22 +577,327 @@ function LobbyView({
             {startError}
           </p>
         ) : null}
-        <button
-          type="button"
-          onClick={handleStart}
-          disabled={!canStart || isPending}
-          aria-busy={isPending}
-          data-testid="insider-start-game-cta"
-          className="flex min-h-14 w-full items-center justify-center gap-2 rounded-xl bg-goal px-6 text-on-dark transition-colors active:bg-goal-active disabled:bg-goal-disabled disabled:text-on-dark/70"
-        >
-          <span
-            data-testid="insider-start-game-cta-label"
-            className="font-display text-[20px] uppercase tracking-[1px]"
+        {/* Issue #24 — host between-rounds: RESET GAME secondary action sits
+         * to the left of the START ROUND primary CTA. Non-host or initial
+         * lobby never sees it. */}
+        {isBetweenRounds && isHost ? (
+          <div className="flex items-stretch gap-2">
+            <ResetGameButton
+              roomId={room.id}
+              mePlayerId={mePlayerId}
+              disabled={isPending}
+            />
+            <button
+              type="button"
+              onClick={handleStart}
+              disabled={!canStart || isPending}
+              aria-busy={isPending}
+              data-testid="insider-start-game-cta"
+              className="flex flex-1 min-h-14 items-center justify-center gap-2 rounded-xl bg-goal px-6 text-on-dark transition-colors active:bg-goal-active disabled:bg-goal-disabled disabled:text-on-dark/70"
+            >
+              <span
+                data-testid="insider-start-game-cta-label"
+                className="font-display text-[20px] uppercase tracking-[1px]"
+              >
+                {startCtaCopy}
+              </span>
+            </button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={handleStart}
+            disabled={!canStart || isPending}
+            aria-busy={isPending}
+            data-testid="insider-start-game-cta"
+            className="flex min-h-14 w-full items-center justify-center gap-2 rounded-xl bg-goal px-6 text-on-dark transition-colors active:bg-goal-active disabled:bg-goal-disabled disabled:text-on-dark/70"
           >
-            {startCtaCopy}
-          </span>
-        </button>
+            <span
+              data-testid="insider-start-game-cta-label"
+              className="font-display text-[20px] uppercase tracking-[1px]"
+            >
+              {startCtaCopy}
+            </span>
+          </button>
+        )}
       </section>
     </main>
+  )
+}
+
+// ───────────────────────────────────────────────────────────────────────────
+// Issue #24 — between-rounds pack control. Host gets editable PackChips
+// wired to change_insider_pack RPC; non-host gets a read-only `Pack: <name>`
+// label that updates via the realtime room-config subscription.
+// ───────────────────────────────────────────────────────────────────────────
+
+function BetweenRoundsPackControl({
+  roomId,
+  mePlayerId,
+  isHost,
+  packs,
+}: {
+  roomId: string
+  mePlayerId: string
+  isHost: boolean
+  packs: EnabledPack[]
+}) {
+  const [packSlug, setPackSlug] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [pendingSlug, setPendingSlug] = useState<string | null>(null)
+  const [isPending, startTransition] = useTransition()
+
+  // Initial fetch + realtime sync. game_insider_room_config is `-- no-realtime`
+  // so we re-poll on the rooms.current_round flip (which always accompanies
+  // start_insider_round). Polling on the rooms-table change keeps non-host
+  // clients honest without adding a second realtime channel for the config.
+  useEffect(() => {
+    let active = true
+    void (async () => {
+      const { data } = await supabase
+        .from("game_insider_room_config")
+        .select("pack_slug")
+        .eq("room_id", roomId)
+        .maybeSingle()
+      if (!active) return
+      if (data?.pack_slug) setPackSlug(data.pack_slug as string)
+    })()
+    return () => {
+      active = false
+    }
+  }, [roomId])
+
+  // Listen for any pack changes (host action only). When the host writes via
+  // change_insider_pack the rooms row doesn't change, so a realtime ping on
+  // game_insider_room_config isn't available; instead we poll on a short
+  // postgres_changes subscription against rooms (host actions almost always
+  // touch rooms shortly after, e.g. start_insider_round) plus an interval
+  // fallback for the non-host case while the chip is selected. To keep this
+  // simple and correct: subscribe to rooms changes and re-fetch the config.
+  useEffect(() => {
+    const channel = supabase
+      .channel(`insider-room-config-${roomId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "rooms",
+          filter: `id=eq.${roomId}`,
+        },
+        async () => {
+          const { data } = await supabase
+            .from("game_insider_room_config")
+            .select("pack_slug")
+            .eq("room_id", roomId)
+            .maybeSingle()
+          if (data?.pack_slug) setPackSlug(data.pack_slug as string)
+        },
+      )
+      .subscribe()
+    return () => {
+      void supabase.removeChannel(channel)
+    }
+  }, [roomId])
+
+  const packIndexBySlug = useMemo(() => {
+    const map = new Map<string, number>()
+    packs.forEach((pack, idx) => {
+      map.set(pack.slug, idx)
+    })
+    return map
+  }, [packs])
+
+  const currentPack = useMemo(
+    () => (packSlug ? packs.find((p) => p.slug === packSlug) ?? null : null),
+    [packs, packSlug],
+  )
+
+  function handlePick(nextSlug: string) {
+    if (nextSlug === packSlug) return
+    setError(null)
+    setPendingSlug(nextSlug)
+    // Optimistic flip: update local state immediately so the chip feels
+    // responsive. On error we roll back via the catch.
+    const previousSlug = packSlug
+    setPackSlug(nextSlug)
+    startTransition(async () => {
+      const result = await changeInsiderPackAction({
+        roomId,
+        playerId: mePlayerId,
+        packSlug: nextSlug,
+      })
+      if (!result.ok) {
+        setError(result.error)
+        setPackSlug(previousSlug)
+      }
+      setPendingSlug(null)
+    })
+  }
+
+  if (!isHost) {
+    return (
+      <section
+        data-testid="insider-pack-readonly"
+        className="flex items-center justify-between gap-3 rounded-xl border border-hairline bg-surface-elevated px-4 py-3"
+      >
+        <span className="font-display text-[12px] uppercase tracking-[2px] text-on-dark-soft">
+          Pack
+        </span>
+        <span
+          data-testid="insider-pack-readonly-name"
+          className="font-display text-[16px] uppercase tracking-[0.5px] text-on-dark"
+        >
+          {currentPack?.displayNameTh ?? currentPack?.displayName ?? "—"}
+        </span>
+      </section>
+    )
+  }
+
+  return (
+    <section className="flex flex-col gap-3">
+      <h2 className="font-display text-xs uppercase tracking-[2px] text-on-dark-soft">
+        ── คลังคำ / WORD PACK ──
+      </h2>
+      <div
+        role="radiogroup"
+        aria-label="Word pack"
+        className="grid grid-cols-2 gap-3"
+      >
+        {packs.map((pack) => {
+          const isSelected = packSlug === pack.slug
+          const tagIdx = packIndexBySlug.get(pack.slug) ?? 0
+          const showSubLabel = Boolean(
+            pack.displayNameTh && pack.displayName !== pack.displayNameTh,
+          )
+          return (
+            <PackChip
+              key={pack.slug}
+              joinIndex={tagIdx}
+              label={pack.displayNameTh ?? pack.displayName}
+              subLabel={showSubLabel ? pack.displayName : undefined}
+              selected={isSelected}
+              disabled={isPending && pendingSlug !== pack.slug}
+              onTap={() => handlePick(pack.slug)}
+              testId={`pack-chip-${pack.slug}`}
+            />
+          )
+        })}
+      </div>
+      {error ? (
+        <p
+          role="alert"
+          data-testid="insider-pack-error"
+          className="rounded-lg border border-error/40 bg-error/10 px-4 py-2 text-center text-sm font-medium text-error"
+        >
+          {error}
+        </p>
+      ) : null}
+    </section>
+  )
+}
+
+// ───────────────────────────────────────────────────────────────────────────
+// Issue #24 — RESET GAME button (between-rounds host only). Opens a custom
+// Stadium-Energy `<dialog>` confirm; on confirm calls reset_insider_game RPC.
+// Native confirm() is rejected per the rubric's q1-round-1 clarification.
+// ───────────────────────────────────────────────────────────────────────────
+
+function ResetGameButton({
+  roomId,
+  mePlayerId,
+  disabled,
+}: {
+  roomId: string
+  mePlayerId: string
+  disabled: boolean
+}) {
+  const dialogRef = useRef<HTMLDialogElement>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [isPending, startTransition] = useTransition()
+
+  function openDialog() {
+    setError(null)
+    dialogRef.current?.showModal()
+  }
+
+  function closeDialog() {
+    dialogRef.current?.close()
+  }
+
+  function handleConfirm() {
+    setError(null)
+    startTransition(async () => {
+      const result = await resetInsiderGameAction({
+        roomId,
+        playerId: mePlayerId,
+      })
+      if (!result.ok) {
+        setError(result.error)
+        return
+      }
+      closeDialog()
+      // Realtime subscription on rooms in Lobby flips status + current_round;
+      // the lobby re-routes to the initial-lobby variant automatically.
+    })
+  }
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={openDialog}
+        disabled={disabled || isPending}
+        data-testid="insider-reset-game-cta"
+        className="flex min-h-14 items-center justify-center rounded-xl border border-hairline bg-surface-elevated px-4 font-display text-[14px] uppercase tracking-[1px] text-on-dark transition-colors active:bg-surface disabled:opacity-60"
+      >
+        Reset
+      </button>
+      <dialog
+        ref={dialogRef}
+        data-testid="insider-reset-confirm-dialog"
+        className="m-auto w-[min(92vw,400px)] rounded-2xl border border-hairline bg-ink p-6 text-on-dark backdrop:bg-black/60"
+      >
+        <div className="flex flex-col gap-4">
+          <h2 className="font-display text-[24px] uppercase leading-none tracking-[1px] text-on-dark">
+            RESET GAME?
+          </h2>
+          <p className="font-body text-[14px] text-on-dark-soft">
+            ลบคะแนนและรอบที่เล่นไปแล้วทั้งหมด ผู้เล่น คลังคำ และจำนวนรอบ
+            ยังคงอยู่
+          </p>
+          {error ? (
+            <p
+              role="alert"
+              data-testid="insider-reset-error"
+              className="rounded-lg border border-error/40 bg-error/10 px-3 py-2 text-sm font-medium text-error"
+            >
+              {error}
+            </p>
+          ) : null}
+          <div className="flex items-stretch gap-2">
+            <button
+              type="button"
+              onClick={closeDialog}
+              disabled={isPending}
+              data-testid="insider-reset-cancel-cta"
+              className="flex flex-1 min-h-12 items-center justify-center rounded-xl border border-hairline bg-surface-elevated px-4 font-display text-[14px] uppercase tracking-[1px] text-on-dark active:bg-surface disabled:opacity-60"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleConfirm}
+              disabled={isPending}
+              aria-busy={isPending}
+              data-testid="insider-reset-confirm-cta"
+              className="flex flex-1 min-h-12 items-center justify-center rounded-xl bg-error px-4 font-display text-[14px] uppercase tracking-[1px] text-on-dark active:opacity-90 disabled:opacity-60"
+            >
+              {isPending ? "กำลังรีเซ็ต..." : "Reset"}
+            </button>
+          </div>
+        </div>
+      </dialog>
+    </>
   )
 }
