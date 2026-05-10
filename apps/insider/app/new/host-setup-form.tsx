@@ -14,7 +14,11 @@ const TIME_OPTIONS: ReadonlyArray<{ value: 180 | 300 | 420; label: string }> = [
   { value: 420, label: "7 MIN" },
 ]
 
-const ROUND_MIN = 1
+// Issue #17 — match length is 3-10 rounds, default 5. The lower bound matches
+// the new game_insider_room_config.round_count CHECK constraint added in
+// migration 0035; create_insider_room rejects values outside this range with
+// PGAME20.
+const ROUND_MIN = 3
 const ROUND_MAX = 10
 const ROUND_DEFAULT = 5
 const TIME_DEFAULT: 180 | 300 | 420 = 300
