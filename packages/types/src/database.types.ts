@@ -259,6 +259,7 @@ export type Database = {
           eligible_voter_ids: string[] | null
           guessed_at: string | null
           guessed_by_player_id: string | null
+          outcome: string | null
           pack_slug: string
           phase: string
           room_id: string
@@ -273,6 +274,7 @@ export type Database = {
           eligible_voter_ids?: string[] | null
           guessed_at?: string | null
           guessed_by_player_id?: string | null
+          outcome?: string | null
           pack_slug: string
           phase?: string
           room_id: string
@@ -287,6 +289,7 @@ export type Database = {
           eligible_voter_ids?: string[] | null
           guessed_at?: string | null
           guessed_by_player_id?: string | null
+          outcome?: string | null
           pack_slug?: string
           phase?: string
           room_id?: string

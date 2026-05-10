@@ -44,6 +44,10 @@ interface InsiderRoom {
   status: string
   host_player_id: string | null
   current_round: number | null
+  // Issue #17 — total rounds for the match. Drives the "is this the final
+  // round?" branch on the reveal screen so the round-end scoreboard can flip
+  // to a final-results view at the bottom of the last round.
+  max_rounds: number
 }
 
 const MAX_PLAYERS = 8
@@ -69,7 +73,7 @@ export function Lobby({ code }: { code: string }) {
     async function load() {
       const { data: roomRow, error: roomErr } = await supabase
         .from("rooms")
-        .select("id, code, status, host_player_id, current_round")
+        .select("id, code, status, host_player_id, current_round, max_rounds")
         .eq("code", code)
         .maybeSingle()
       if (!active) return
@@ -249,6 +253,8 @@ export function Lobby({ code }: { code: string }) {
           round={round}
           mePlayerId={me.player_id}
           phase={roundPhase}
+          isHost={room.host_player_id === me.player_id}
+          maxRounds={room.max_rounds}
         />,
       )
     }

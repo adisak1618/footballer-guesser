@@ -1,5 +1,6 @@
 "use client"
 
+import Link from "next/link"
 import { useCallback, useEffect, useMemo, useState, useTransition } from "react"
 import {
   advanceToNextRound,
@@ -7,6 +8,7 @@ import {
   getRevealedSecret,
 } from "@/lib/insider-rpc"
 import { supabase } from "@/lib/supabase"
+import { Scoreboard, type ScoreboardPlayer } from "./scoreboard"
 
 // US-062 / US-063 / US-064 — Reveal phase screen (Screens 8a + 8b + 8c).
 //
@@ -42,15 +44,13 @@ interface RevealProps {
   round: number
   mePlayerId: string
   phase: "reveal" | "result_failed"
+  // Issue #17 — scoreboard gate. Only the host advances the round, and the
+  // final round flips the bottom CTA into a final-results no-advance state.
+  isHost: boolean
+  maxRounds: number
 }
 
-interface PlayerRow {
-  id: string
-  player_id: string
-  display_name: string
-  join_order: number
-  total_score: number
-}
+type PlayerRow = ScoreboardPlayer
 
 interface RoleRow {
   player_id: string
@@ -62,25 +62,86 @@ interface VoteRow {
   voted_player_id: string
 }
 
-export function Reveal({ roomId, round, mePlayerId, phase }: RevealProps) {
+export function Reveal({
+  roomId,
+  round,
+  mePlayerId,
+  phase,
+  isHost,
+  maxRounds,
+}: RevealProps) {
   const [secret, setSecret] = useState<string | null>(null)
   const [players, setPlayers] = useState<PlayerRow[]>([])
   const [roles, setRoles] = useState<RoleRow[]>([])
   const [votes, setVotes] = useState<VoteRow[]>([])
+  // Issue #17 — outcome stamp. Null until advance_to_reveal lands; the host's
+  // ต่อไป button is disabled while null so we don't advance past an
+  // unscored round and so retry can keep firing on transient failure.
+  const [outcome, setOutcome] = useState<string | null>(null)
+  const [scoreError, setScoreError] = useState<string | null>(null)
   const [advanceError, setAdvanceError] = useState<string | null>(null)
   const [isAdvancing, startAdvancing] = useTransition()
 
-  // ─── Drive scoring on mount (T-3.B "anyone advances"). advance_to_reveal
-  //     is idempotent via scored_at, so concurrent fires by all 4 clients
-  //     collapse safely. cast_vote already flipped phase → 'reveal' but does
-  //     NOT apply scoring; this is the canonical "compute the scoreboard"
-  //     entry point per migration 0028. Players row + total_score realtime
-  //     subscription below picks up the score deltas.
+  const isFinalRound = round >= maxRounds
+
+  // ─── Drive scoring on mount. advance_to_reveal is idempotent via
+  //     scored_at, so concurrent fires by all clients collapse safely.
+  //     Issue #17: surface RPC failures (rare — usually a network blip) so
+  //     the host's ต่อไป button stays disabled until a retry succeeds.
+  //
+  //     The effect body and the retry handler hold the same logic. They are
+  //     duplicated rather than extracted into a useCallback called from the
+  //     effect because react-hooks/set-state-in-effect flags an effect that
+  //     invokes a setState-bearing useCallback (see apps/headball/scripts/
+  //     ralph/progress.txt notes on this rule). Putting all setState calls
+  //     after awaits inside the effect satisfies the rule.
   useEffect(() => {
-    void advanceToReveal(supabase, { roomId, round }).catch(() => {
-      // No-op: another client may have advanced first; phase column already
-      // reflects 'reveal' regardless and players realtime will sync scores.
-    })
+    let cancelled = false
+    ;(async () => {
+      try {
+        await advanceToReveal(supabase, { roomId, round })
+        // outcome is NOT in the realtime publication (intentional, see
+        // migration 0035 commentary), so we re-pull the row here. The select
+        // is column-restricted at the DB level — anon can read these
+        // columns but not secret_value.
+        const { data } = await supabase
+          .from("game_insider_round")
+          .select("outcome, scored_at")
+          .eq("room_id", roomId)
+          .eq("round_number", round)
+          .maybeSingle()
+        if (cancelled) return
+        if (data?.outcome) setOutcome(data.outcome as string)
+        setScoreError(null)
+      } catch {
+        if (!cancelled) {
+          setScoreError(
+            "บันทึกผลรอบนี้ไม่สำเร็จ ลองใหม่อีกครั้งหรือเช็คการเชื่อมต่อ",
+          )
+        }
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [roomId, round])
+
+  const retryAdvanceToReveal = useCallback(async () => {
+    try {
+      await advanceToReveal(supabase, { roomId, round })
+      const { data } = await supabase
+        .from("game_insider_round")
+        .select("outcome, scored_at")
+        .eq("room_id", roomId)
+        .eq("round_number", round)
+        .maybeSingle()
+      if (data?.outcome) setOutcome(data.outcome as string)
+      setScoreError(null)
+    } catch {
+      setScoreError(
+        "บันทึกผลรอบนี้ไม่สำเร็จ ลองใหม่อีกครั้งหรือเช็คการเชื่อมต่อ",
+      )
+    }
   }, [roomId, round])
 
   // ─── Initial fetch ─────────────────────────────────────────────────────
@@ -209,13 +270,25 @@ export function Reveal({ roomId, round, mePlayerId, phase }: RevealProps) {
     [roles, caught],
   )
 
-  // Leaderboard sorted desc by total_score.
-  const leaderboard = useMemo(
-    () => [...players].sort((a, b) => b.total_score - a.total_score),
-    [players],
-  )
+  // Issue #17 — host-only gate (rubric: "advances only when the host taps").
+  // Scoring must have stamped before we advance so total_score reflects the
+  // round we're leaving; a transient score error keeps the button live so the
+  // host can retry the underlying advance_to_reveal RPC.
+  const isScoreLanded = outcome !== null
+  const ctaDisabled =
+    !isHost ||
+    isAdvancing ||
+    isFinalRound ||
+    (!isScoreLanded && !scoreError)
 
   const handleNextRound = useCallback(() => {
+    if (isFinalRound) return
+    if (scoreError) {
+      // Retry path: re-fire advance_to_reveal so the score lands; user taps
+      // ต่อไป again once it succeeds.
+      void retryAdvanceToReveal()
+      return
+    }
     setAdvanceError(null)
     startAdvancing(async () => {
       try {
@@ -228,7 +301,16 @@ export function Reveal({ roomId, round, mePlayerId, phase }: RevealProps) {
         setAdvanceError("ไปต่อรอบถัดไปไม่สำเร็จ ลองใหม่อีกครั้ง")
       }
     })
-  }, [roomId, round, mePlayerId])
+  }, [roomId, round, mePlayerId, isFinalRound, scoreError, retryAdvanceToReveal])
+
+  const ctaLabel = useMemo(() => {
+    if (isFinalRound) return "MATCH OVER / จบเกม"
+    if (isAdvancing) return "กำลังไป..."
+    if (scoreError) return "ลองใหม่อีกครั้ง"
+    if (!isScoreLanded) return "กำลังคิดคะแนน..."
+    if (!isHost) return "รอโฮสต์กดต่อไป"
+    return "ต่อไป / NEXT →"
+  }, [isFinalRound, isAdvancing, scoreError, isScoreLanded, isHost])
 
   // ─── Render ────────────────────────────────────────────────────────────
   // TIME-EXPIRED (8c): dark bg + error-red top accent, secret revealed,
@@ -286,6 +368,22 @@ export function Reveal({ roomId, round, mePlayerId, phase }: RevealProps) {
           </p>
         </section>
 
+        <Scoreboard
+          players={players}
+          variant={isFinalRound ? "final" : "round-end"}
+          surface="dark"
+        />
+
+        {scoreError ? (
+          <p
+            role="alert"
+            data-testid="reveal-score-error"
+            className="rounded-lg border border-error/40 bg-error/10 px-4 py-2 text-center text-sm font-medium text-error"
+          >
+            {scoreError}
+          </p>
+        ) : null}
+
         {advanceError ? (
           <p
             role="alert"
@@ -295,15 +393,27 @@ export function Reveal({ roomId, round, mePlayerId, phase }: RevealProps) {
           </p>
         ) : null}
 
+        {isFinalRound ? (
+          <Link
+            href="/"
+            data-testid="reveal-final-home-link"
+            className="mt-auto flex min-h-14 w-full items-center justify-center rounded-xl border border-hairline bg-surface-elevated px-6 font-display text-[16px] uppercase tracking-[1px] text-on-dark active:bg-surface"
+          >
+            ← กลับหน้าหลัก / HOME
+          </Link>
+        ) : null}
+
         <button
           type="button"
           data-testid="reveal-next-round-cta"
           onClick={handleNextRound}
-          disabled={isAdvancing}
+          disabled={ctaDisabled}
           aria-busy={isAdvancing}
+          aria-disabled={ctaDisabled}
+          hidden={isFinalRound}
           className="mt-auto flex min-h-14 w-full items-center justify-center rounded-xl bg-goal px-6 font-display text-[20px] uppercase tracking-[1px] text-on-dark transition-colors active:bg-goal-active disabled:bg-goal-disabled disabled:text-on-dark/70"
         >
-          {isAdvancing ? "กำลังไป..." : "NEXT ROUND →"}
+          {ctaLabel}
         </button>
       </main>
     )
@@ -426,28 +536,24 @@ export function Reveal({ roomId, round, mePlayerId, phase }: RevealProps) {
           </ul>
         </section>
 
-        {/* US-080 / Phase 5d.6 — Leaderboard as <aside> for ARIA landmark. */}
-        <aside aria-label="Leaderboard" className="flex flex-col gap-2">
-          <p className="font-display text-[12px] uppercase tracking-[2px] text-center text-on-dark-soft">
-            ── LEADERBOARD ──
-          </p>
-          <ul className="flex flex-col gap-1.5">
-            {leaderboard.map((p, idx) => (
-              <li
-                key={p.id}
-                data-testid={`reveal-leader-row-${p.player_id}`}
-                className="flex items-center justify-between rounded-lg border border-hairline bg-surface px-4 py-2.5 text-on-dark"
-              >
-                <span className="font-body text-[14px] font-medium">
-                  {idx + 1}. {p.display_name}
-                </span>
-                <span className="font-display text-[18px] tabular-nums text-on-dark">
-                  {p.total_score} pts
-                </span>
-              </li>
-            ))}
-          </ul>
+        {/* US-080 — Scoreboard <aside> with BIG NAME hero card pattern. */}
+        <aside aria-label="Leaderboard">
+          <Scoreboard
+            players={players}
+            variant={isFinalRound ? "final" : "round-end"}
+            surface="dark"
+          />
         </aside>
+
+        {scoreError ? (
+          <p
+            role="alert"
+            data-testid="reveal-score-error"
+            className="rounded-lg border border-error/40 bg-error/10 px-4 py-2 text-center text-sm font-medium text-error"
+          >
+            {scoreError}
+          </p>
+        ) : null}
 
         {advanceError ? (
           <p
@@ -458,15 +564,27 @@ export function Reveal({ roomId, round, mePlayerId, phase }: RevealProps) {
           </p>
         ) : null}
 
+        {isFinalRound ? (
+          <Link
+            href="/"
+            data-testid="reveal-final-home-link"
+            className="flex min-h-14 w-full items-center justify-center rounded-xl border border-hairline bg-surface-elevated px-6 font-display text-[16px] uppercase tracking-[1px] text-on-dark active:bg-surface"
+          >
+            ← กลับหน้าหลัก / HOME
+          </Link>
+        ) : null}
+
         <button
           type="button"
           data-testid="reveal-next-round-cta"
           onClick={handleNextRound}
-          disabled={isAdvancing}
+          disabled={ctaDisabled}
           aria-busy={isAdvancing}
+          aria-disabled={ctaDisabled}
+          hidden={isFinalRound}
           className="flex min-h-14 w-full items-center justify-center rounded-xl bg-goal px-6 font-display text-[20px] uppercase tracking-[1px] text-on-dark transition-colors active:bg-goal-active disabled:bg-goal-disabled disabled:text-on-dark/70"
         >
-          {isAdvancing ? "กำลังไป..." : "NEXT ROUND →"}
+          {ctaLabel}
         </button>
       </main>
     )
@@ -557,28 +675,24 @@ export function Reveal({ roomId, round, mePlayerId, phase }: RevealProps) {
         </ul>
       </section>
 
-      {/* US-080 / Phase 5d.6 — Leaderboard as <aside> for ARIA landmark. */}
-      <aside aria-label="Leaderboard" className="flex flex-col gap-2">
-        <p className="font-display text-[12px] uppercase tracking-[2px] text-center text-on-light-soft">
-          ── LEADERBOARD ──
-        </p>
-        <ul className="flex flex-col gap-1.5">
-          {leaderboard.map((p, idx) => (
-            <li
-              key={p.id}
-              data-testid={`reveal-leader-row-${p.player_id}`}
-              className="flex items-center justify-between rounded-lg border border-on-light/10 bg-surface-card px-4 py-2.5 text-on-light"
-            >
-              <span className="font-body text-[14px] font-medium">
-                {idx + 1}. {p.display_name}
-              </span>
-              <span className="font-display text-[18px] tabular-nums text-on-light">
-                {p.total_score} pts
-              </span>
-            </li>
-          ))}
-        </ul>
+      {/* US-080 — Scoreboard <aside> with BIG NAME hero card pattern. */}
+      <aside aria-label="Leaderboard">
+        <Scoreboard
+          players={players}
+          variant={isFinalRound ? "final" : "round-end"}
+          surface="light"
+        />
       </aside>
+
+      {scoreError ? (
+        <p
+          role="alert"
+          data-testid="reveal-score-error"
+          className="rounded-lg border border-error/40 bg-error/10 px-4 py-2 text-center text-sm font-medium text-error"
+        >
+          {scoreError}
+        </p>
+      ) : null}
 
       {advanceError ? (
         <p
@@ -589,15 +703,27 @@ export function Reveal({ roomId, round, mePlayerId, phase }: RevealProps) {
         </p>
       ) : null}
 
+      {isFinalRound ? (
+        <Link
+          href="/"
+          data-testid="reveal-final-home-link"
+          className="flex min-h-14 w-full items-center justify-center rounded-xl border border-on-light/20 bg-surface-card px-6 font-display text-[16px] uppercase tracking-[1px] text-on-light active:bg-surface-elevated"
+        >
+          ← กลับหน้าหลัก / HOME
+        </Link>
+      ) : null}
+
       <button
         type="button"
         data-testid="reveal-next-round-cta"
         onClick={handleNextRound}
-        disabled={isAdvancing}
+        disabled={ctaDisabled}
         aria-busy={isAdvancing}
+        aria-disabled={ctaDisabled}
+        hidden={isFinalRound}
         className="flex min-h-14 w-full items-center justify-center rounded-xl bg-goal px-6 font-display text-[20px] uppercase tracking-[1px] text-on-dark transition-colors active:bg-goal-active disabled:bg-goal-disabled disabled:text-on-dark/70"
       >
-        {isAdvancing ? "กำลังไป..." : "NEXT ROUND →"}
+        {ctaLabel}
       </button>
     </main>
   )
