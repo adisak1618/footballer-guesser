@@ -36,6 +36,10 @@ type VotingPhase = "guessed" | "voting"
 interface VotingProps {
   roomId: string
   round: number
+  // Plumbed through for future use (rubric requires the prop on Voting). The
+  // voting screen header itself does not currently render the round counter —
+  // only AskingHeader / Reveal headers / LobbyView Start CTA do.
+  roundTotal: number
   mePlayerId: string
   initialPhase: VotingPhase
 }

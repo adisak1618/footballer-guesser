@@ -23,6 +23,7 @@ import { AskingHeader } from "./asking-header"
 interface AskingMasterProps {
   roomId: string
   round: number
+  roundTotal: number
   mePlayerId: string
   secret: string
   startedAt: string | null
@@ -32,6 +33,7 @@ interface AskingMasterProps {
 export function AskingMaster({
   roomId,
   round,
+  roundTotal,
   mePlayerId,
   secret,
   startedAt,
@@ -66,6 +68,8 @@ export function AskingMaster({
     >
       <AskingHeader
         role="master"
+        round={round}
+        roundTotal={roundTotal}
         startedAt={startedAt}
         timeLimitS={timeLimitS}
       />

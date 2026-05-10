@@ -268,9 +268,10 @@ test.describe.serial("insider reveal — escaped variant (US-063)", () => {
         const shell = page.getByTestId("reveal-escaped-shell")
         const bg = await shell.evaluate((el) => getComputedStyle(el).backgroundColor)
         expect(bg).toBe("rgb(10, 14, 26)")
-        // ROUND 1 RESULT heading.
+        // ROUND 1 / 5 RESULT heading (issue #23 — host-setup-form's
+        // ROUND_DEFAULT = 5 means new rooms ship with max_rounds = 5).
         await expect(page.getByTestId("reveal-round-header")).toContainText(
-          /ROUND 1 RESULT/i,
+          /ROUND 1 \/ 5 RESULT/i,
         )
         // BIG NAME secret card — secret_value rendered uppercase.
         await expect(page.getByTestId("reveal-secret-name")).toContainText(

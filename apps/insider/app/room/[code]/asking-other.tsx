@@ -21,6 +21,7 @@ type InsiderRole = "master" | "insider" | "player"
 interface AskingOtherProps {
   roomId: string
   round: number
+  roundTotal: number
   role: Exclude<InsiderRole, "master">
   startedAt: string | null
   timeLimitS: number
@@ -28,7 +29,14 @@ interface AskingOtherProps {
   secret: string | null
 }
 
-export function AskingOther({ role, startedAt, timeLimitS, secret }: AskingOtherProps) {
+export function AskingOther({
+  round,
+  roundTotal,
+  role,
+  startedAt,
+  timeLimitS,
+  secret,
+}: AskingOtherProps) {
   const headerRole = role === "insider" ? "insider" : "common"
 
   return (
@@ -38,6 +46,8 @@ export function AskingOther({ role, startedAt, timeLimitS, secret }: AskingOther
     >
       <AskingHeader
         role={headerRole}
+        round={round}
+        roundTotal={roundTotal}
         startedAt={startedAt}
         timeLimitS={timeLimitS}
         insiderSecret={role === "insider" ? secret : null}

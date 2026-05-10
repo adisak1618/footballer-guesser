@@ -20,6 +20,8 @@ export type AskingHeaderRole = "master" | "insider" | "common"
 
 interface AskingHeaderProps {
   role: AskingHeaderRole
+  round: number
+  roundTotal: number
   startedAt: string | null
   timeLimitS: number
   // Insider-only inline secret. Master shows the secret in a dedicated
@@ -65,6 +67,8 @@ const ROLE_CONFIG: Record<AskingHeaderRole, RoleConfig> = {
 
 export function AskingHeader({
   role,
+  round,
+  roundTotal,
   startedAt,
   timeLimitS,
   insiderSecret,
@@ -92,12 +96,20 @@ export function AskingHeader({
   return (
     <div data-testid="asking-header" className="flex flex-col gap-3">
       <header className="flex items-center justify-between">
-        <span
-          data-testid="asking-phase-tag"
-          className="rounded-md border border-hairline bg-surface-elevated px-3 py-1 font-display text-[24px] uppercase leading-none tracking-[1px] text-on-dark"
-        >
-          ASKING
-        </span>
+        <div className="flex items-center gap-2">
+          <span
+            data-testid="asking-phase-tag"
+            className="rounded-md border border-hairline bg-surface-elevated px-3 py-1 font-display text-[24px] uppercase leading-none tracking-[1px] text-on-dark"
+          >
+            ASKING
+          </span>
+          <span
+            data-testid="asking-round-counter"
+            className="font-display text-[14px] uppercase leading-none tracking-[2px] text-on-dark-soft tabular-nums"
+          >
+            ROUND {round} / {roundTotal}
+          </span>
+        </div>
         <span
           data-testid="asking-timer"
           className={`font-hero text-[32px] leading-none tabular-nums ${

@@ -44,6 +44,7 @@ interface InsiderRoom {
   status: string
   host_player_id: string | null
   current_round: number | null
+  max_rounds: number | null
 }
 
 const MAX_PLAYERS = 8
@@ -69,7 +70,7 @@ export function Lobby({ code }: { code: string }) {
     async function load() {
       const { data: roomRow, error: roomErr } = await supabase
         .from("rooms")
-        .select("id, code, status, host_player_id, current_round")
+        .select("id, code, status, host_player_id, current_round, max_rounds")
         .eq("code", code)
         .maybeSingle()
       if (!active) return
@@ -223,11 +224,13 @@ export function Lobby({ code }: { code: string }) {
   // `game_insider_round` (added in US-058) drives the per-phase routing below.
   if (room.status === "PLAYING") {
     const round = room.current_round ?? 1
+    const roundTotal = room.max_rounds ?? round
     if (roundPhase === "asking") {
       return shell(
         <AskingPhase
           roomId={room.id}
           round={round}
+          roundTotal={roundTotal}
           mePlayerId={me.player_id}
         />,
       )
@@ -237,6 +240,7 @@ export function Lobby({ code }: { code: string }) {
         <Voting
           roomId={room.id}
           round={round}
+          roundTotal={roundTotal}
           mePlayerId={me.player_id}
           initialPhase={roundPhase}
         />,
@@ -247,6 +251,7 @@ export function Lobby({ code }: { code: string }) {
         <Reveal
           roomId={room.id}
           round={round}
+          roundTotal={roundTotal}
           mePlayerId={me.player_id}
           phase={roundPhase}
         />,
@@ -430,6 +435,20 @@ function LobbyView({
 
   const canStart = players.length >= MIN_PLAYERS_TO_START
 
+  // Between-rounds CTA shows next round number once at least one round has
+  // been played. Initial lobby (current_round < 1) keeps the welcome copy.
+  // Companion follow-up (#?) covers the end-of-game state where current_round
+  // has already reached max_rounds.
+  const currentRound = room.current_round ?? 0
+  const roundTotal = room.max_rounds ?? 0
+  const isBetweenRounds = currentRound >= 1
+  const nextRound = currentRound + 1
+  const startCtaCopy = isPending
+    ? "กำลังเริ่ม..."
+    : isBetweenRounds && roundTotal > 0
+      ? `Start Round ${nextRound} / ${roundTotal} →`
+      : "Start Game →"
+
   function handleStart() {
     setStartError(null)
     startTransition(async () => {
@@ -520,8 +539,11 @@ function LobbyView({
           data-testid="insider-start-game-cta"
           className="flex min-h-14 w-full items-center justify-center gap-2 rounded-xl bg-goal px-6 text-on-dark transition-colors active:bg-goal-active disabled:bg-goal-disabled disabled:text-on-dark/70"
         >
-          <span className="font-display text-[20px] uppercase tracking-[1px]">
-            {isPending ? "กำลังเริ่ม..." : "Start Game →"}
+          <span
+            data-testid="insider-start-game-cta-label"
+            className="font-display text-[20px] uppercase tracking-[1px]"
+          >
+            {startCtaCopy}
           </span>
         </button>
       </section>
