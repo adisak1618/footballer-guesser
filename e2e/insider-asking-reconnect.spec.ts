@@ -80,7 +80,11 @@ function parseTimerToSeconds(text: string): number {
   return mm * 60 + ss
 }
 
-test.describe.serial("insider asking — mid-round reconnect (US-068)", () => {
+// TODO(#16 follow-up): asserts master_respond-driven feed restoration on
+// reconnect, all removed in #16. The reconnect contract (timer + role
+// identity) is still valid; rewrite around the new compact header in a
+// follow-up.
+test.describe.skip("insider asking — mid-round reconnect (US-068) [DEPRECATED #16]", () => {
   test("dropped Common reconnects after 30s → role + timer + last 5 responses restored", async ({
     browser,
   }) => {

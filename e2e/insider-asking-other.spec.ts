@@ -44,7 +44,10 @@ async function readInsiderPlayerId(page: Page): Promise<string | null> {
   return page.evaluate(() => window.localStorage.getItem("insider_player_id"))
 }
 
-test.describe.serial("insider asking phase — non-Master view (US-060)", () => {
+// TODO(#16 follow-up): exercises master_respond-driven feed + Insider D2
+// hint, all removed in #16. New compact-header E2E lives in
+// insider-asking-simplified.spec.ts.
+test.describe.skip("insider asking phase — non-Master view (US-060) [DEPRECATED #16]", () => {
   test("Insider + Common see Screen 6b; Realtime feed updates; hint Insider-only", async ({
     browser,
   }) => {

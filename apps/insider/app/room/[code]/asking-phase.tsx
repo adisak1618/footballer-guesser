@@ -7,22 +7,9 @@ import { supabase } from "@/lib/supabase"
 import { AskingMaster } from "./asking-master"
 import { AskingOther } from "./asking-other"
 
-// US-058 / Phase 5b.5a — Asymmetric privacy during the asking phase (D3, D4).
-// US-059 / Phase 5b.5b — Master view (Screen 6a + D1) delegated to AskingMaster.
-// US-060 / Phase 5b.5c — Non-Master view (Screen 6b + D2) delegated to
-//                        AskingOther; Insider+Common share the same component.
-//
-// Once `game_insider_round.phase` flips from 'preparing' → 'asking', the room
-// shell (`lobby.tsx`) swaps the role-reveal screen for this asking-phase
-// shell. The shell is the role router for the asking phase:
-//   - master → render <AskingMaster/> (Screen 6a wireframe + D1 — buttons,
-//     feed, ทายถูกแล้ว CTA). Receives the secret and round timer params.
-//   - insider / common → render <AskingOther/> (Screen 6b wireframe + D2 —
-//     phase tag/timer, ASK OUT LOUD instruction, full-height response feed,
-//     plus an Insider-only D2 hint). The component renders an identical DOM
-//     for Insider and Common except for the hint testid, which only Insider
-//     receives — so a phone glanced at during asking can not betray who the
-//     Insider is.
+// US-058 / Phase 5b.5a — Asking-phase router.
+// Issue #16 — Insider now receives the secret too (parity with Master) so it
+// can be shown inline in the compact header. Common still receives null.
 
 type InsiderRole = "master" | "insider" | "player"
 
@@ -34,7 +21,7 @@ interface AskingPhaseProps {
 
 export function AskingPhase({ roomId, round, mePlayerId }: AskingPhaseProps) {
   const [role, setRole] = useState<InsiderRole | null>(null)
-  const [masterSecret, setMasterSecret] = useState<string | null>(null)
+  const [secret, setSecret] = useState<string | null>(null)
   const [startedAt, setStartedAt] = useState<string | null>(null)
   const [timeLimitS, setTimeLimitS] = useState<number | null>(null)
   const [loaded, setLoaded] = useState(false)
@@ -62,19 +49,20 @@ export function AskingPhase({ roomId, round, mePlayerId }: AskingPhaseProps) {
       setRole(r)
       setStartedAt((roundRow?.started_at as string | null) ?? null)
       setTimeLimitS((roundRow?.time_limit_s as number | null) ?? null)
-      if (r === "master") {
-        try {
-          const s = await getMyInsiderSecret(supabase, {
-            roomId,
-            round,
-            playerId: mePlayerId,
-          })
-          if (!active) return
-          setMasterSecret(s)
-        } catch {
-          // Master secret fetch failed — still render the shell. UI parity
-          // invariant holds: Insider/Common shells also have no secret.
-        }
+      // get_my_insider_secret returns the secret for master+insider, NULL
+      // for commons (column-level RLS in migration 0021). Calling it for
+      // every role keeps a single load path; the result is gated below.
+      try {
+        const s = await getMyInsiderSecret(supabase, {
+          roomId,
+          round,
+          playerId: mePlayerId,
+        })
+        if (!active) return
+        setSecret((s as string | null) ?? null)
+      } catch {
+        // Secret fetch failed — still render the shell. Master's CTA still
+        // works without the visible secret reminder.
       }
       setLoaded(true)
     }
@@ -94,21 +82,21 @@ export function AskingPhase({ roomId, round, mePlayerId }: AskingPhaseProps) {
     )
   }
 
-  if (role === "master" && masterSecret && timeLimitS !== null) {
+  if (role === "master" && secret && timeLimitS !== null) {
     return (
       <AskingMaster
         roomId={roomId}
         round={round}
         mePlayerId={mePlayerId}
-        secret={masterSecret}
+        secret={secret}
         startedAt={startedAt}
         timeLimitS={timeLimitS}
       />
     )
   }
 
-  // Non-master view (US-060) — Insider and Common share AskingOther so the
-  // DOM is identical apart from the Insider-only D2 hint testid.
+  // Insider + Common share AskingOther; Insider receives the secret inline,
+  // Common always passes null (RPC returns NULL for commons regardless).
   const otherRole: "insider" | "player" = role === "insider" ? "insider" : "player"
   return (
     <AskingOther
@@ -117,6 +105,7 @@ export function AskingPhase({ roomId, round, mePlayerId }: AskingPhaseProps) {
       role={otherRole}
       startedAt={startedAt}
       timeLimitS={timeLimitS ?? 0}
+      secret={otherRole === "insider" ? secret : null}
     />
   )
 }

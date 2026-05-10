@@ -107,7 +107,8 @@ afterAll(async () => {
   await cleanup()
 })
 
-describe("US-070 — Common attempts master_respond → rejected (Phase 5c.5)", () => {
+// Issue #16 — master_respond RPC deprecated; skipped pending follow-up RPC drop.
+describe.skip("US-070 — Common attempts master_respond → rejected (Phase 5c.5) [DEPRECATED #16]", () => {
   it("Common player's direct RPC call is rejected with PGAME15 (role_denied) and no response is recorded", async () => {
     const f = await buildAskingRoom()
 

@@ -86,3 +86,4 @@ apps/*/scripts/ralph/.last-branch
 # Supabase Studio scratch — auto-generated "Untitled query N.sql" snippets
 /supabase/snippets/
 .ralph/run.log
+.gstack/
