@@ -1,6 +1,15 @@
 -- 0024_master_respond.sql
 -- Phase 5a.8 / US-045 — master_respond RPC.
 --
+-- TODO(#16 follow-up): the asking-phase UI no longer calls master_respond
+-- (Y/N/Unsure response buttons removed in #16 — Headball is a same-room
+-- offline social game; answers are spoken). The function and migration are
+-- intentionally kept in place for one release so pinned mid-deploy clients
+-- do not error on a missing RPC. Drop in a follow-up migration once the
+-- deploy fan-out is complete; the regression suites for this RPC live as
+-- describe.skip in migration-0024-master-respond.test.ts and
+-- us-070-common-master-respond-denied.test.ts.
+--
 -- The Master records Yes/No/Unsure to the group's question. Per design doc
 -- C2.A this is the only authority that may write into game_insider_responses
 -- during the 'asking' phase. Discipline mirrors advance_to_asking (T-2.A):

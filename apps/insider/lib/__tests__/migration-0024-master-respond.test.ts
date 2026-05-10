@@ -134,7 +134,11 @@ afterAll(async () => {
   await cleanup()
 })
 
-describe("master_respond (migration 0024) — Phase 5a.8", () => {
+// Issue #16 — master_respond RPC is deprecated (Y/N/Unsure response buttons
+// removed from the asking-phase UI in favour of spoken Master answers). The
+// RPC + migration 0024 are kept in place; this regression suite is skipped
+// pending follow-up to drop the RPC entirely.
+describe.skip("master_respond (migration 0024) — Phase 5a.8 [DEPRECATED #16]", () => {
   it("Master in 'asking' before deadline → inserts response row (yes/no/unsure all accepted)", async () => {
     const f = await createRoomWithRoles(ROOM_CODES.happy, "asking", {
       timeLimitS: 300,

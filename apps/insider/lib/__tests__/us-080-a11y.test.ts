@@ -46,20 +46,11 @@ describe("US-080 — Insider a11y polish contract", () => {
       for (const m of cta ?? []) expect(m).toMatch(/min-h-14/)
     })
 
-    it("asking-master accordion toggle has min-h-11 (44px) — the only sub-44px control before US-080", () => {
-      const src = read("asking-master.tsx")
-      // The accordion toggle was previously py-3 only (~42px). US-080 added
-      // min-h-11 to clear the 44px touch-target threshold.
-      expect(src).toMatch(/data-testid="master-feed-accordion-toggle"[\s\S]*?min-h-11/)
-    })
-
-    it("asking-master Yes/No/Unsure buttons use ResponseButton (min-h-[96px])", () => {
-      const button = readFileSync(
-        join(APP_ROOT, "..", "..", "packages", "ui", "src", "response-button.tsx"),
-        "utf8",
-      )
-      expect(button).toMatch(/min-h-\[96px\]/)
-    })
+    // Issue #16 — accordion toggle + Y/N/Unsure ResponseButtons removed from
+    // asking-master in favour of the simplified ทายถูกแล้ว-only layout. The
+    // ResponseButton primitive itself is still exported by @social-hub/ui
+    // (in case another game wants it later); its dedicated unit test in
+    // packages/ui covers the touch-target contract.
 
     it("asking-master mark-correct CTA uses min-h-14", () => {
       const src = read("asking-master.tsx")
@@ -120,47 +111,10 @@ describe("US-080 — Insider a11y polish contract", () => {
     })
   })
 
-  describe("Response feed wrapped in aria-live='polite'", () => {
-    it("asking-other (Insider+Common shared) feed has aria-live='polite'", () => {
-      const src = read("asking-other.tsx")
-      expect(src).toMatch(
-        /data-testid="asking-other-feed"[\s\S]*?aria-live="polite"/,
-      )
-    })
-
-    it("asking-master expanded feed list has aria-live='polite'", () => {
-      const src = read("asking-master.tsx")
-      expect(src).toMatch(
-        /data-testid="master-feed-list"[\s\S]*?aria-live="polite"/,
-      )
-    })
-  })
-
-  describe("Color-blind triple-coding: Yes/No/Unsure all have icon + text + color", () => {
-    it("ResponseButton renders icon + Thai label + English caption", () => {
-      const button = readFileSync(
-        join(APP_ROOT, "..", "..", "packages", "ui", "src", "response-button.tsx"),
-        "utf8",
-      )
-      // Three independent channels per variant: icon (✓/✗/?), label, color.
-      expect(button).toMatch(/{icon}/)
-      expect(button).toMatch(/{labelTh}/)
-      expect(button).toMatch(/{labelEn}/)
-      expect(button).toMatch(/success.*bg-success/s)
-      expect(button).toMatch(/error.*bg-error/s)
-      expect(button).toMatch(/warning.*bg-warning/s)
-    })
-
-    it("asking-master maps yes→✓, no→✗, unsure→? plus Thai labels", () => {
-      const src = read("asking-master.tsx")
-      expect(src).toMatch(/yes:\s*"✓"/)
-      expect(src).toMatch(/no:\s*"✗"/)
-      expect(src).toMatch(/unsure:\s*"\?"/)
-      expect(src).toMatch(/yes:\s*"ใช่"/)
-      expect(src).toMatch(/no:\s*"ไม่ใช่"/)
-      expect(src).toMatch(/unsure:\s*"ไม่แน่ใจ"/)
-    })
-  })
+  // Issue #16 — Response feed (asking-other-feed, master-feed-list) and the
+  // Y/N/Unsure response triple-coding contract were removed when the asking
+  // phase was simplified to a single ทายถูกแล้ว action. ResponseButton's own
+  // a11y contract is still covered by packages/ui's response-button test.
 
   describe("ARIA landmarks: <main>, <header>, <aside> on each screen", () => {
     it("role-reveal: insider/master/common variants each render <main> + <header>", () => {
@@ -175,17 +129,20 @@ describe("US-080 — Insider a11y polish contract", () => {
       expect(src).toMatch(/<aside[\s\S]*?data-testid="common-warning-hint"/)
     })
 
-    it("asking-master renders <main> + <header> + <aside> for the response feed", () => {
+    it("asking-master renders <main> + <header> (#16: response feed <aside> removed)", () => {
       const src = read("asking-master.tsx")
       expect(src).toMatch(/<main\b/)
-      expect(src).toMatch(/<header\b/)
-      expect(src).toMatch(/<aside aria-label="Master responses"/)
+      // <header> now lives inside the shared AskingHeader component used by
+      // asking-master.tsx; the host file doesn't need its own.
+      const headerSrc = read("asking-header.tsx")
+      expect(headerSrc).toMatch(/<header\b/)
     })
 
-    it("asking-other renders <main> + <header>", () => {
+    it("asking-other renders <main>; <header> moved into shared asking-header (#16)", () => {
       const src = read("asking-other.tsx")
       expect(src).toMatch(/<main\b/)
-      expect(src).toMatch(/<header\b/)
+      const headerSrc = read("asking-header.tsx")
+      expect(headerSrc).toMatch(/<header\b/)
     })
 
     it("voting renders <main> + <header>", () => {
@@ -222,6 +179,7 @@ describe("US-080 — Insider a11y polish contract", () => {
       "role-reveal.tsx",
       "asking-master.tsx",
       "asking-other.tsx",
+      "asking-header.tsx",
       "asking-phase.tsx",
       "voting.tsx",
       "reveal.tsx",

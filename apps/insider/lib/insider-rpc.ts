@@ -59,6 +59,11 @@ export async function startInsiderRound(
   )
 }
 
+// TODO(#16 follow-up): drop master_respond entirely once the migration that
+// removes the SQL function lands. The RPC + wrapper are kept in place for one
+// release so any pinned client mid-deploy does not error on a missing RPC.
+// The asking-phase UI no longer calls it (Y/N/Unsure response buttons removed
+// in #16 — Headball is a same-room offline social game; answers are spoken).
 export type MasterResponse = "yes" | "no" | "unsure"
 
 export interface MasterRespondArgs {

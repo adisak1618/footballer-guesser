@@ -41,7 +41,11 @@ async function readInsiderPlayerId(page: Page): Promise<string | null> {
   return page.evaluate(() => window.localStorage.getItem("insider_player_id"))
 }
 
-test.describe.serial("insider asking phase — Master view (US-059)", () => {
+// TODO(#16 follow-up): exercises master_respond Y/N/Unsure buttons + feed,
+// all removed in #16. New compact-header E2E lives in
+// insider-asking-simplified.spec.ts. Restore or drop once master_respond RPC
+// is dropped in a follow-up migration.
+test.describe.skip("insider asking phase — Master view (US-059) [DEPRECATED #16]", () => {
   test("Master sees Screen 6a, taps Yes → response inserted + feed updates via Realtime", async ({
     browser,
   }) => {

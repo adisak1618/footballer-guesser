@@ -37,7 +37,13 @@ async function readInsiderPlayerId(page: Page): Promise<string | null> {
   return page.evaluate(() => window.localStorage.getItem("insider_player_id"))
 }
 
-test.describe.serial("insider asking phase — asymmetric privacy (US-058)", () => {
+// TODO(#16 follow-up): the D4 anti-cheat parity (Insider≡Common shell DOM)
+// is intentionally relaxed in #16 — Insider now sees the secret word inline
+// in the compact header, parity with Master's master-asking-secret-reminder.
+// The asymmetric-privacy story changes shape; revisit this spec once the
+// product decision settles. The new compact-header E2E lives in
+// insider-asking-simplified.spec.ts.
+test.describe.skip("insider asking phase — asymmetric privacy (US-058) [DEPRECATED #16]", () => {
   test("Insider role badge + secret hidden during asking; Master keeps small reminder", async ({
     browser,
   }) => {
