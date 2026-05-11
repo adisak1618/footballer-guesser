@@ -1,4 +1,5 @@
 import Link from "next/link"
+import { CreateInsiderRoomButton } from "./create-insider-room-button"
 
 export default function InsiderPage() {
   return (
@@ -18,15 +19,7 @@ export default function InsiderPage() {
       </header>
 
       <div className="relative flex w-full flex-col gap-4">
-        <Link
-          href="/new"
-          className="flex min-h-14 w-full items-center justify-center gap-3 rounded-xl bg-goal px-8 text-on-dark transition-colors active:bg-goal-active"
-        >
-          <span aria-hidden className="text-2xl leading-none">+</span>
-          <span className="text-[17px] font-semibold tracking-[0.3px]">
-            สร้างห้อง
-          </span>
-        </Link>
+        <CreateInsiderRoomButton />
 
         <Link
           href="/join"

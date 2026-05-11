@@ -4,15 +4,11 @@ import type { ReactNode } from "react"
 
 import { cn } from "./utils"
 
-// US-077 / Phase 5d.3 — Pack chip: selectable radio-chip used by the Insider
-// host-setup form (Screen 1) for picking a word pack. When selected the chip
-// fills with a tag-color background; when unselected it shows a hairline
-// outline on surface-elevated. Plex Thai display label as the headline; the
-// optional English subtitle is dimmed.
-//
-// DOM mirrors the prior inline implementation in
-// `apps/insider/app/new/host-setup-form.tsx` so the existing
-// `pack-chip-<slug>` testid + `radio` semantics + transitions are preserved.
+// Selectable radio-chip used by the lobby category picker (formerly "pack" —
+// issue #27 renamed user-facing strings to "category"; DB column stays
+// `pack_slug`, so the `pack-chip-<slug>` test-id format is preserved for
+// existing e2e selectors). Selected = tag-color fill + shadow; unselected =
+// surface-elevated + hairline outline.
 
 const TAG_BG: Record<number, string> = {
   1: "bg-tag-red",
@@ -36,7 +32,7 @@ const TAG_TEXT: Record<number, string> = {
   8: "text-ink",
 }
 
-export interface PackChipProps {
+export interface CategoryChipProps {
   joinIndex: number
   label: ReactNode
   subLabel?: ReactNode
@@ -47,7 +43,7 @@ export interface PackChipProps {
   className?: string
 }
 
-export function PackChip({
+export function CategoryChip({
   joinIndex,
   label,
   subLabel,
@@ -56,7 +52,7 @@ export function PackChip({
   onTap,
   testId,
   className,
-}: PackChipProps) {
+}: CategoryChipProps) {
   const idx = (joinIndex % 8) + 1
   const bg = TAG_BG[idx] ?? "bg-tag-red"
   const text = TAG_TEXT[idx] ?? "text-on-dark"

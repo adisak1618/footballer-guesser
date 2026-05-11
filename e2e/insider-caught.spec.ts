@@ -56,12 +56,10 @@ test.describe.serial("insider reveal — caught variant (US-062)", () => {
       const [hostPage, p2, p3, p4] = session.pages
 
       // ─── Host creates room ──────────────────────────────────────────────
-      await hostPage.goto(`${INSIDER_URL}/new`, {
-        waitUntil: "domcontentloaded",
-      })
-      await hostPage.locator('input[type="text"]').first().fill("Host")
-      await hostPage.getByTestId("pack-chip-football-premier-league").click()
-      await hostPage.getByTestId("create-insider-room-cta").click()
+      await hostPage.goto(`${INSIDER_URL}/`, { waitUntil: "domcontentloaded" })
+      await hostPage.getByTestId("insider-create-room-cta").click()
+      await hostPage.getByTestId("insider-create-room-name-input").fill("Host")
+      await hostPage.getByTestId("insider-create-room-submit").click()
       await hostPage.waitForURL(/\/room\/[A-Z0-9]{6}$/, { timeout: 15_000 })
       const code = new URL(hostPage.url()).pathname.split("/").pop() ?? ""
       expect(code).toMatch(/^[A-Z0-9]{6}$/)

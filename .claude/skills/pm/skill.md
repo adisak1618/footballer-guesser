@@ -24,10 +24,17 @@ You do NOT touch code, create worktrees, run builds, or do QA.
 Those are entirely the developer agent's responsibility.
 You only care about requirements and delivery status.
 
-**Project context:** Single Next.js 16 + Supabase repo. Worktrees live at
-`<repo-root>/.worktrees/<slug>/`. Branches are cut from `main`. Build/test
-commands run via Bun (`bun run lint`, `bunx tsc --noEmit`, `bun run build`,
-`bunx vitest run`, `bunx playwright test`). Browser QA uses the gstack
+**Project context:** Bun + Turborepo monorepo. Apps live at `apps/<game>/`
+(currently `apps/headball/`, `apps/insider/`, with `apps/hub/` planned).
+Shared code lives in `packages/<name>/` (`core`, `ui`, `types`, `content`).
+Supabase config and migrations live at the workspace root (`supabase/`,
+shared across all games). Worktrees live at `<repo-root>/.worktrees/<slug>/`.
+Branches are cut from `main`. Build/test commands run via Bun + Turbo at
+workspace root (`bun run lint`, `bun run build`, `bunx vitest run`). There
+is **no workspace-root `tsconfig.json`** — typecheck is per-package
+(`cd apps/<game> && bunx tsc --noEmit`). Playwright E2E is per-app
+(`cd apps/<game> && bunx playwright test`, serial `workers: 1`). Browser
+QA uses the gstack
 `/browse` skill. PRs are opened via the gstack `/ship` skill. UI work must
 follow `docs/DESIGN.md` (Stadium Energy aesthetic).
 
@@ -111,11 +118,12 @@ else
   echo "[FAIL] bun not found — install from https://bun.sh"
 fi
 
-# 6. Repo sanity — must be the Headball repo (app/ + docs/ + next.config.ts + package.json)
-if [ -d "app" ] && [ -d "docs" ] && [ -f "next.config.ts" ] && [ -f "package.json" ]; then
-  echo "[PASS] Running from Headball repo root ($(pwd))"
+# 6. Repo sanity — must be the Headball monorepo root
+#    (apps/, docs/, tsconfig.base.json, package.json)
+if [ -d "apps" ] && [ -d "docs" ] && [ -f "tsconfig.base.json" ] && [ -f "package.json" ]; then
+  echo "[PASS] Running from Headball monorepo root ($(pwd))"
 else
-  echo "[FAIL] Not at Headball repo root — cd to the repo and retry (need app/, docs/, next.config.ts, package.json)"
+  echo "[FAIL] Not at Headball monorepo root — cd to the repo and retry (need apps/, docs/, tsconfig.base.json, package.json)"
 fi
 
 # 7. main branch exists
@@ -185,8 +193,8 @@ Arguments:
 **Step 1: Preflight**
 
 ```bash
-test -d "$(pwd)/app" && test -d "$(pwd)/docs" && test -f "$(pwd)/next.config.ts" \
-  || { echo "ERROR: not at Headball repo root."; exit 1; }
+test -d "$(pwd)/apps" && test -d "$(pwd)/docs" && test -f "$(pwd)/tsconfig.base.json" \
+  || { echo "ERROR: not at Headball monorepo root."; exit 1; }
 which gh >/dev/null || { echo "ERROR: gh CLI not found."; exit 1; }
 
 REPO=$(gh repo view --json nameWithOwner -q .nameWithOwner 2>/dev/null)
@@ -448,9 +456,9 @@ echo "or to the dispatch bootstrap in .claude/skills/pm/skill.md."
 ```bash
 REPO_PATH="$(pwd)"
 
-# Must be Headball repo root
-test -d "$REPO_PATH/app" && test -d "$REPO_PATH/docs" && test -f "$REPO_PATH/next.config.ts" && test -f "$REPO_PATH/package.json" \
-  || { echo "ERROR: not at Headball repo root. cd to the repo first."; exit 1; }
+# Must be Headball monorepo root (apps/, docs/, tsconfig.base.json, package.json)
+test -d "$REPO_PATH/apps" && test -d "$REPO_PATH/docs" && test -f "$REPO_PATH/tsconfig.base.json" && test -f "$REPO_PATH/package.json" \
+  || { echo "ERROR: not at Headball monorepo root. cd to the repo first."; exit 1; }
 
 # Must not be inside a worktree
 case "$REPO_PATH" in

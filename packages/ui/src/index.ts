@@ -6,7 +6,12 @@ export {
   NetworkErrorBanner,
   type NetworkErrorBannerProps,
 } from "./network-error-banner"
-export { PackChip, type PackChipProps } from "./pack-chip"
+export { CategoryChip, type CategoryChipProps } from "./category-chip"
+export {
+  RoomSetupPanel,
+  type RoomSetupPanelProps,
+  type RoomSetupPanelLockState,
+} from "./room-setup-panel"
 export {
   PhaseTransitionOverlay,
   type PhaseTransitionOverlayProps,

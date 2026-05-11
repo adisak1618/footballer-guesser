@@ -32,15 +32,11 @@ test.describe.serial("insider lobby (US-054)", () => {
     try {
       const [hostPage, p2, p3, p4] = session.pages
 
-      // ─── Host: create room via /new ───────────────────────────────────────
-      await hostPage.goto(`${INSIDER_URL}/new`, {
-        waitUntil: "domcontentloaded",
-      })
-      await hostPage.locator('input[type="text"]').first().fill("Host")
-      await hostPage
-        .getByTestId("pack-chip-football-premier-league")
-        .click()
-      await hostPage.getByTestId("create-insider-room-cta").click()
+      // ─── Host: create room via landing modal (issue #27 — /new deleted) ───
+      await hostPage.goto(`${INSIDER_URL}/`, { waitUntil: "domcontentloaded" })
+      await hostPage.getByTestId("insider-create-room-cta").click()
+      await hostPage.getByTestId("insider-create-room-name-input").fill("Host")
+      await hostPage.getByTestId("insider-create-room-submit").click()
       await hostPage.waitForURL(/\/room\/[A-Z0-9]{6}$/, { timeout: 15_000 })
 
       const roomUrl = hostPage.url()
