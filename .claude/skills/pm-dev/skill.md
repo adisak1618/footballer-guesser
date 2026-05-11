@@ -20,19 +20,27 @@ autonomous — you handle everything from reading the issue to opening a PR.
 You make your own technical decisions and only escalate when requirements
 are genuinely unclear.
 
-**Project context:** Single Next.js 16 + Supabase repo. Worktree at
-`<repo-root>/.worktrees/<slug>/`. Branch from `main`. Build/test commands:
-  - `bun run lint`
-  - `bunx tsc --noEmit`
-  - `bun run build`
-  - `bunx vitest run`
-  - `bunx playwright test` (E2E, serial workers=1 — they share local Postgres)
+**Project context:** Bun + Turborepo monorepo + Supabase. Worktree at
+`<repo-root>/.worktrees/<slug>/`. Branch from `main`. Apps live at
+`apps/<game>/` (`apps/headball/`, `apps/insider/`, future `apps/hub/`).
+Shared code lives in `packages/<name>/` (`core`, `ui`, `types`, `content`).
+Supabase config + migrations live at workspace root (`supabase/`, shared).
+Build/test commands:
+  - `bun run lint` (workspace root — turbo run lint + realtime publication check)
+  - **Per-package typecheck**: `cd apps/<game> && bunx tsc --noEmit`
+    There is **no workspace-root `tsconfig.json`** — typecheck is per-package.
+  - `bun run build` (workspace root — turbo build; filter to a specific app
+    with `bun run build --filter=@social-hub/<game>` when needed)
+  - `bunx vitest run` (workspace root — `projects: ["apps/*"]`)
+  - **Per-app Playwright**: `cd apps/<game> && bunx playwright test`
+    (E2E, serial workers=1 — they share local Postgres)
 Browser QA via the gstack `/browse` skill. PR creation via gstack `/ship`.
 Bug analysis (optional, when root cause is unclear) via gstack `/investigate`.
 
 **UI work MUST follow `docs/DESIGN.md`** (Stadium Energy aesthetic — Bebas
-Neue, dark navy, jersey colors). If your changes touch `app/` or
-`components/` and don't match `docs/DESIGN.md`, that is a Phase 4 QA failure.
+Neue, dark navy, jersey colors). If your changes touch `apps/<game>/app/`,
+`apps/<game>/components/`, or `packages/ui/` and don't match
+`docs/DESIGN.md`, that is a Phase 4 QA failure.
 
 **Shared local Supabase caveat:** ALL parallel pm-dev sessions hit ONE
 local Postgres (54322) and Realtime (54321). Do NOT run `bunx supabase
@@ -406,11 +414,39 @@ If requirements become unclear mid-implementation, stop and report NEEDS_CLARIFI
 Run all five in order. Fix anything that fails before proceeding.
 
 ```bash
+# 1. Lint (workspace root — turbo run lint, includes realtime publication check)
 cd "$WORKTREE_PATH" && bun run lint
-cd "$WORKTREE_PATH" && bunx tsc --noEmit
+
+# 2. Typecheck PER-PACKAGE — there is no workspace-root tsconfig.json.
+#    Loop covers current and future apps (headball, insider, hub).
+for app_dir in "$WORKTREE_PATH"/apps/*/; do
+  [ -f "$app_dir/tsconfig.json" ] || continue
+  echo "→ typecheck $(basename "$app_dir")"
+  (cd "$app_dir" && bunx tsc --noEmit) || exit 1
+done
+# Optional: also typecheck workspace packages if your change touched them
+for pkg_dir in "$WORKTREE_PATH"/packages/*/; do
+  [ -f "$pkg_dir/tsconfig.json" ] || continue
+  echo "→ typecheck $(basename "$pkg_dir")"
+  (cd "$pkg_dir" && bunx tsc --noEmit) || exit 1
+done
+
+# 3. Build (workspace root — turbo build). Defaults to `--filter=@social-hub/headball`
+#    per the workspace `bun run build` script. If your change touches other apps
+#    (e.g. apps/insider, packages/*), expand the filter:
+#      bun run build --filter=@social-hub/headball --filter=@social-hub/insider
 cd "$WORKTREE_PATH" && bun run build
+
+# 4. Unit tests (workspace root — vitest with projects: ["apps/*"])
 cd "$WORKTREE_PATH" && bunx vitest run
-cd "$WORKTREE_PATH" && bunx playwright test
+
+# 5. Playwright PER-APP (each app owns its own playwright.config.ts).
+#    Skip an app if it has no e2e/ directory.
+for app_dir in "$WORKTREE_PATH"/apps/*/; do
+  [ -d "$app_dir/e2e" ] || continue
+  echo "→ playwright $(basename "$app_dir")"
+  (cd "$app_dir" && bunx playwright test) || exit 1
+done
 ```
 
 **Playwright caveat:** tests run with `workers: 1` because they share the
@@ -430,22 +466,38 @@ The rubric is the checklist. Every acceptance criterion and every non-N/A state 
 
 ### Start the local dev server
 
-Use a port derived from the issue number so parallel sessions don't collide:
+Use a port derived from the issue number so parallel sessions don't collide.
+
+**Monorepo note:** Workspace-root `bun run dev` proxies via turbo and defaults
+to `--filter=@social-hub/headball`. If your issue's QA needs to exercise
+another app (e.g. Insider), set `QA_APP` and run that app's dev script
+directly instead. Also note that Next.js loads `.env.local` from the app's
+own directory (`apps/<game>/.env.local`), NOT the workspace root — re-check
+that file exists before starting dev.
 
 ```bash
 QA_PORT=$((3000 + ISSUE_NUMBER % 100))
 QA_BASE="http://localhost:$QA_PORT"
 QA_LOG="/tmp/headball-dev-$ISSUE_NUMBER.log"
 
-# Rewrite any localhost:<port> in copied .env* files to this agent's port
+# Pick the app to QA. Default to headball; override per issue if the change
+# is Insider-only or cross-app. For cross-app issues, run QA against each
+# affected app serially (re-enter this block with a different QA_APP).
+QA_APP="${QA_APP:-headball}"
+QA_APP_DIR="$WORKTREE_PATH/apps/$QA_APP"
+[ -d "$QA_APP_DIR" ] || { echo "QA_APP=$QA_APP not found at $QA_APP_DIR"; exit 1; }
+
+# Rewrite any localhost:<port> in the app's .env* files to this agent's port.
+# Next.js loads .env.local from the app dir, not the workspace root.
 URL_OVERRIDES=""
-for f in "$WORKTREE_PATH/.env" "$WORKTREE_PATH/.env.local" "$WORKTREE_PATH/.env.development"; do
+for f in "$QA_APP_DIR/.env" "$QA_APP_DIR/.env.local" "$QA_APP_DIR/.env.development"; do
   [ -f "$f" ] && while IFS= read -r l; do
     URL_OVERRIDES="$URL_OVERRIDES ${l%%=*}=$(printf '%s' "${l#*=}" | sed -E "s|http(s?)://localhost:[0-9]+|http\\1://localhost:$QA_PORT|")"
   done < <(grep -E '^[A-Z_][A-Z0-9_]*=https?://localhost:[0-9]+' "$f" 2>/dev/null)
 done
 
-cd "$WORKTREE_PATH" && nohup env PORT=$QA_PORT $URL_OVERRIDES bun run dev > "$QA_LOG" 2>&1 &
+# Run the app's dev script directly so the turbo filter doesn't get in the way.
+cd "$QA_APP_DIR" && nohup env PORT=$QA_PORT $URL_OVERRIDES bun run dev > "$QA_LOG" 2>&1 &
 DEV_PID=$!
 for i in $(seq 1 45); do
   grep -qE "Ready in|Local:[[:space:]]+http|started server on" "$QA_LOG" && break
