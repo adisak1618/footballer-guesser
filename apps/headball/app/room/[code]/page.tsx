@@ -7,6 +7,7 @@ import { supabase } from "@/lib/supabase"
 import { readPlayerId, useGameStore } from "@/lib/game-store"
 import type { Player, Room } from "@/lib/types"
 import { ConnectionStatus } from "@/components/connection-status"
+import { RoomJoinPrompt } from "@/components/room-join-prompt"
 import { Lobby } from "./lobby"
 import { Playing } from "./playing"
 import { Results } from "./results"
@@ -20,6 +21,7 @@ export default function RoomPage({
   const code = rawCode.toUpperCase()
 
   const room = useGameStore((s) => s.room)
+  const me = useGameStore((s) => s.me)
   const setRoom = useGameStore((s) => s.setRoom)
   const setPlayers = useGameStore((s) => s.setPlayers)
   const setMe = useGameStore((s) => s.setMe)
@@ -27,6 +29,7 @@ export default function RoomPage({
   const reset = useGameStore((s) => s.reset)
 
   const [loadError, setLoadError] = useState<string | null>(null)
+  const [bootstrapped, setBootstrapped] = useState(false)
   const [roomId, setRoomId] = useState<string | null>(null)
 
   useEffect(() => {
@@ -44,6 +47,7 @@ export default function RoomPage({
       if (roomErr || !roomRow) {
         setLoadError("ห้องไม่พบ")
         setConnectionStatus("DISCONNECTED")
+        setBootstrapped(true)
         return
       }
 
@@ -65,6 +69,7 @@ export default function RoomPage({
         ? (ps.find((p) => p.player_id === localPlayerId) ?? null)
         : null
       setMe(myRow)
+      setBootstrapped(true)
     }
 
     load()
@@ -127,10 +132,20 @@ export default function RoomPage({
           .eq("room_id", roomId)
           .order("join_order", { ascending: true })
         if (!refreshed) return
-        setPlayers(refreshed as Player[])
+        const ps = refreshed as Player[]
+        setPlayers(ps)
+        // If we're a returning member who isn't yet pinned in `me`, try to
+        // resolve from the freshly-refreshed roster.
+        if (!useGameStore.getState().me) {
+          const localPlayerId = readPlayerId()
+          const myRow = localPlayerId
+            ? (ps.find((p) => p.player_id === localPlayerId) ?? null)
+            : null
+          if (myRow) setMe(myRow)
+        }
       }
     },
-    [roomId, setRoom, setPlayers],
+    [roomId, setRoom, setPlayers, setMe],
   )
 
   useRoomRealtime({
@@ -161,13 +176,43 @@ export default function RoomPage({
     )
   }
 
-  if (!room) {
+  if (!bootstrapped || !room) {
     return (
       <>
         <ConnectionStatus />
         <main className="relative mx-auto flex min-h-[100dvh] w-full max-w-[480px] flex-col items-center justify-center gap-3 px-6 text-center">
           <p className="text-sm text-on-dark-soft">กำลังโหลด...</p>
         </main>
+      </>
+    )
+  }
+
+  // Direct-link visitor who hasn't joined this room yet.
+  if (!me) {
+    if (room.status === "PLAYING" || room.status === "ENDED") {
+      const message =
+        room.status === "PLAYING" ? "เกมเริ่มไปแล้ว" : "เกมจบไปแล้ว"
+      return (
+        <main className="relative mx-auto flex min-h-[100dvh] w-full max-w-[480px] flex-col items-center justify-center gap-6 px-6 text-center">
+          <h1 className="font-display text-[40px] uppercase tracking-[0.5px] text-on-dark">
+            {message}
+          </h1>
+          <p className="text-sm text-on-dark-soft">
+            เข้าร่วมเกมไม่ได้ ลองเริ่มห้องใหม่
+          </p>
+          <Link
+            href="/"
+            className="flex min-h-11 items-center justify-center rounded-xl border border-hairline bg-surface-elevated px-6 text-[15px] font-semibold tracking-[0.3px] text-on-dark transition-colors active:bg-surface"
+          >
+            กลับหน้าหลัก
+          </Link>
+        </main>
+      )
+    }
+    return (
+      <>
+        <ConnectionStatus />
+        <RoomJoinPrompt code={code} onJoined={() => void refetchAll()} />
       </>
     )
   }
