@@ -11,6 +11,7 @@
 | #23   | Insider: show round counter X/Y during play                    | :green_circle: | feat/23-round-counter-during-play | https://github.com/adisak1618/footballer-guesser/pull/25 | 4414990529 | merged |
 | #24   | Insider: between-rounds + game-end UX                          | :green_circle: | feat/24-insider-between-rounds-game-end-ux | https://github.com/adisak1618/footballer-guesser/pull/26 | 4414990561 | merged (migrations 0036/0037, 26 new tests) |
 | #27   | feat(platform): unified RoomSetupPanel + Category terminology  | :green_circle: | feat/27-unified-room-setup-panel-category | https://github.com/adisak1618/footballer-guesser/pull/28 | 4418725383 | merged (migration 0038 rounds_locked + change_insider_max_rounds RPC, packages/ui RoomSetupPanel, both apps migrated, /new deleted, Pack→Category UI rename) |
+| #29   | Headball: direct room link should prompt for name              | :large_blue_circle: | feat/29-headball-direct-link-name-prompt | https://github.com/adisak1618/footballer-guesser/pull/30 | 4423434304 | QA PASS; gates /room/[code] with Insider-style name prompt, blocks PLAYING/ENDED with Thai error, returning members refresh-safe |
 
 Status legend:
 - :red_circle: Not started
