@@ -28,7 +28,7 @@ function mapError(error: unknown): string {
       case "PG014":
         return "ต้องมีผู้เล่นอย่างน้อย 3 คน"
       case "PG001":
-        return "ไม่พบคลังคำ"
+        return "ไม่พบหมวดหมู่"
       default:
         return "เริ่มเกมไม่สำเร็จ ลองใหม่"
     }

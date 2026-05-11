@@ -423,6 +423,7 @@ export type Database = {
           host_player_id: string | null
           id: string
           max_rounds: number
+          rounds_locked: boolean
           score_positions: number
           status: Database["public"]["Enums"]["room_status"] | null
         }
@@ -438,6 +439,7 @@ export type Database = {
           host_player_id?: string | null
           id?: string
           max_rounds: number
+          rounds_locked?: boolean
           score_positions: number
           status?: Database["public"]["Enums"]["room_status"] | null
         }
@@ -453,6 +455,7 @@ export type Database = {
           host_player_id?: string | null
           id?: string
           max_rounds?: number
+          rounds_locked?: boolean
           score_positions?: number
           status?: Database["public"]["Enums"]["room_status"] | null
         }
@@ -649,6 +652,14 @@ export type Database = {
         }
         Returns: undefined
       }
+      change_insider_max_rounds: {
+        Args: { p_max_rounds: number; p_player_id: string; p_room_id: string }
+        Returns: undefined
+      }
+      change_insider_pack: {
+        Args: { p_pack_slug: string; p_player_id: string; p_room_id: string }
+        Returns: undefined
+      }
       create_insider_room: {
         Args: {
           p_host_name: string
@@ -727,6 +738,10 @@ export type Database = {
       }
       reset_game: {
         Args: { p_host_player_id: string; p_room_id: string }
+        Returns: undefined
+      }
+      reset_insider_game: {
+        Args: { p_player_id: string; p_room_id: string }
         Returns: undefined
       }
       soundex: { Args: { "": string }; Returns: string }
@@ -912,4 +927,3 @@ export const Constants = {
     },
   },
 } as const
-

@@ -197,7 +197,10 @@ describe("change_insider_pack (migration 0036) — issue #24", () => {
     expect(await readPack(f.roomId)).toBe(PACK_SLUG_DEFAULT)
   })
 
-  it("initial-lobby state (current_round = 0) is rejected with PGAME13 / PG013", async () => {
+  it("initial-lobby state (current_round = 0) is now accepted (issue #27)", async () => {
+    // Issue #27 — the /new host-setup screen is deleted; the initial lobby is
+    // now the canonical place to pick the category. Migration 0038 widens
+    // change_insider_pack to accept status=LOBBY regardless of current_round.
     const f = await createRoom(ROOM_CODES.initialLobby, {
       status: "LOBBY",
       currentRound: 0,
@@ -208,9 +211,8 @@ describe("change_insider_pack (migration 0036) — issue #24", () => {
       p_player_id: f.hostId,
       p_pack_slug: PACK_SLUG_ALT,
     })
-    expect(error).not.toBeNull()
-    expect(error?.code).toBe("PG013")
-    expect(await readPack(f.roomId)).toBe(PACK_SLUG_DEFAULT)
+    expect(error).toBeNull()
+    expect(await readPack(f.roomId)).toBe(PACK_SLUG_ALT)
   })
 
   it("active 'asking' phase is rejected with PGAME13 / PG013", async () => {

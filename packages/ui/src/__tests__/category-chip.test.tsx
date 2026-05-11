@@ -1,16 +1,16 @@
 import { describe, expect, it, vi } from "vitest"
 import { fireEvent, render } from "@testing-library/react"
 
-import { PackChip } from "../pack-chip"
+import { CategoryChip } from "../category-chip"
 
-// US-077 / Phase 5d.3 — PackChip codifies the inline radio-chip block from
-// `apps/insider/app/new/host-setup-form.tsx`. Selected = tag-color bg with
-// shadow + border-transparent; unselected = surface-elevated + hairline outline.
+// CategoryChip (renamed from PackChip in issue #27 — DOM contract preserved).
+// Selected = tag-color bg with shadow + border-transparent; unselected =
+// surface-elevated + hairline outline.
 
-describe("PackChip", () => {
+describe("CategoryChip", () => {
   it("selected variant matches snapshot (tag-color filled)", () => {
     const { container } = render(
-      <PackChip
+      <CategoryChip
         joinIndex={0}
         label="พรีเมียร์ลีก"
         subLabel="Premier League"
@@ -24,7 +24,7 @@ describe("PackChip", () => {
 
   it("unselected variant matches snapshot (surface-elevated)", () => {
     const { container } = render(
-      <PackChip
+      <CategoryChip
         joinIndex={0}
         label="พรีเมียร์ลีก"
         subLabel="Premier League"
@@ -38,7 +38,7 @@ describe("PackChip", () => {
 
   it("renders without subLabel (Thai-only)", () => {
     const { container, queryByText } = render(
-      <PackChip
+      <CategoryChip
         joinIndex={2}
         label="กลุ่มยุโรป"
         selected
@@ -53,7 +53,7 @@ describe("PackChip", () => {
   it("invokes onTap when clicked", () => {
     const handleTap = vi.fn()
     const { getByTestId } = render(
-      <PackChip
+      <CategoryChip
         joinIndex={0}
         label="พรีเมียร์ลีก"
         selected={false}
@@ -68,7 +68,7 @@ describe("PackChip", () => {
   it("does not invoke onTap when disabled", () => {
     const handleTap = vi.fn()
     const { getByTestId } = render(
-      <PackChip
+      <CategoryChip
         joinIndex={0}
         label="พรีเมียร์ลีก"
         selected={false}
@@ -83,7 +83,7 @@ describe("PackChip", () => {
 
   it("sets role=radio and aria-checked from selected", () => {
     const { getByTestId } = render(
-      <PackChip
+      <CategoryChip
         joinIndex={0}
         label="X"
         selected
@@ -98,7 +98,7 @@ describe("PackChip", () => {
 
   it("cycles tag-color via joinIndex (mod 8)", () => {
     const { getByTestId, rerender } = render(
-      <PackChip
+      <CategoryChip
         joinIndex={0}
         label="A"
         selected
@@ -109,7 +109,7 @@ describe("PackChip", () => {
     expect(getByTestId("chip").className).toMatch(/bg-tag-red/)
 
     rerender(
-      <PackChip
+      <CategoryChip
         joinIndex={1}
         label="A"
         selected
@@ -120,7 +120,7 @@ describe("PackChip", () => {
     expect(getByTestId("chip").className).toMatch(/bg-tag-blue/)
 
     rerender(
-      <PackChip
+      <CategoryChip
         joinIndex={8}
         label="A"
         selected

@@ -325,6 +325,30 @@ export async function changeInsiderPack(
   )
 }
 
+// Issue #27 — host edits the per-match round cap from the lobby via
+// change_insider_max_rounds (migration 0038). Gated on rounds_locked=false
+// (the same flag start_insider_round flips true on round 1).
+export interface ChangeInsiderMaxRoundsArgs {
+  roomId: string
+  playerId: string
+  maxRounds: number
+}
+
+export async function changeInsiderMaxRounds(
+  supabase: SupabaseClient,
+  args: ChangeInsiderMaxRoundsArgs,
+): Promise<void> {
+  await dispatch<Record<string, unknown>, void>(
+    supabase,
+    "change_insider_max_rounds",
+    {
+      p_room_id: args.roomId,
+      p_player_id: args.playerId,
+      p_max_rounds: args.maxRounds,
+    },
+  )
+}
+
 // Issue #24 — host wipes per-round state via reset_insider_game (migration
 // 0037). Used both for mid-game reset and end-of-game PLAY AGAIN /
 // BACK TO LOBBY. Errors surface as GameRpcError with code in {PG004, PG012,

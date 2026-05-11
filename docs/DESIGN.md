@@ -313,8 +313,10 @@ components:
     selectedOverlay: "✓ icon, top-right, 28px circle, bg {colors.goal}"
     privacy: "no per-player tally shown (D6 — anti-cheat: hidden tallies)"
 
-  # Host-setup pack picker chip (Screen 1)
-  pack-chip:
+  # Lobby category picker chip (formerly pack-chip; renamed in issue #27 — DB
+  # column stays `pack_slug`, but UI strings + component identifier use
+  # "category". Component exported as CategoryChip from packages/ui.)
+  category-chip:
     minHeight: 64px  # min-h-16
     rounded: "{rounded.lg}"  # rounded-xl
     padding: "{spacing.sm} {spacing.md}"
@@ -584,8 +586,11 @@ Non-interactive 44px list row used by the Insider asking-phase response feed (Sc
 ### `vote-target-card`
 Voting-phase tap target on Screen 7. 120px tall, full-width, tag-color background driven by `joinOrder` (mirrors `player-chip`'s 8-color palette so a player carries the same tag-color across lobby and voting). Selected state: 4px goal-red ring with 2px ink offset + a 28px circular ✓ overlay anchored top-right. Per design decision **D6 (hidden tallies)** the card never shows per-player vote counts — only the group's progress lives outside this component. Anti-cheat: zero indication of who else has voted for whom.
 
-### `pack-chip`
-Selectable radio chip used by the Insider host-setup form (Screen 1). 64px min-height. Selected state: tag-color fill keyed by `joinIndex` (palette-aware text color: `text-on-dark` for most colors, `text-ink` for yellow/cyan). Unselected state: `surface-elevated` with hairline outline and an `active:bg-surface` press state. Carries proper accessibility semantics (`role="radio"` + `aria-checked`) — keyboard and screen readers see it as a real radio control. Headline is IBM Plex Thai display (16px uppercase); optional English subtitle is dimmed below.
+### `category-chip`
+Selectable radio chip used by the lobby category picker inside `<RoomSetupPanel>` (formerly `pack-chip`; renamed in issue #27 — UI says "Category", DB column stays `pack_slug`). 64px min-height. Selected state: tag-color fill keyed by `joinIndex` (palette-aware text color: `text-on-dark` for most colors, `text-ink` for yellow/cyan). Unselected state: `surface-elevated` with hairline outline and an `active:bg-surface` press state. Carries proper accessibility semantics (`role="radio"` + `aria-checked`) — keyboard and screen readers see it as a real radio control. Headline is IBM Plex Thai display (16px uppercase); optional English subtitle is dimmed below.
+
+### `room-setup-panel`
+Shared pre-game setup container (issue #27) used by both Headball + Insider lobbies. Slot-based: each game injects its category picker via `categorySlot` and optional extra controls (e.g. Insider's max_rounds stepper) via `optionsSlot`. No game-specific branching inside the component; lock state (`{ category, options }`) surfaces as data attributes for test selectors. Non-host view shows a "Read only" badge in the heading row — slot consumers are responsible for rendering read-only content when `isHost=false`.
 
 ## Decisions Log
 

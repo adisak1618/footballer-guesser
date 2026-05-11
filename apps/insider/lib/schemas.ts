@@ -12,7 +12,7 @@ export const roomCodeSchema = z
   .toUpperCase()
   .regex(/^[A-Z0-9]{6}$/, "รหัสห้องต้องเป็นตัวอักษร 6 ตัว")
 
-export const packSlugSchema = z.string().trim().min(1, "เลือกคลังคำก่อนนะ")
+export const packSlugSchema = z.string().trim().min(1, "เลือกหมวดหมู่ก่อนนะ")
 
 export const timeLimitSchema = z.union([
   z.literal(180),

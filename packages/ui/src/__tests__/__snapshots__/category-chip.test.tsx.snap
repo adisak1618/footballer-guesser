@@ -1,6 +1,6 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`PackChip > selected variant matches snapshot (tag-color filled) 1`] = `
+exports[`CategoryChip > selected variant matches snapshot (tag-color filled) 1`] = `
 <button
   aria-checked="true"
   class="min-h-16 rounded-xl border px-4 py-3 text-left transition-colors disabled:opacity-60 bg-tag-red text-on-dark border-transparent shadow-md"
@@ -21,7 +21,7 @@ exports[`PackChip > selected variant matches snapshot (tag-color filled) 1`] = `
 </button>
 `;
 
-exports[`PackChip > unselected variant matches snapshot (surface-elevated) 1`] = `
+exports[`CategoryChip > unselected variant matches snapshot (surface-elevated) 1`] = `
 <button
   aria-checked="false"
   class="min-h-16 rounded-xl border px-4 py-3 text-left transition-colors disabled:opacity-60 border-hairline bg-surface-elevated text-on-dark active:bg-surface"

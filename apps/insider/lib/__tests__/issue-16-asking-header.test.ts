@@ -287,8 +287,10 @@ describe("Issue #23 — Round counter X/Y mid-game", () => {
       expect(src).toMatch(/max_rounds:\s*number/)
       // …and the SELECT list must include max_rounds (otherwise the type
       // is a lie at runtime — Supabase only returns what you ask for).
+      // Issue #27 widened the SELECT to also include rounds_locked (lobby
+      // panel gates the max_rounds stepper on it).
       expect(src).toMatch(
-        /\.select\(\s*"id, code, status, host_player_id, current_round, max_rounds"\s*\)/,
+        /id, code, status, host_player_id, current_round, max_rounds, rounds_locked/,
       )
     })
 

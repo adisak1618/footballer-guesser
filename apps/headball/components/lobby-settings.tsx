@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useTransition } from "react"
+import { RoomSetupPanel } from "@social-hub/ui"
 import { updateRoomSettingsAction } from "@/app/actions/update-room-settings"
 
 // Categories grouped for <optgroup>. Slugs must match data/seed/categories.json
@@ -190,22 +191,12 @@ export function LobbySettings({
     "inline-flex h-10 w-10 items-center justify-center rounded-lg border border-hairline bg-surface text-on-dark transition-colors active:bg-surface-elevated disabled:cursor-not-allowed disabled:opacity-40"
 
   return (
-    <section
-      aria-label="ตั้งค่าเกม"
-      className="flex flex-col gap-4 rounded-2xl border border-hairline bg-surface-elevated p-4"
-    >
-      <div className="flex items-center justify-between">
-        <h2 className="font-display text-[20px] uppercase leading-none tracking-[0.3px] text-on-dark">
-          Game Settings
-        </h2>
-        {!isHost ? (
-          <span className="text-[10px] font-medium uppercase tracking-[0.5px] text-on-dark-muted">
-            Read only
-          </span>
-        ) : null}
-      </div>
-
-      <div
+    <RoomSetupPanel
+      isHost={isHost}
+      lockState={{ category: categoryLocked }}
+      categorySlot={
+        <>
+          <div
         className="flex items-center justify-between gap-3"
         data-testid="lobby-settings-rounds"
       >
@@ -382,24 +373,26 @@ export function LobbySettings({
         </p>
       ) : null}
 
-      {isHost ? (
-        <button
-          type="button"
-          onClick={handleSave}
-          disabled={!dirty || isPending || !hostPlayerId}
-          aria-busy={isPending}
-          data-testid="lobby-settings-save"
-          className="flex min-h-11 w-full items-center justify-center rounded-xl bg-goal px-4 text-on-dark transition-colors active:bg-goal-active disabled:bg-goal-disabled disabled:text-on-dark/70"
-        >
-          <span className="font-display text-[16px] uppercase tracking-[1px]">
-            {isPending
-              ? "กำลังบันทึก..."
-              : savedTick
-                ? "✓ บันทึกแล้ว"
-                : "Save settings"}
-          </span>
-        </button>
-      ) : null}
-    </section>
+          {isHost ? (
+            <button
+              type="button"
+              onClick={handleSave}
+              disabled={!dirty || isPending || !hostPlayerId}
+              aria-busy={isPending}
+              data-testid="lobby-settings-save"
+              className="flex min-h-11 w-full items-center justify-center rounded-xl bg-goal px-4 text-on-dark transition-colors active:bg-goal-active disabled:bg-goal-disabled disabled:text-on-dark/70"
+            >
+              <span className="font-display text-[16px] uppercase tracking-[1px]">
+                {isPending
+                  ? "กำลังบันทึก..."
+                  : savedTick
+                    ? "✓ บันทึกแล้ว"
+                    : "Save settings"}
+              </span>
+            </button>
+          ) : null}
+        </>
+      }
+    />
   )
 }

@@ -11,18 +11,20 @@ import {
 import Link from "next/link"
 import type { EnabledPack } from "@social-hub/content"
 import {
+  CategoryChip,
   EmptySlot,
   LoadingSkeleton,
   NetworkErrorBanner,
-  PackChip,
   PhaseTransitionOverlay,
   PlayerChip,
   RoomCodeDisplay,
+  RoomSetupPanel,
 } from "@social-hub/ui"
 import {
   useRoomRealtime,
   type RoomRealtimeStatus,
 } from "@social-hub/core"
+import { changeInsiderMaxRoundsAction } from "@/app/actions/change-insider-max-rounds"
 import { changeInsiderPackAction } from "@/app/actions/change-insider-pack"
 import { joinInsiderRoomAction } from "@/app/actions/join-insider-room"
 import { resetInsiderGameAction } from "@/app/actions/reset-insider-game"
@@ -53,7 +55,13 @@ interface InsiderRoom {
   // round?" branch on the reveal screen so the round-end scoreboard can flip
   // to a final-results view at the bottom of the last round.
   max_rounds: number
+  // Issue #27 — mirrors category_locked: true once round 1 starts, false
+  // again on reset_insider_game. Gates the max_rounds stepper in the lobby.
+  rounds_locked: boolean
 }
+
+const ROUND_MIN = 3
+const ROUND_MAX = 10
 
 const MAX_PLAYERS = 8
 const MIN_PLAYERS_TO_START = 3
@@ -84,7 +92,9 @@ export function Lobby({
     async function load() {
       const { data: roomRow, error: roomErr } = await supabase
         .from("rooms")
-        .select("id, code, status, host_player_id, current_round, max_rounds")
+        .select(
+          "id, code, status, host_player_id, current_round, max_rounds, rounds_locked",
+        )
         .eq("code", code)
         .maybeSingle()
       if (!active) return
@@ -512,17 +522,19 @@ function LobbyView({
 
       <RoomCodeDisplay code={code} />
 
-      {/* Issue #24 — between-rounds pack control. Host sees editable chips,
-       * non-host sees read-only `Pack: <name>` label. Initial lobby (no
-       * round played yet) keeps the host-setup pack and renders nothing here. */}
-      {isBetweenRounds ? (
-        <BetweenRoundsPackControl
-          roomId={room.id}
-          mePlayerId={mePlayerId}
-          isHost={isHost}
-          packs={packs}
-        />
-      ) : null}
+      {/* Issue #27 — unified setup panel. Renders in both initial lobby
+       * (current_round = 0) and between-rounds (current_round >= 1).
+       * Host: editable category chips + max_rounds stepper (locked once
+       * rounds_locked flips true on round 1 start, until reset).
+       * Non-host: read-only Category label + Rounds value. */}
+      <InsiderRoomSetupPanel
+        roomId={room.id}
+        mePlayerId={mePlayerId}
+        isHost={isHost}
+        packs={packs}
+        maxRounds={room.max_rounds}
+        roundsLocked={room.rounds_locked}
+      />
 
       <section className="flex flex-1 flex-col gap-3">
         <h2 className="font-display text-[28px] uppercase leading-none tracking-[0.3px] text-on-dark">
@@ -626,12 +638,55 @@ function LobbyView({
 }
 
 // ───────────────────────────────────────────────────────────────────────────
-// Issue #24 — between-rounds pack control. Host gets editable PackChips
-// wired to change_insider_pack RPC; non-host gets a read-only `Pack: <name>`
-// label that updates via the realtime room-config subscription.
+// Issue #27 — unified Insider room-setup panel. Replaces the deleted /new
+// host-setup screen and the BetweenRoundsPackControl. Wraps the shared
+// <RoomSetupPanel> from packages/ui with Insider-specific slot content:
+// category chips (CategoryChip + change_insider_pack action) + max_rounds
+// stepper (change_insider_max_rounds, gated on rounds_locked). Non-host view
+// is read-only (label-only category + rounds).
 // ───────────────────────────────────────────────────────────────────────────
 
-function BetweenRoundsPackControl({
+function InsiderRoomSetupPanel({
+  roomId,
+  mePlayerId,
+  isHost,
+  packs,
+  maxRounds,
+  roundsLocked,
+}: {
+  roomId: string
+  mePlayerId: string
+  isHost: boolean
+  packs: EnabledPack[]
+  maxRounds: number
+  roundsLocked: boolean
+}) {
+  return (
+    <RoomSetupPanel
+      isHost={isHost}
+      lockState={{ category: false, options: roundsLocked }}
+      categorySlot={
+        <InsiderCategoryControl
+          roomId={roomId}
+          mePlayerId={mePlayerId}
+          isHost={isHost}
+          packs={packs}
+        />
+      }
+      optionsSlot={
+        <InsiderMaxRoundsControl
+          roomId={roomId}
+          mePlayerId={mePlayerId}
+          isHost={isHost}
+          maxRounds={maxRounds}
+          roundsLocked={roundsLocked}
+        />
+      }
+    />
+  )
+}
+
+function InsiderCategoryControl({
   roomId,
   mePlayerId,
   isHost,
@@ -647,10 +702,9 @@ function BetweenRoundsPackControl({
   const [pendingSlug, setPendingSlug] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
 
-  // Initial fetch + realtime sync. game_insider_room_config is `-- no-realtime`
-  // so we re-poll on the rooms.current_round flip (which always accompanies
-  // start_insider_round). Polling on the rooms-table change keeps non-host
-  // clients honest without adding a second realtime channel for the config.
+  // Initial fetch. game_insider_room_config is `-- no-realtime` so we re-poll
+  // on `rooms` events (start_insider_round / change_insider_pack changes ride
+  // alongside rooms updates).
   useEffect(() => {
     let active = true
     void (async () => {
@@ -667,13 +721,6 @@ function BetweenRoundsPackControl({
     }
   }, [roomId])
 
-  // Listen for any pack changes (host action only). When the host writes via
-  // change_insider_pack the rooms row doesn't change, so a realtime ping on
-  // game_insider_room_config isn't available; instead we poll on a short
-  // postgres_changes subscription against rooms (host actions almost always
-  // touch rooms shortly after, e.g. start_insider_round) plus an interval
-  // fallback for the non-host case while the chip is selected. To keep this
-  // simple and correct: subscribe to rooms changes and re-fetch the config.
   useEffect(() => {
     const channel = supabase
       .channel(`insider-room-config-${roomId}`)
@@ -717,8 +764,6 @@ function BetweenRoundsPackControl({
     if (nextSlug === packSlug) return
     setError(null)
     setPendingSlug(nextSlug)
-    // Optimistic flip: update local state immediately so the chip feels
-    // responsive. On error we roll back via the catch.
     const previousSlug = packSlug
     setPackSlug(nextSlug)
     startTransition(async () => {
@@ -737,12 +782,12 @@ function BetweenRoundsPackControl({
 
   if (!isHost) {
     return (
-      <section
+      <div
         data-testid="insider-pack-readonly"
-        className="flex items-center justify-between gap-3 rounded-xl border border-hairline bg-surface-elevated px-4 py-3"
+        className="flex items-center justify-between gap-3"
       >
         <span className="font-display text-[12px] uppercase tracking-[2px] text-on-dark-soft">
-          Pack
+          Category
         </span>
         <span
           data-testid="insider-pack-readonly-name"
@@ -750,18 +795,18 @@ function BetweenRoundsPackControl({
         >
           {currentPack?.displayNameTh ?? currentPack?.displayName ?? "—"}
         </span>
-      </section>
+      </div>
     )
   }
 
   return (
-    <section className="flex flex-col gap-3">
-      <h2 className="font-display text-xs uppercase tracking-[2px] text-on-dark-soft">
-        ── คลังคำ / WORD PACK ──
-      </h2>
+    <>
+      <h3 className="font-display text-xs uppercase tracking-[2px] text-on-dark-soft">
+        ── หมวดหมู่ / CATEGORY ──
+      </h3>
       <div
         role="radiogroup"
-        aria-label="Word pack"
+        aria-label="Category"
         className="grid grid-cols-2 gap-3"
       >
         {packs.map((pack) => {
@@ -771,7 +816,7 @@ function BetweenRoundsPackControl({
             pack.displayNameTh && pack.displayName !== pack.displayNameTh,
           )
           return (
-            <PackChip
+            <CategoryChip
               key={pack.slug}
               joinIndex={tagIdx}
               label={pack.displayNameTh ?? pack.displayName}
@@ -793,7 +838,145 @@ function BetweenRoundsPackControl({
           {error}
         </p>
       ) : null}
-    </section>
+    </>
+  )
+}
+
+function InsiderMaxRoundsControl({
+  roomId,
+  mePlayerId,
+  isHost,
+  maxRounds,
+  roundsLocked,
+}: {
+  roomId: string
+  mePlayerId: string
+  isHost: boolean
+  maxRounds: number
+  roundsLocked: boolean
+}) {
+  // Mirror the lastSyncedRounds pattern from Headball's lobby-settings.tsx —
+  // realtime push from `rooms` is the source of truth; local optimistic state
+  // reverts on mutation failure.
+  const [draftRounds, setDraftRounds] = useState(maxRounds)
+  const [lastSynced, setLastSynced] = useState(maxRounds)
+  const [error, setError] = useState<string | null>(null)
+  const [isPending, startTransition] = useTransition()
+
+  if (lastSynced !== maxRounds) {
+    setLastSynced(maxRounds)
+    setDraftRounds(maxRounds)
+  }
+
+  function commit(next: number) {
+    if (next === draftRounds) return
+    if (next < ROUND_MIN || next > ROUND_MAX) return
+    const previous = draftRounds
+    setDraftRounds(next)
+    setError(null)
+    startTransition(async () => {
+      const result = await changeInsiderMaxRoundsAction({
+        roomId,
+        playerId: mePlayerId,
+        maxRounds: next,
+      })
+      if (!result.ok) {
+        setError(result.error)
+        setDraftRounds(previous)
+      }
+    })
+  }
+
+  if (!isHost) {
+    return (
+      <div
+        data-testid="insider-rounds-readonly"
+        className="flex items-center justify-between gap-3"
+      >
+        <span className="font-display text-[12px] uppercase tracking-[2px] text-on-dark-soft">
+          Rounds
+        </span>
+        <span
+          data-testid="insider-rounds-readonly-value"
+          className="font-display text-[16px] uppercase tracking-[0.5px] text-on-dark tabular-nums"
+        >
+          {maxRounds}
+        </span>
+      </div>
+    )
+  }
+
+  const stepperBase =
+    "inline-flex h-10 w-10 items-center justify-center rounded-lg border border-hairline bg-surface text-on-dark transition-colors active:bg-surface-elevated disabled:cursor-not-allowed disabled:opacity-40"
+
+  const disabled = roundsLocked || isPending
+
+  return (
+    <div data-testid="insider-rounds-control" className="flex flex-col gap-2">
+      <h3 className="font-display text-xs uppercase tracking-[2px] text-on-dark-soft">
+        ── จำนวนรอบ / ROUNDS ──
+      </h3>
+      <div className="flex items-center justify-between gap-3">
+        <label
+          htmlFor="insider-rounds-input"
+          className="text-sm font-semibold tracking-[0.2px] text-on-dark"
+        >
+          Rounds
+        </label>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            aria-label="ลดจำนวนรอบ"
+            data-testid="insider-rounds-dec"
+            disabled={disabled || draftRounds <= ROUND_MIN}
+            onClick={() => commit(Math.max(draftRounds - 1, ROUND_MIN))}
+            className={stepperBase}
+          >
+            −
+          </button>
+          <input
+            id="insider-rounds-input"
+            type="number"
+            inputMode="numeric"
+            min={ROUND_MIN}
+            max={ROUND_MAX}
+            disabled={disabled}
+            value={draftRounds}
+            onChange={(e) => {
+              const n = Number.parseInt(e.target.value, 10)
+              if (Number.isNaN(n)) return
+              commit(Math.max(ROUND_MIN, Math.min(ROUND_MAX, n)))
+            }}
+            data-testid="insider-rounds-input"
+            className="h-10 w-14 rounded-lg border border-hairline bg-surface px-2 text-center text-base font-semibold tabular-nums text-on-dark outline-none focus:border-on-dark-soft disabled:opacity-60"
+          />
+          <button
+            type="button"
+            aria-label="เพิ่มจำนวนรอบ"
+            data-testid="insider-rounds-inc"
+            disabled={disabled || draftRounds >= ROUND_MAX}
+            onClick={() => commit(Math.min(draftRounds + 1, ROUND_MAX))}
+            className={stepperBase}
+          >
+            +
+          </button>
+        </div>
+      </div>
+      {roundsLocked ? (
+        <p className="text-xs text-on-dark-muted">
+          จำนวนรอบถูกล็อกหลังเริ่มรอบแรก
+        </p>
+      ) : null}
+      {error ? (
+        <p
+          role="alert"
+          data-testid="insider-rounds-error"
+          className="rounded-lg border border-error/40 bg-error/10 px-4 py-2 text-center text-sm font-medium text-error"
+        >
+          {error}
+        </p>
+      ) : null}
+    </div>
   )
 }
 
@@ -863,7 +1046,7 @@ function ResetGameButton({
             RESET GAME?
           </h2>
           <p className="font-body text-[14px] text-on-dark-soft">
-            ลบคะแนนและรอบที่เล่นไปแล้วทั้งหมด ผู้เล่น คลังคำ และจำนวนรอบ
+            ลบคะแนนและรอบที่เล่นไปแล้วทั้งหมด ผู้เล่น หมวดหมู่ และจำนวนรอบ
             ยังคงอยู่
           </p>
           {error ? (

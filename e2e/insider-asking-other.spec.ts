@@ -56,12 +56,10 @@ test.describe.skip("insider asking phase — non-Master view (US-060) [DEPRECATE
       const [hostPage, p2, p3, p4] = session.pages
 
       // ─── Host creates room via /new ────────────────────────────────────────
-      await hostPage.goto(`${INSIDER_URL}/new`, {
-        waitUntil: "domcontentloaded",
-      })
-      await hostPage.locator('input[type="text"]').first().fill("Host")
-      await hostPage.getByTestId("pack-chip-football-premier-league").click()
-      await hostPage.getByTestId("create-insider-room-cta").click()
+      await hostPage.goto(`${INSIDER_URL}/`, { waitUntil: "domcontentloaded" })
+      await hostPage.getByTestId("insider-create-room-cta").click()
+      await hostPage.getByTestId("insider-create-room-name-input").fill("Host")
+      await hostPage.getByTestId("insider-create-room-submit").click()
       // 30s tolerates the documented Next-16 cold-compile flake (progress.txt
       // note 68) when this spec runs late in a multi-spec suite.
       await hostPage.waitForURL(/\/room\/[A-Z0-9]{6}$/, { timeout: 30_000 })

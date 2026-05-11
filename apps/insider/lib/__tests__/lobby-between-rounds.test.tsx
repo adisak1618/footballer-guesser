@@ -22,6 +22,7 @@ const state = vi.hoisted(() => {
       host_player_id: HOST,
       current_round: 1 as number,
       max_rounds: 5,
+      rounds_locked: true,
     },
     mockPlayers: [] as Array<{
       id: string
@@ -156,6 +157,7 @@ beforeEach(() => {
     host_player_id: HOST_ID,
     current_round: 1,
     max_rounds: 5,
+    rounds_locked: true,
   }
   state.mockPlayers = [
     { id: "p1", player_id: HOST_ID, display_name: "Host", join_order: 1 },
@@ -236,19 +238,24 @@ describe("LobbyView between-rounds variant (issue #24)", () => {
     ).toBeInTheDocument()
   })
 
-  it("initial-lobby (current_round=0) hides pack control + reset", async () => {
-    state.mockRoom = { ...state.mockRoom, current_round: 0 }
+  it("initial-lobby (current_round=0) still hides RESET (no rounds played yet)", async () => {
+    // Issue #27 — RoomSetupPanel now renders in BOTH initial lobby and
+    // between-rounds, so the pack-chip-* selectors are visible at
+    // current_round=0. The RESET GAME button still requires
+    // isBetweenRounds (current_round >= 1) — see LobbyView. Coverage of
+    // category chips in the initial lobby itself lives in
+    // lobby-initial-setup.test.tsx.
+    state.mockRoom = {
+      ...state.mockRoom,
+      current_round: 0,
+      rounds_locked: false,
+    }
     render(<Lobby code="INS24Z" packs={PACKS} />)
 
-    // Wait for a stable render — the Players section is always present.
     await waitFor(() => {
       expect(screen.getByTestId("insider-player-list")).toBeInTheDocument()
     })
 
-    expect(
-      screen.queryByTestId("pack-chip-football-premier-league"),
-    ).not.toBeInTheDocument()
-    expect(screen.queryByTestId("insider-pack-readonly")).not.toBeInTheDocument()
     expect(screen.queryByTestId("insider-reset-game-cta")).not.toBeInTheDocument()
   })
 })
