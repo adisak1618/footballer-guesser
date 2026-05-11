@@ -8,8 +8,9 @@
 | #7    | Rematch: settings not persisted + game-2 scoreboard stall      | :green_circle: | fix/7-rematch-settings-and-game2-stall | https://github.com/adisak1618/footballer-guesser/pull/10 | 4350638674 | merged |
 | #8    | GuessResult: non-top-N correct mislabeled as ทายผิด            | :green_circle: | fix/8-guess-result-correct-zero-pts | https://github.com/adisak1618/footballer-guesser/pull/9 | 4350638829 | merged |
 | #17   | Insider: multi-round scoring system (5-round match)            | :green_circle: | feat/17-insider-multi-round-scoring | https://github.com/adisak1618/footballer-guesser/pull/22 | 4413279081 | merged |
-| #23   | Insider: show round counter X/Y during play                    | :yellow_circle: |        |    | 4414990529 | workspace:18 / surface:24 — session 1778406803 |
-| #24   | Insider: between-rounds + game-end UX                          | :red_circle: |        |    | 4414990561 | deferred — dispatch after #23 merges (depends on #23 plumbing; DB-mutating) |
+| #23   | Insider: show round counter X/Y during play                    | :green_circle: | feat/23-round-counter-during-play | https://github.com/adisak1618/footballer-guesser/pull/25 | 4414990529 | merged |
+| #24   | Insider: between-rounds + game-end UX                          | :green_circle: | feat/24-insider-between-rounds-game-end-ux | https://github.com/adisak1618/footballer-guesser/pull/26 | 4414990561 | merged (migrations 0036/0037, 26 new tests) |
+| #27   | feat(platform): unified RoomSetupPanel + Category terminology  | :green_circle: | feat/27-unified-room-setup-panel-category | https://github.com/adisak1618/footballer-guesser/pull/28 | 4418725383 | merged (migration 0038 rounds_locked + change_insider_max_rounds RPC, packages/ui RoomSetupPanel, both apps migrated, /new deleted, Pack→Category UI rename) |
 
 Status legend:
 - :red_circle: Not started
