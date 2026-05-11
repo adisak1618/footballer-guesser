@@ -1,0 +1,682 @@
+[
+  {
+    "file": "P5110001.JPG",
+    "status": "ok",
+    "output": "/Users/adisakchaiyakul/project/board-game/.worktrees/warewolf/apps/warewolf/source/processed/warewolf-card-cropped/P5110001.png",
+    "detect": {
+      "area": 229158.5,
+      "ratio": 0.7373029772329247,
+      "extent": 0.95327404104147,
+      "dist": 0.04651458170372126,
+      "bbox": [
+        306,
+        318,
+        421,
+        571
+      ]
+    }
+  },
+  {
+    "file": "P5110002.JPG",
+    "status": "ok",
+    "output": "/Users/adisakchaiyakul/project/board-game/.worktrees/warewolf/apps/warewolf/source/processed/warewolf-card-cropped/P5110002.png",
+    "detect": {
+      "area": 269108.5,
+      "ratio": 0.7312703583061889,
+      "extent": 0.9761413347068767,
+      "dist": 0.0583417019929504,
+      "bbox": [
+        281,
+        412,
+        449,
+        614
+      ]
+    }
+  },
+  {
+    "file": "P5110004.JPG",
+    "status": "ok",
+    "output": "/Users/adisakchaiyakul/project/board-game/.worktrees/warewolf/apps/warewolf/source/processed/warewolf-card-cropped/P5110004.png",
+    "detect": {
+      "area": 275742.5,
+      "ratio": 0.7334410339256866,
+      "extent": 0.9811992484681132,
+      "dist": 0.043417778614843756,
+      "bbox": [
+        301,
+        333,
+        454,
+        619
+      ]
+    }
+  },
+  {
+    "file": "P5110005.JPG",
+    "status": "ok",
+    "output": "/Users/adisakchaiyakul/project/board-game/.worktrees/warewolf/apps/warewolf/source/processed/warewolf-card-cropped/P5110005.png",
+    "detect": {
+      "area": 274068.5,
+      "ratio": 0.7321428571428571,
+      "extent": 0.9865108561061998,
+      "dist": 0.0361182915258065,
+      "bbox": [
+        294,
+        354,
+        451,
+        616
+      ]
+    }
+  },
+  {
+    "file": "P5110006.JPG",
+    "status": "ok",
+    "output": "/Users/adisakchaiyakul/project/board-game/.worktrees/warewolf/apps/warewolf/source/processed/warewolf-card-cropped/P5110006.png",
+    "detect": {
+      "area": 330416.0,
+      "ratio": 0.7345132743362832,
+      "extent": 0.9785928374264018,
+      "dist": 0.05928818738363748,
+      "bbox": [
+        282,
+        261,
+        498,
+        678
+      ]
+    }
+  },
+  {
+    "file": "P5110007.JPG",
+    "status": "ok",
+    "output": "/Users/adisakchaiyakul/project/board-game/.worktrees/warewolf/apps/warewolf/source/processed/warewolf-card-cropped/P5110007.png",
+    "detect": {
+      "area": 340122.5,
+      "ratio": 0.7419825072886297,
+      "extent": 0.974077394078597,
+      "dist": 0.05682934248446886,
+      "bbox": [
+        286,
+        293,
+        509,
+        686
+      ]
+    }
+  },
+  {
+    "file": "P5110008.JPG",
+    "status": "ok",
+    "output": "/Users/adisakchaiyakul/project/board-game/.worktrees/warewolf/apps/warewolf/source/processed/warewolf-card-cropped/P5110008.png",
+    "detect": {
+      "area": 359955.5,
+      "ratio": 0.7379603399433428,
+      "extent": 0.9786026545159939,
+      "dist": 0.09832674618877306,
+      "bbox": [
+        321,
+        290,
+        521,
+        706
+      ]
+    }
+  },
+  {
+    "file": "P5110009.JPG",
+    "status": "ok",
+    "output": "/Users/adisakchaiyakul/project/board-game/.worktrees/warewolf/apps/warewolf/source/processed/warewolf-card-cropped/P5110009.png",
+    "detect": {
+      "area": 357250.0,
+      "ratio": 0.7379603399433428,
+      "extent": 0.9712472745265425,
+      "dist": 0.09882870754720975,
+      "bbox": [
+        320,
+        318,
+        521,
+        706
+      ]
+    }
+  },
+  {
+    "file": "P5110010.JPG",
+    "status": "ok",
+    "output": "/Users/adisakchaiyakul/project/board-game/.worktrees/warewolf/apps/warewolf/source/processed/warewolf-card-cropped/P5110010.png",
+    "detect": {
+      "area": 337367.0,
+      "ratio": 0.744927536231884,
+      "extent": 0.9512406248237749,
+      "dist": 0.10437729556013396,
+      "bbox": [
+        327,
+        268,
+        514,
+        690
+      ]
+    }
+  },
+  {
+    "file": "P5110011.JPG",
+    "status": "ok",
+    "output": "/Users/adisakchaiyakul/project/board-game/.worktrees/warewolf/apps/warewolf/source/processed/warewolf-card-cropped/P5110011.png",
+    "detect": {
+      "area": 283034.0,
+      "ratio": 0.7460567823343849,
+      "extent": 0.9438179017080052,
+      "dist": 0.10448466676625992,
+      "bbox": [
+        339,
+        267,
+        473,
+        634
+      ]
+    }
+  },
+  {
+    "file": "P5110012.JPG",
+    "status": "ok",
+    "output": "/Users/adisakchaiyakul/project/board-game/.worktrees/warewolf/apps/warewolf/source/processed/warewolf-card-cropped/P5110012.png",
+    "detect": {
+      "area": 358804.5,
+      "ratio": 0.7433004231311706,
+      "extent": 0.9602869584068214,
+      "dist": 0.09022839401182998,
+      "bbox": [
+        298,
+        234,
+        527,
+        709
+      ]
+    }
+  },
+  {
+    "file": "P5110013.JPG",
+    "status": "ok",
+    "output": "/Users/adisakchaiyakul/project/board-game/.worktrees/warewolf/apps/warewolf/source/processed/warewolf-card-cropped/P5110013.png",
+    "detect": {
+      "area": 372088.5,
+      "ratio": 0.7369127516778523,
+      "extent": 0.9097407122162321,
+      "dist": 0.09577308323538897,
+      "bbox": [
+        294,
+        218,
+        549,
+        745
+      ]
+    }
+  },
+  {
+    "file": "P5110014.JPG",
+    "status": "ok",
+    "output": "/Users/adisakchaiyakul/project/board-game/.worktrees/warewolf/apps/warewolf/source/processed/warewolf-card-cropped/P5110014.png",
+    "detect": {
+      "area": 383966.5,
+      "ratio": 0.7387755102040816,
+      "extent": 0.9620688791170243,
+      "dist": 0.10019390729037747,
+      "bbox": [
+        311,
+        263,
+        543,
+        735
+      ]
+    }
+  },
+  {
+    "file": "P5110015.JPG",
+    "status": "ok",
+    "output": "/Users/adisakchaiyakul/project/board-game/.worktrees/warewolf/apps/warewolf/source/processed/warewolf-card-cropped/P5110015.png",
+    "detect": {
+      "area": 338967.0,
+      "ratio": 0.7289855072463768,
+      "extent": 0.9766531247298815,
+      "dist": 0.07794737657360974,
+      "bbox": [
+        305,
+        266,
+        503,
+        690
+      ]
+    }
+  },
+  {
+    "file": "P5110016.JPG",
+    "status": "ok",
+    "output": "/Users/adisakchaiyakul/project/board-game/.worktrees/warewolf/apps/warewolf/source/processed/warewolf-card-cropped/P5110016.png",
+    "detect": {
+      "area": 356760.5,
+      "ratio": 0.731638418079096,
+      "extent": 0.9727780140915734,
+      "dist": 0.02540964822063471,
+      "bbox": [
+        250,
+        282,
+        518,
+        708
+      ]
+    }
+  },
+  {
+    "file": "P5110017.JPG",
+    "status": "ok",
+    "output": "/Users/adisakchaiyakul/project/board-game/.worktrees/warewolf/apps/warewolf/source/processed/warewolf-card-cropped/P5110017.png",
+    "detect": {
+      "area": 322894.5,
+      "ratio": 0.7444933920704846,
+      "extent": 0.9352023216814813,
+      "dist": 0.07535799745005818,
+      "bbox": [
+        303,
+        281,
+        507,
+        681
+      ]
+    }
+  },
+  {
+    "file": "P5110018.JPG",
+    "status": "ok",
+    "output": "/Users/adisakchaiyakul/project/board-game/.worktrees/warewolf/apps/warewolf/source/processed/warewolf-card-cropped/P5110018.png",
+    "detect": {
+      "area": 294748.5,
+      "ratio": 0.7402799377916018,
+      "extent": 0.9630163885149705,
+      "dist": 0.09698522960750096,
+      "bbox": [
+        342,
+        336,
+        476,
+        643
+      ]
+    }
+  },
+  {
+    "file": "P5110019.JPG",
+    "status": "ok",
+    "output": "/Users/adisakchaiyakul/project/board-game/.worktrees/warewolf/apps/warewolf/source/processed/warewolf-card-cropped/P5110019.png",
+    "detect": {
+      "area": 345688.0,
+      "ratio": 0.7406340057636888,
+      "extent": 0.9690846499736485,
+      "dist": 0.10534597633256797,
+      "bbox": [
+        331,
+        313,
+        514,
+        694
+      ]
+    }
+  },
+  {
+    "file": "P5110020.JPG",
+    "status": "ok",
+    "output": "/Users/adisakchaiyakul/project/board-game/.worktrees/warewolf/apps/warewolf/source/processed/warewolf-card-cropped/P5110020.png",
+    "detect": {
+      "area": 453781.0,
+      "ratio": 0.7241379310344828,
+      "extent": 0.9504142790120974,
+      "dist": 0.07754533658272292,
+      "bbox": [
+        267,
+        232,
+        588,
+        812
+      ]
+    }
+  },
+  {
+    "file": "P5110021.JPG",
+    "status": "ok",
+    "output": "/Users/adisakchaiyakul/project/board-game/.worktrees/warewolf/apps/warewolf/source/processed/warewolf-card-cropped/P5110021.png",
+    "detect": {
+      "area": 392288.0,
+      "ratio": 0.7360742705570292,
+      "extent": 0.9374339857098478,
+      "dist": 0.09658324215011636,
+      "bbox": [
+        300,
+        299,
+        555,
+        754
+      ]
+    }
+  },
+  {
+    "file": "P5110022.JPG",
+    "status": "ok",
+    "output": "/Users/adisakchaiyakul/project/board-game/.worktrees/warewolf/apps/warewolf/source/processed/warewolf-card-cropped/P5110022.png",
+    "detect": {
+      "area": 397975.5,
+      "ratio": 0.739247311827957,
+      "extent": 0.9725696480938416,
+      "dist": 0.09722664490125602,
+      "bbox": [
+        305,
+        289,
+        550,
+        744
+      ]
+    }
+  },
+  {
+    "file": "P5110023.JPG",
+    "status": "ok",
+    "output": "/Users/adisakchaiyakul/project/board-game/.worktrees/warewolf/apps/warewolf/source/processed/warewolf-card-cropped/P5110023.png",
+    "detect": {
+      "area": 461412.5,
+      "ratio": 0.7331670822942643,
+      "extent": 0.9784478005666107,
+      "dist": 0.07716049382716049,
+      "bbox": [
+        267,
+        247,
+        588,
+        802
+      ]
+    }
+  },
+  {
+    "file": "P5110024.JPG",
+    "status": "ok",
+    "output": "/Users/adisakchaiyakul/project/board-game/.worktrees/warewolf/apps/warewolf/source/processed/warewolf-card-cropped/P5110024.png",
+    "detect": {
+      "area": 402634.5,
+      "ratio": 0.7379679144385026,
+      "extent": 0.9751474947686585,
+      "dist": 0.08555231975167428,
+      "bbox": [
+        286,
+        319,
+        552,
+        748
+      ]
+    }
+  },
+  {
+    "file": "P5110025.JPG",
+    "status": "ok",
+    "output": "/Users/adisakchaiyakul/project/board-game/.worktrees/warewolf/apps/warewolf/source/processed/warewolf-card-cropped/P5110025.png",
+    "detect": {
+      "area": 483825.5,
+      "ratio": 0.7393422655298416,
+      "extent": 0.9708606653596791,
+      "dist": 0.05583364351945782,
+      "bbox": [
+        233,
+        264,
+        607,
+        821
+      ]
+    }
+  },
+  {
+    "file": "P5110026.JPG",
+    "status": "ok",
+    "output": "/Users/adisakchaiyakul/project/board-game/.worktrees/warewolf/apps/warewolf/source/processed/warewolf-card-cropped/P5110026.png",
+    "detect": {
+      "area": 432386.0,
+      "ratio": 0.7518987341772152,
+      "extent": 0.921420960661467,
+      "dist": 0.0796661080193846,
+      "bbox": [
+        261,
+        291,
+        594,
+        790
+      ]
+    }
+  },
+  {
+    "file": "P5110027.JPG",
+    "status": "ok",
+    "output": "/Users/adisakchaiyakul/project/board-game/.worktrees/warewolf/apps/warewolf/source/processed/warewolf-card-cropped/P5110027.png",
+    "detect": {
+      "area": 469809.0,
+      "ratio": 0.7339901477832512,
+      "extent": 0.9707760273746157,
+      "dist": 0.07311044446271552,
+      "bbox": [
+        259,
+        246,
+        596,
+        812
+      ]
+    }
+  },
+  {
+    "file": "P5110028.JPG",
+    "status": "ok",
+    "output": "/Users/adisakchaiyakul/project/board-game/.worktrees/warewolf/apps/warewolf/source/processed/warewolf-card-cropped/P5110028.png",
+    "detect": {
+      "area": 385510.5,
+      "ratio": 0.7339699863574352,
+      "extent": 0.9775747171323227,
+      "dist": 0.04986678286361944,
+      "bbox": [
+        257,
+        245,
+        538,
+        733
+      ]
+    }
+  },
+  {
+    "file": "P5110029.JPG",
+    "status": "ok",
+    "output": "/Users/adisakchaiyakul/project/board-game/.worktrees/warewolf/apps/warewolf/source/processed/warewolf-card-cropped/P5110029.png",
+    "detect": {
+      "area": 433958.0,
+      "ratio": 0.737516005121639,
+      "extent": 0.9646598022478304,
+      "dist": 0.07745837989399294,
+      "bbox": [
+        272,
+        239,
+        576,
+        781
+      ]
+    }
+  },
+  {
+    "file": "P5110030.JPG",
+    "status": "ok",
+    "output": "/Users/adisakchaiyakul/project/board-game/.worktrees/warewolf/apps/warewolf/source/processed/warewolf-card-cropped/P5110030.png",
+    "detect": {
+      "area": 513665.5,
+      "ratio": 0.7290930506478209,
+      "extent": 0.9774218837708908,
+      "dist": 0.06165132040902498,
+      "bbox": [
+        236,
+        214,
+        619,
+        849
+      ]
+    }
+  },
+  {
+    "file": "P5110031.JPG",
+    "status": "ok",
+    "output": "/Users/adisakchaiyakul/project/board-game/.worktrees/warewolf/apps/warewolf/source/processed/warewolf-card-cropped/P5110031.png",
+    "detect": {
+      "area": 453469.5,
+      "ratio": 0.7207872078720787,
+      "extent": 0.9518311650693299,
+      "dist": 0.07934670781893005,
+      "bbox": [
+        269,
+        224,
+        586,
+        813
+      ]
+    }
+  },
+  {
+    "file": "P5110032.JPG",
+    "status": "ok",
+    "output": "/Users/adisakchaiyakul/project/board-game/.worktrees/warewolf/apps/warewolf/source/processed/warewolf-card-cropped/P5110032.png",
+    "detect": {
+      "area": 470066.5,
+      "ratio": 0.7527272727272727,
+      "extent": 0.9175162250524569,
+      "dist": 0.052116346291947585,
+      "bbox": [
+        224,
+        216,
+        621,
+        825
+      ]
+    }
+  },
+  {
+    "file": "P5110033.JPG",
+    "status": "ok",
+    "output": "/Users/adisakchaiyakul/project/board-game/.worktrees/warewolf/apps/warewolf/source/processed/warewolf-card-cropped/P5110033.png",
+    "detect": {
+      "area": 519179.5,
+      "ratio": 0.7206703910614525,
+      "extent": 0.8993625221947945,
+      "dist": 0.05038674776494008,
+      "bbox": [
+        210,
+        221,
+        645,
+        895
+      ]
+    }
+  },
+  {
+    "file": "P5110034.JPG",
+    "status": "ok",
+    "output": "/Users/adisakchaiyakul/project/board-game/.worktrees/warewolf/apps/warewolf/source/processed/warewolf-card-cropped/P5110034.png",
+    "detect": {
+      "area": 523490.5,
+      "ratio": 0.7432126696832579,
+      "extent": 0.9013452412928642,
+      "dist": 0.04173091754009246,
+      "bbox": [
+        198,
+        209,
+        657,
+        884
+      ]
+    }
+  },
+  {
+    "file": "P5110035.JPG",
+    "status": "ok",
+    "output": "/Users/adisakchaiyakul/project/board-game/.worktrees/warewolf/apps/warewolf/source/processed/warewolf-card-cropped/P5110035.png",
+    "detect": {
+      "area": 488048.5,
+      "ratio": 0.7404306220095693,
+      "extent": 0.9431180480942406,
+      "dist": 0.061335447686320314,
+      "bbox": [
+        236,
+        235,
+        619,
+        836
+      ]
+    }
+  },
+  {
+    "file": "P5110036.JPG",
+    "status": "ok",
+    "output": "/Users/adisakchaiyakul/project/board-game/.worktrees/warewolf/apps/warewolf/source/processed/warewolf-card-cropped/P5110036.png",
+    "detect": {
+      "area": 434426.0,
+      "ratio": 0.7540777917189461,
+      "extent": 0.9069493128349447,
+      "dist": 0.06949693660811175,
+      "bbox": [
+        253,
+        253,
+        601,
+        797
+      ]
+    }
+  },
+  {
+    "file": "P5110037.JPG",
+    "status": "ok",
+    "output": "/Users/adisakchaiyakul/project/board-game/.worktrees/warewolf/apps/warewolf/source/processed/warewolf-card-cropped/P5110037.png",
+    "detect": {
+      "area": 528926.0,
+      "ratio": 0.7474285714285714,
+      "extent": 0.9242918304936654,
+      "dist": 0.04550670548662366,
+      "bbox": [
+        201,
+        229,
+        654,
+        875
+      ]
+    }
+  },
+  {
+    "file": "P5110038.JPG",
+    "status": "ok",
+    "output": "/Users/adisakchaiyakul/project/board-game/.worktrees/warewolf/apps/warewolf/source/processed/warewolf-card-cropped/P5110038.png",
+    "detect": {
+      "area": 458048.5,
+      "ratio": 0.7397260273972602,
+      "extent": 0.9603056299818442,
+      "dist": 0.07491425679693606,
+      "bbox": [
+        261,
+        232,
+        594,
+        803
+      ]
+    }
+  },
+  {
+    "file": "P5110039.JPG",
+    "status": "ok",
+    "output": "/Users/adisakchaiyakul/project/board-game/.worktrees/warewolf/apps/warewolf/source/processed/warewolf-card-cropped/P5110039.png",
+    "detect": {
+      "area": 528057.5,
+      "ratio": 0.7432905484247374,
+      "extent": 0.9672994949707735,
+      "dist": 0.05555570439890136,
+      "bbox": [
+        218,
+        194,
+        637,
+        857
+      ]
+    }
+  },
+  {
+    "file": "P5110040.JPG",
+    "status": "ok",
+    "output": "/Users/adisakchaiyakul/project/board-game/.worktrees/warewolf/apps/warewolf/source/processed/warewolf-card-cropped/P5110040.png",
+    "detect": {
+      "area": 463119.5,
+      "ratio": 0.7581047381546134,
+      "extent": 0.9497627231263945,
+      "dist": 0.07838576208842309,
+      "bbox": [
+        247,
+        194,
+        608,
+        802
+      ]
+    }
+  },
+  {
+    "file": "P5110041.JPG",
+    "status": "ok",
+    "output": "/Users/adisakchaiyakul/project/board-game/.worktrees/warewolf/apps/warewolf/source/processed/warewolf-card-cropped/P5110041.png",
+    "detect": {
+      "area": 494870.5,
+      "ratio": 0.7341040462427746,
+      "extent": 0.9009521642164672,
+      "dist": 0.05467713194612211,
+      "bbox": [
+        220,
+        198,
+        635,
+        865
+      ]
+    }
+  }
+]
