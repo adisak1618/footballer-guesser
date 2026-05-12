@@ -1,0 +1,43 @@
+{
+  "name": "@social-hub/warewolf",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "dev": "next dev -p 3003",
+    "build": "next build",
+    "start": "next start -p 3003",
+    "lint": "tsc --noEmit",
+    "test": "vitest run",
+    "e2e": "playwright test",
+    "build:cards": "bun run scripts/build-cards.ts",
+    "check:bundle": "bun run scripts/check-bundle-budget.ts"
+  },
+  "dependencies": {
+    "@social-hub/content": "workspace:*",
+    "next": "16.2.4",
+    "next-intl": "^4.5.0",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "zod": "^4.3.6",
+    "zustand": "5.0.12"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "^4.11.3",
+    "@next/bundle-analyzer": "16.2.4",
+    "@playwright/test": "^1.59.1",
+    "@tailwindcss/postcss": "^4",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@vitejs/plugin-react": "^6.0.1",
+    "fast-check": "^4.8.0",
+    "jsdom": "^29.1.0",
+    "playwright": "^1.59.1",
+    "sharp": "^0.34.4",
+    "tailwindcss": "^4",
+    "typescript": "^5",
+    "vitest": "^4.1.5"
+  }
+}

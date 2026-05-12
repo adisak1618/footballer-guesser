@@ -1,0 +1,526 @@
+# Ralph Progress Log — Warewolf Balance & Setup Recommender
+# Branch: feat/warewolf (project-level Ralph CLAUDE.md) / main (warewolf CLAUDE.md latest)
+# PRD: tasks/warewolf/prd.md
+# Design doc: ~/.gstack/projects/board-game/adisakchaiyakul-main-design-20260512-051400-werewolf-balance-tool.md
+# Started: 2026-05-12T10:31:00Z
+
+## Codebase Patterns
+
+- Zustand persist + jsdom test gotcha: Node 25 forwards a `--localstorage-file`
+  flag to vitest workers that activates Node's built-in `localStorage` WITHOUT
+  a valid path → it becomes a non-functional stub that *shadows* jsdom's
+  working localStorage. Tests that touch `localStorage` must install an
+  in-memory `Storage` shim via `Object.defineProperty(window/globalThis,
+  'localStorage', {value, configurable: true})` BEFORE dynamically importing
+  the module under test (see `apps/warewolf/lib/store.test.ts`). Production
+  code is unaffected — browsers provide a real localStorage.
+- `<CardArt>` is the only component that should ever render a card image —
+  callers never reach for raw `next/image` against `cardArtPath(...)`. Its
+  `onError` falls through to `<CardArtPlaceholder>` (Grimoire empty card with
+  wax-seal silhouette + role name + signed balance badge), so a 404 never
+  surfaces the browser's broken-image icon (Eng Review failure-mode #2).
+  Sizes: `sm` (60×90, setup-card thumb), `md` (84×126, customize grid),
+  `lg` (240×360, role-detail modal). Both are `"use client"` (the error
+  fallback needs state); fine to use in server components — Next collapses
+  the boundary at the component.
+- Component tests (`apps/warewolf/components/**/*.test.tsx`) opt INTO the
+  jsdom environment with a top-of-file `// @vitest-environment jsdom`
+  directive. The vitest config keeps `environment: "node"` as the default
+  so lib/* / scripts/* pure-TS tests stay fast. Deps to be aware of:
+  `@vitejs/plugin-react`, `@testing-library/react`, `@testing-library/jest-dom`,
+  `jsdom` — all already declared in apps/warewolf/package.json (mirrors the
+  pattern in apps/headball). The vitest setup file (`vitest.setup.ts`)
+  imports `@testing-library/jest-dom/vitest` so `toBeInTheDocument` etc.
+  work; node-env tests load it harmlessly.
+- When unit-testing components that wrap `next/image`, mock it to a plain
+  `<img>` via `vi.mock("next/image", ...)`. Strip the `priority` boolean
+  before spreading so React doesn't warn about non-DOM attrs.
+- Client-Component pages that call `useSearchParams()` MUST be wrapped in
+  `<Suspense fallback={...}>` or Next 16's static-export pass fails the
+  build with "useSearchParams() should be wrapped in a suspense boundary".
+  Pattern (see `apps/warewolf/app/[lang]/setup/page.tsx`): outer
+  `export default function FooPage()` returns
+  `<Suspense fallback={null}><FooPageInner /></Suspense>`; inner
+  `function FooPageInner()` owns the `useSearchParams` + `useRouter`
+  logic. Same restriction applies to `useRouter` reads of `?query`.
+
+- Grimoire design tokens live in `docs/DESIGN-warewolf.md` (canonical) and are
+  mirrored into `apps/warewolf/app/globals.css` (Tailwind v4 `@theme inline`).
+  Token names match 1:1 between the two — when changing one, change the other
+  in lockstep. Headball's Stadium Energy in `docs/DESIGN.md` is a SEPARATE
+  system; do NOT cross-pollinate. Prototype `finalized.html:17-34` is the
+  visual ground truth for hex values (the earlier design-doc text's
+  `#f6ebd0` off-cream is superseded by the prototype's `--cream: #fbf4e0`).
+- `@social-hub/content` is the cross-app source of truth for static role/content data.
+  Place new role-data modules under `packages/content/src/` (NOT the package root) so
+  the existing `tsconfig.json` (`include: ["src/**/*.ts"]`) and `vitest.config.ts`
+  (`include: ["src/**/*.test.ts"]`) pick them up. Re-export from `src/index.ts`.
+- Tests live next to the source as `src/<name>.test.ts` (vitest picks them up via
+  the workspace-root vitest projects pointer plus the package-local config).
+- Spec/typo note for V1 warewolf roles: design doc + story US-001 both say
+  "22 V1 roles" but enumerate 25 named role IDs (5 wolf + 4 info + 8 power +
+  4 vanilla + 4 neutral). The prototype `finalized.html` also has 25. Treat the
+  enumerated list as the substantive contract; "22" is an upstream typo.
+- Role.category enum is fine-grained (info/protection/kill/vote/chaos/vanilla/neutral);
+  the customize-page 6-tab mapping in `lib/category-tabs.ts` (Eng Review decision #6)
+  derives display tabs from team + category. Do not collapse the enum to match the
+  prototype's coarse wolf/info/power/social/neutral.
+- Lane A (US-002..US-008) files live under `apps/warewolf/lib/` but US-009
+  (full Next.js scaffold) is later in build order. To make Lane A's per-package
+  typecheck + tests work, US-002 added minimal `apps/warewolf/{package.json,
+  tsconfig.json,vitest.config.ts}`. US-009 will replace/extend these with the
+  full Next.js + Tailwind + Playwright scaffolding; do NOT remove the minimal
+  files during US-009, only augment them.
+- `ArchetypeId` literal-union is defined locally in `apps/warewolf/lib/wolf-pools.ts`
+  for self-contained Lane A. US-003 (`lib/archetypes.ts`) is the canonical owner
+  per the story spec; when implementing US-003, either re-export ArchetypeId from
+  archetypes.ts and have wolf-pools.ts import it, or keep the single declaration
+  here and have archetypes.ts import — pick whichever produces less churn.
+- Solver SetupListItem is a discriminated union: Setup | SolverError (kind:
+  'solver-error'). `isSolverError(item)` type-guards in consumers. Non-error
+  rows sort by |balance| ASC; errors append at the end in archetype-declaration
+  order. UI (US-014) consumes this list and renders <SolverErrorRow> on the
+  marker.
+- Bogus archetype ids passed to pickWolvesForBalance hit the empty-pool throw
+  cleanly (WOLF_POOLS[badId] ?? [] -> throws). Use this in tests instead of
+  trying to construct a singleton-only pool.
+- `fast-check` is available in `apps/warewolf` devDependencies (added in US-006).
+  Use `import fc from "fast-check"` for property tests; `fc.constantFrom(...ids)`
+  + `fc.array` compose nicely with ROLE_IDS filters by team.
+- Validator (`lib/validator.ts`) is single-pass and strict: unknown role ids are
+  blockers (`'unknown-role'`). The parser (`lib/share-url.ts`, US-007) is the
+  sole place that silently substitutes unknowns to `villager` — keep that
+  single source-of-truth split per Eng Review decision #3.
+- `zod` 4.3.6 is hoisted at the workspace root via Headball; warewolf declares
+  `"zod": "^4.3.6"` in `apps/warewolf/package.json` to make the dependency
+  explicit. Schemas with `.catch(fallback)` swallow validation errors and
+  return the fallback — useful for graceful URL parsing where the URL is
+  user-modifiable.
+- decodeSetup pre-filters `lang` to `'en' | 'th' | undefined` BEFORE handing to
+  Zod, so invalid values (e.g. `?lang=fr`) trigger `.default('en')` instead of
+  the enum throwing. Same pattern works for any z.enum field reachable from
+  user input.
+- Tailwind v4 `@theme inline` block in `apps/warewolf/app/globals.css` mirrors
+  `docs/DESIGN-warewolf.md` 1:1 (parchment/ink/blood/cream + serif fonts +
+  type/spacing/motion scale). PostCSS at workspace root (`postcss.config.mjs`)
+  is shared across all apps via `@tailwindcss/postcss`. When tokens change,
+  update DESIGN-warewolf.md AND globals.css in lockstep — neither is
+  authoritative alone; they are mutually-consistent sources for human + compiler.
+- Warewolf root layout chain (post-US-011): `app/layout.tsx` is a pure
+  passthrough (returns `children`); `app/[lang]/layout.tsx` owns
+  `<html lang={lang}><body>` with the dynamic locale and wraps children in
+  `NextIntlClientProvider`. Calls `setRequestLocale(lang)` so child server
+  components see the locale, and `generateStaticParams()` enumerates the
+  routing locales for SSG. Don't put `<html>` in both layouts — Next.js
+  renders only one.
+- Warewolf dev port is 3003 (headball=3000, hub=3001, insider=3002). Reflected
+  in both `package.json` dev script and `playwright.config.ts` PORT default.
+- next-intl v4 wiring lives in three files: `i18n/routing.ts` (defineRouting
+  with locales + defaultLocale), `i18n/request.ts` (getRequestConfig loading
+  `messages/{lang}.json`), and the `next.config.ts` plugin
+  `createNextIntlPlugin('./i18n/request.ts')`. `i18n.ts` at the package root
+  is a thin re-export so the AC's "i18n.ts defines locales" sentence has a
+  literal hit. Add a new locale by appending to `routing.ts` and creating
+  the corresponding `messages/<locale>.json` — no other plumbing.
+- Locale precedence (Eng Review decision #5) is enforced by
+  `apps/warewolf/middleware.ts` BEFORE delegating to next-intl. The pure
+  rule lives in `lib/locale-precedence.ts` (URL → 'passthrough' | redirect
+  target) so it's unit-testable without booting Next. `?lang=` is treated
+  as one-time backward-compat: matches segment → passthrough (param
+  silently ignored downstream); mismatches → 301 to `/queryLang/...` with
+  lang stripped from the new query. Unknown lang values (`?lang=fr`) →
+  passthrough so next-intl can handle them via its own fallback.
+- ICU MessageFormat is the i18n interpolation contract (Eng Review
+  code-quality fix #2). Blocker codes carry their args in the message
+  string: `wolves-gte-village: 'Too many wolves: {W} wolves vs {V} village'`,
+  `role-count-mismatch: '{actual} roles selected for {expected} players'`,
+  `no-wolves: 'No wolves — there is no game'`. UI consumers pass
+  `{W, V}` / `{actual, expected}` to `t(...)` — never hand-format these
+  strings with template literals.
+
+- US-023 balance audit (`apps/warewolf/lib/solver-audit.test.ts`) cartesian-loops
+  every visible (archetype × playerCount × variationIdx) cell and asserts
+  |balance| ≤ 5. Solver throws are skipped (they render as <SolverErrorRow>),
+  but |balance| > 5 is an immediate failure that names the offending tuple.
+  Pairs with a perf-gate test asserting `computeSetupList(20) < 50ms`. If a cell
+  fails post-data-change, FIX THE SEED OR WOLF POOL — never the threshold (per
+  story US-023 Technical Notes).
+- `social-bluff` variation 1 originally shipped from the prototype with village
+  `[mason, mason, spellcaster, old-hag]` (sum 6). At playerCount=10 the solver
+  needs target wolf sum -9 but the wolf pool's minimum 3-wolf sum is -15
+  (werewolf+werewolf+sorceress or werewolf+minion+sorceress), so the cell
+  rendered |balance|=6 and tripped the US-023 audit. Swapped `spellcaster` (+1)
+  → `prince` (+3) lifting village sum to 8; entire 5–13 player span now lands
+  |balance| ≤ 5. Vibe text updated to mention prince. See in-source comment
+  block above the variation 1 entry for context.
+
+## Story Log
+
+US-001 | 2026-05-12T17:47:00Z | Frozen role catalog (25 roles) + types in packages/content/src/werewolf-roles.ts; 11 tests pass; re-exported from index.ts.
+US-002 | 2026-05-12T17:53:00Z | apps/warewolf/lib/wolf-pools.ts with WOLF_POOLS (8 archetypes), SINGLETON_WOLVES, PACK_REQUIRED, MAX_WOLF_CUB; 7 tests pass; ArchetypeId defined locally (US-003 may canonicalize). Created minimal apps/warewolf scaffolding (package.json + tsconfig.json + vitest.config.ts) so Lane A typecheck/test works pre-US-009.
+US-003 | 2026-05-12T17:55:00Z | apps/warewolf/lib/archetypes.ts with ARCHETYPES (8 entries: id, seal, minPlayers, maxPlayers, wolfDelta, i18n en+th name+vibe). Caps + copy pulled from prototype finalized.html:510-518. ArchetypeId stayed canonical in wolf-pools.ts and is re-exported from archetypes.ts (lower-churn path per the pattern note). 5 new tests in archetypes.test.ts; total apps/warewolf vitest = 12 passing. Typecheck + workspace lint green.
+US-004 | 2026-05-12T17:58:00Z | apps/warewolf/lib/village-seeds.ts with VILLAGE_SEEDS — 8 archetypes × 3 variations = 24 entries ported verbatim from prototype finalized.html:722-763. Type expressed as `Record<ArchetypeId, [VillageSeed, VillageSeed, VillageSeed]>` (tuple statically guarantees the 3-entry shape). 5 new tests in village-seeds.test.ts (presence, count=24, role-id resolution, en+th vibe, neutrals team check); total apps/warewolf vitest = 17 passing. Typecheck + workspace lint green.
+US-005 | 2026-05-12T18:02:00Z | apps/warewolf/lib/solver.ts — communityWolfCount (renamed from prototype bookletWolfCount), pickWolvesForBalance (DFS w/ SINGLETON/MAX_WOLF_CUB/PACK_REQUIRED constraints; THROWS on empty pool per Eng Review decision #2; deterministic; count=0 → []), generateVariations (3 Setup objects, wolfDelta applied, targetWolfSum = -(village+neutrals+filler villager sums)), computeSetupList (range filter + activeFilters + catches throws into SolverError marker; sorts non-errors by |balance| ASC, errors at end). 26 new tests; perf gate computeSetupList(20) < 50ms passes. Total apps/warewolf vitest = 43 passing. Typecheck + workspace lint green.
+US-006 | 2026-05-12T18:06:00Z | apps/warewolf/lib/validator.ts — single-pass `validate(setup, playerCount)` returning {ok, blockers, balance, wolfSum, villageSum, wolfCount, villageCount, neutralCount}. BlockerCode union: 'no-wolves' | 'wolves-gte-village' | 'role-count-mismatch' | 'unknown-role'. Strict on unknown role ids (Eng Review decision #3 — validator stays strict; only `decodeSetup` substitutes). Neutrals excluded from wolves-vs-village parity check (design doc Premise #3). 9 new tests in validator.test.ts incl. 2 fast-check properties (valid setup passes; all-village returns no-wolves). Added `fast-check@4.8.0` to apps/warewolf devDependencies. Total apps/warewolf vitest = 52 passing; workspace lib tests 303 passing. Typecheck + workspace lint green.
+US-007 | 2026-05-12T18:09:30Z | apps/warewolf/lib/share-url.ts — ShareUrlSchema (Zod 4.3.6 per Eng Review spec: p coerce+int+min(5)+max(20)+catch(8); roles csv split → unknown ids substituted with 'villager' via runtime ROLES lookup; lang enum default 'en'). encodeSetup builds URLSearchParams; decodeSetup returns {playerCount, roles, lang, clampedP, substitutedIds}. clampedP detected pre-parse by integer/range check on raw p. substitutedIds collected pre-parse from rolesRaw. Invalid lang values pre-filtered to undefined so default applies. Single source of truth for unknown-id substitution per Eng Review decision #3. 18 new tests; total apps/warewolf vitest = 70 passing. Typecheck + workspace lint green. Added `zod@^4.3.6` to apps/warewolf dependencies (was hoisted via Headball; now explicit).
+US-010 | 2026-05-12T18:25:00Z | docs/DESIGN-warewolf.md — canonical Grimoire design system doc. First-paragraph disclaimer that Stadium Energy does not apply. 8 sections: color palette (parchment/ink/blood/status families, all hex extracted from prototype finalized.html:17-34 — note: `--cream` is `#fbf4e0` per prototype, superseding the earlier doc's `#f6ebd0`); typography (Cormorant Garamond + Noto Serif Thai + Inter UI, scale display-xl 48 → micro 13, italic restriction, 14px Latin+Thai body floor per Pass 6); spacing (--s-1..--s-6 = 4..32, no `--s-7`); border + radius tokens (--b, --b-thick, --b-soft, --r-1, --r-2); component vocabulary (button/card/modal-sheet/banner/balance-scale/tile/ornament-frame/role-detail-block — one paragraph each); iconography (wax-seal Unicode V1, bespoke SVG deferred v1.1, fleurons + ornament dots); motion (full Pass 7 timing table + CSS variable bindings --motion-fast/med/slide, prefers-reduced-motion override); focus + accessibility (2px blood outline at 2px offset, landmarks, aria-live, keyboard map); mirror contract to apps/warewolf/app/globals.css for US-009. Workspace lint green (turbo cache hit; warewolf-lint is `tsc --noEmit` — no markdown lint configured).
+
+US-008 | 2026-05-12T18:12:30Z | apps/warewolf/lib/category-tabs.ts — TabKey union (wolves|info|power|vanilla|social|neutral); TABS readonly tuple in display order matching prototype line 1361 (wolf→wolves rename only); mapCategoryToTab(role) with locked precedence (wolves > neutral > vanilla-social subset > info > power > chaos→social > vanilla); VANILLA_SOCIAL_IDS = {mason, spellcaster, old-hag} per design doc Premise #8 plus Eng Review decision #6; rolesForTab(tab, roles?) helper defaulting to full ROLES catalog. Distribution across 25 V1 roles: wolves=5, info=4, power=8, vanilla=1 (villager), social=3 (mason/spellcaster/old-hag), neutral=4. JSDoc on mapCategoryToTab spells the full mapping table verbatim. 12 new tests in category-tabs.test.ts incl. partition invariant (no orphans, no duplicates), per-tab counts, and custom-roles arg. Total apps/warewolf vitest = 82 passing. Typecheck + workspace lint green.
+
+US-009 | 2026-05-12T18:24:00Z | Full Next.js 16 + Tailwind v4 + Playwright scaffolding for apps/warewolf/. package.json adds next@16.2.4, react@19.2.4, react-dom@19.2.4, next-intl@^4, zustand@5.0.12, plus devDeps @tailwindcss/postcss, tailwindcss@^4, @playwright/test, playwright, sharp, typescript, @types/{node,react,react-dom}; dev port 3003 (avoids headball=3000/hub=3001/insider=3002); build:cards is a US-012 placeholder. tsconfig.json now also loads the next plugin and includes next-env.d.ts + .next/types. next.config.ts is the minimal `{}` config matching hub/insider. playwright.config.ts: workers:1, PORT=3003, headless, 414×896 viewport (mirrors headball/hub). app/globals.css mirrors docs/DESIGN-warewolf.md 1:1 into Tailwind v4 `@theme inline` (parchment/ink/blood/cream/status palettes; Cormorant Garamond + Noto Serif Thai + Inter; type-scale --t-display-xl..--t-micro; spacing --s-1..--s-6; --motion-fast/med/slide; --texture-grain) plus prefers-reduced-motion override and base resets (box-sizing, html/body bg+grain, focus-visible blood-red outline, sr-only). app/layout.tsx owns `<html lang="en"><body>`; app/[lang]/layout.tsx is a passthrough stub (US-011 will replace with locale provider); app/[lang]/page.tsx returns "Warewolf placeholder" (US-019 replaces). .gitignore covers .next/, node_modules/, playwright-report/, test-results/, tsconfig.tsbuildinfo. `bun install` resolves the new workspace symlink at node_modules/@social-hub/warewolf; `bunx turbo run build --filter=@social-hub/warewolf` succeeds with route table `ƒ /[lang]` + auto /_not-found; per-package `bunx tsc --noEmit` green; workspace `bun run lint` green incl. realtime publication check (no-op for warewolf — no Supabase migrations); workspace vitest 448 passing across all packages.
+
+US-012 | 2026-05-12T18:35:00Z | apps/warewolf/scripts/build-cards.ts — Sharp JPG → WebP @ 512×768@85 pipeline. Reads apps/warewolf/source/processed/warewolf-card-cropped/<id>.jpg, writes packages/content/card-art/<id>.webp using `sharp(...).resize(512, 768, { fit: 'cover', position: 'centre' }).webp({ quality: 85 })`. Idempotency: skips when dest mtime >= src mtime. Path-resolution strategy (a) per ACs: writes WebPs to packages/content/card-art (single source of truth, importable cross-app) AND ensures apps/warewolf/public/cards is a symlink to ../../../packages/content/card-art so next/image serves them at the stable URL /cards/<id>.webp. Source-of-truth count: ROLE_IDS has 25 entries (5+4+8+4+4) — story AC's "22 WebP files" is the same upstream typo flagged in US-001; script + tests use ROLE_IDS.length, build emits 25. Public-URL helper cardArtPath(roleId): string added to packages/content/src/index.ts, returns `/cards/${roleId}.webp`. Wired bun run build:cards = `bun run scripts/build-cards.ts` in apps/warewolf/package.json. Vitest config now also includes scripts/**/*.test.ts. Tests in scripts/build-cards.test.ts cover: (1) WebP at exact 512×768 from synthetic 735×1000 JPG; (2) idempotent — second run built=0, skipped=N; (3) rebuild when src mtime is bumped past dest. All 98 warewolf tests pass; workspace-wide 464 pass (2 skipped); workspace `bun run lint` clean; `bunx turbo run build --filter=@social-hub/warewolf` succeeds.
+
+US-013 | 2026-05-12T18:42:00Z | apps/warewolf/components/CardArt.tsx — `"use client"` component exporting `<CardArt roleId size? priority?>` + `<CardArtPlaceholder roleId size?>`. CardArt renders next/image at cardArtPath(roleId) with width/height from SIZE_PX (sm 60×90, md 84×126, lg 240×360, all 2:3 to match prototype `.card{ aspect-ratio:2/3 }`) and stylewise covers its container (object-fit cover, top-anchored). useState-based error fallback swaps to <CardArtPlaceholder> on the next/image onError event (Eng Review failure-mode #2). Placeholder is a parchment card with a wax-seal silhouette (blood-dim for village, blood for wolves, ink-soft for neutral), role name in Cormorant italic 12px, and a signed-balance corner badge (badge bg keys off team color, with +N format for positive balances). Bumped apps/warewolf devDeps: @vitejs/plugin-react@^6.0.1, @testing-library/react@^16.3.2, @testing-library/jest-dom@^6.9.1, jsdom@^29.1.0 (all already hoisted via Headball). vitest.config.ts now plugs in @vitejs/plugin-react, registers `components/**/*.test.{ts,tsx}` in `include`, points `setupFiles` at the new vitest.setup.ts (jest-dom import), and adds the same `@/data/*` then `@/*` aliases Headball uses — keeps `environment: "node"` as the default so lib/* tests stay fast (component tests opt in to jsdom via `// @vitest-environment jsdom` directive). vitest.setup.ts imports `@testing-library/jest-dom/vitest`. Unit tests in components/CardArt.test.tsx (6 cases): renders <img> at cardArtPath; dispatches an 'error' event on the rendered img and asserts the placeholder swap; priority prop is forwarded; placeholder shows role name; placeholder shows signed balance with `+` for positive; wolf-team placeholder still renders the data-role="seal" element. next/image is mocked to a plain <img> in the test file (strips `priority` before spreading). Integration coverage via Playwright e2e/card-art.spec.ts (3 cases): GETs all 25 V1 card art URLs and asserts 200 + image content-type; asserts /cards/nonexistent.webp → 404; builds a /__cardsheet stub HTML via page.route fulfill, navigates, asserts 25 <img>s each with naturalWidth>0, screenshots full page to .ralph/screenshots/US-013.png (~400KB) — Storybook-style verification of every V1 role. All warewolf vitest = 104 passing (98 before + 6 new); typecheck green; workspace `bun run lint` green; full e2e suite passing (3/3 on the new spec). No new patterns surfaced beyond the two notes added to the Codebase Patterns section at the top of this log.
+
+US-014 | 2026-05-12T18:45:00Z | apps/warewolf/components/{BalanceScale,PlayableBanner,SolverErrorRow}.tsx — three "result" components for /setup/customize. <BalanceScale wolfSum villageSum balance hasBlocker> renders wolves-LEFT village-RIGHT (Pass 1 ordering) with a 42px circular pointer positioned by `50 + clamp(balance,-15,15)/15 * 45`%; pointer data-state is "balanced" (var(--color-green)) when balance∈[-2,+2] AND !hasBlocker, "tilt" (#7a4d00 amber) when outside [-2,+2] AND !hasBlocker, "blocked" (#8b1a1a blood) when hasBlocker===true; transitions left + background via var(--motion-med) (200ms; auto-zeroed inside prefers-reduced-motion); aria-live="polite" on the scale region. <PlayableBanner state reason> single-line `glyph · VERDICT · reason` layout: playable=green/✓/"PLAYABLE · เล่นได้", not-playable=red/✕/"NOT PLAYABLE · เล่นไม่ได้", warn=yellow/!/"WARNING · ระวัง" (reserved); verdict 17px italic + glyph 22px never wrap, reason ellipses; aria-live="polite". <SolverErrorRow archetypeId playerCount> parchment-red card with ⚠ glyph + "Solver can't balance this — {archetype name} @ {count}p"; role="alert" so failure announces. 15 component tests (7 BalanceScale: side-order + 3 pointer states + aria-live + pct-mapping incl. ±15 clamp + signed-balance text; 5 PlayableBanner: 3 state visuals + aria-live + separator presence; 3 SolverErrorRow: glyph+name+count, canonical sentence, role=alert). jsdom normalizes inline `background: '#7a4d00'` to `rgb(122, 77, 0)` — tests assert the rgb form. Full warewolf vitest = 119/119 (104 prior + 15 new); per-package `bunx tsc --noEmit` green; workspace `bun run lint` green (turbo cache hit on insider/headball/hub). Browser verification deferred — these components are not yet rendered on any page (lands in US-016/US-019/US-021); per CLAUDE.md fallback, jsdom unit tests are the verification contract for this story.
+
+US-015 | 2026-05-12T18:49:30Z | apps/warewolf/components/ArchetypeChipStrip.tsx — `"use client"` multi-select filter strip. Props: {playerCount, activeFilters: Set<ArchetypeId>, onChange, lang?: 'en'|'th'} — `lang` defaults to 'en' so the component is testable without `<IntlProvider>`; caller (US-020 page) wires it from next-intl's `useLocale()` (per reconciliation: only the selected language renders inside each chip — no en+th bilingual stacking like BalanceScale/PlayableBanner). Renders one `<button data-chip aria-pressed>` per archetype in ARCHETYPES where playerCount ∈ [minPlayers, maxPlayers]; hidden archetypes do NOT render at all. Toggle behavior: tapping mutates a copy of activeFilters and emits via onChange (empty Set = "show all", consumed by computeSetupList as no-op). Active chip styling = blood-red outline + blood fill + cream text + font-weight 700 (mirrors prototype `.chip.active` at finalized.html:281). Tap target = button minHeight/minWidth 44px (Pass 6); visual chip can be smaller via internal padding. Focus ring inherited from global `:focus-visible` rule in globals.css (2px blood @ 2px offset — no per-component override). Keyboard: ArrowLeft/ArrowRight cycle focus among the chips via stripRef.querySelectorAll('button[data-chip]'), wrapping at boundaries (handler preventDefault'd on the two arrow keys only). Strip is role="toolbar" with aria-label="Archetype filters". 11 component tests in components/ArchetypeChipStrip.test.tsx (visibility @ playerCount=5 + 14 per AC, toggle-on, toggle-off-from-multi-set, aria-pressed, th-name render, single-language rule, 44px tap target, ArrowRight/Left focus move, ArrowLeft wrap from first, toolbar role+label). Full warewolf vitest = 130/130 (119 prior + 11 new); per-package `bunx tsc --noEmit` green; workspace `bun run lint` green (turbo cache miss on warewolf, hit on others). Browser verification deferred — not yet rendered on any page (lands in US-020); jsdom tests are the verification contract per CLAUDE.md fallback.
+
+US-016 | 2026-05-12T18:55:00Z | apps/warewolf/components/SetupCard.{tsx,test.tsx} — full-card `<button>` setup-list row. Props {setup: Setup, onTap: (setup) => void, lang?: 'en' | 'th' = 'en'}. Renders, per design doc lines 484–499 + prototype `.variation-card` rules (finalized.html:253–288): archetype seal + name + roman numeral as a single italic uppercase label; lang-only vibe quote in Cormorant italic (no en+th stacking); right-aligned signed balance number ('+N' / '-N' / '0') with verdict beneath — `BALANCED` when |balance|≤2, `VILLAGE TILT` when >2, `WOLF TILT` when <-2 (boundary inclusive at ±2); grouped role chips with `×N` count when consecutive duplicates collapse (groupRoles walks the array; team-styled background — ink for wolf, ink-soft for neutral, cream for village); `WW : VV : NN` team summary that omits the `: NN` suffix when neutral count is 0 (matches prototype `${val.counts.neutral ? ' : '+val.counts.neutral+'N':''}`); right-aligned `Customize ▸` affordance (Thai: `ปรับแต่ง ▸`). Tap fires onTap(setup). Tap target ≥ 44px (whole card; minHeight: 44 inline). Press visuals: onMouseDown/onTouchStart set transform: scale(0.97) + opacity: 0.85 inline, cleared on Up/Leave; transition uses var(--motion-fast) which is auto-zeroed under prefers-reduced-motion via the global rule in globals.css. Card is a native `<button type="button">` so Enter/Space activation is free; focus ring inherited from `:focus-visible` rule in globals.css (2px blood @ 2px offset). 14 component tests in SetupCard.test.tsx: 3 rendering (name+roman+vibe+balance+teams; neutral suffix only when >0; th lang); 4 verdict prose (balanced 0; village-tilt +5; wolf-tilt -4; ±2 boundary inclusive); 2 chips (consecutive duplicates ×N badge; one chip per group); 2 tap (click fires onTap with setup ref; Enter equivalent click); 3 a11y/tap (<button> tagName + minHeight 44; transition keywords; mouseDown/Up press cycle). Full warewolf vitest = 144/144 (130 prior + 14 new); per-package `bunx tsc --noEmit` green; workspace `bun run lint` green. Browser verification deferred — SetupCard mounts on /setup in US-020; jsdom unit tests are the verification contract per CLAUDE.md fallback.
+
+NOTE: Preceding the US-016 commit was a sweeper commit that finally landed US-012, US-013, and US-015 source files which prior Ralph iterations had marked passes:true in prd.json + logged in progress.txt but never `git add`-ed. The tree is now clean.
+---
+
+US-017 | 2026-05-12T19:00:00Z | apps/warewolf/components/{RoleDetailModal,AddRoleSheet}.{tsx,test.tsx} — paired customize-page modals. <RoleDetailModal roleId slotIndex onReplace onDelete onClose lang?='en'>: design doc lines 511–516 layout — left half full card art via <CardArt size="lg" />, right half role name (current lang only) + team/balance/category badges (badge bg keys off team color/balance sign; signed-balance fontFeatureSettings 'tnum'), mechanic description from ROLES[roleId].i18n[lang].description, two action buttons "Replace · เปลี่ยน" (cream) and "Delete · ลบ" (blood) wired to onReplace(slotIndex)/onDelete(slotIndex). role="dialog" aria-modal="true" aria-labelledby. Escape key (window-level keydown listener) fires onClose. Light focus trap: cycles Tab/Shift+Tab within button group; auto-focuses the Replace button on mount; restore-on-close is the caller's responsibility. Slide-up transition declared via inline `transition: transform var(--motion-slide, 280ms) cubic-bezier(0.16, 1, 0.3, 1)` — global `prefers-reduced-motion: reduce` rule zeros --motion-slide automatically. Mobile bottom-sheet vs desktop sticky right-column (Pass 6) is a wrapper-layout concern (parent route in US-021); component body is layout-agnostic. <AddRoleSheet initialTab existingSetup onAdd onClose lang?='en'>: role="dialog" + role="tablist" wrapping the 6 TABS in display order from US-008. Active tab keys off useState<TabKey>(initialTab) — Replace flow pre-selects the swapped role's tab per Pass 7. Candidates derived per tab via mapCategoryToTab from lib/category-tabs.ts (Eng Review decision #6 — no new Role fields). Each candidate card: 2:3 <CardArt size="md" />, italic role name (current lang), team chip + signed balance delta (`+N`/`-N`/`0`, green/blood/ink-soft color) with fontFeatureSettings 'tnum'. Multi-add discipline: onClick fires onAdd(roleId) and the sheet stays mounted (no onClose call). Dismissal via X header button (44×44 tap target, ✕) or window-level Escape keydown. Tests: 11 RoleDetailModal cases (en+th name+description, badges presence + signed-balance prefix, CardArt size=lg w240×h360, Replace fires with slotIndex, Delete fires with slotIndex, Escape closes, aria-modal, transition keyword) + 7 AddRoleSheet cases (6 tabs in TABS order, initialTab aria-selected, tab filter swaps werewolf↔seer, candidate name+balance delta, th lang, multi-add keeps sheet open + onClose not called, X button closes, Escape closes) = 18 new. Both files use the established next/image vi.mock pattern from CardArt.test.tsx (strip priority + alt fallback). Full warewolf vitest = 162/162 (144 prior + 18 new); per-package `bunx tsc --noEmit` green; workspace `bun run lint` green; full workspace vitest = 528 passing + 6 skipped (73 files). Browser verification deferred — these modals mount on /setup/customize in US-021; jsdom unit tests are the verification contract per CLAUDE.md fallback.
+---
+
+## 2026-05-12T19:05:00Z — US-018 — useWarewolfStore Zustand store
+- Implemented `apps/warewolf/lib/store.ts` — thin Zustand 5 store wrapped in
+  `persist` middleware with `partialize` to persist ONLY `lang` (transient
+  UI state stays in-memory per Eng Review decision #4).
+- State: `{ playerCount=8, activeFilters=Set<ArchetypeId>(), currentSetup=[],
+  dirty=false, lang='en' }`. Actions: setPlayerCount, toggleArchetypeFilter,
+  setCurrentSetup (also clears dirty), markDirty, setLang, reset.
+- Tests: `apps/warewolf/lib/store.test.ts` — 8 tests covering default state,
+  toggle add/remove, setCurrentSetup clearing dirty, markDirty, lang persist
+  + rehydrate, partialize-excludes-transient, reset.
+- Files: apps/warewolf/lib/store.ts (+55 LOC), apps/warewolf/lib/store.test.ts.
+- **Learnings:**
+  - Node 25 ships a built-in `localStorage` that activates when vitest forwards
+    a `--localstorage-file` flag (without a path → broken stub). The broken
+    one *shadows* jsdom's localStorage in vitest 4 + jsdom env, so
+    `window.localStorage.setItem` is `undefined` by default. Workaround in
+    store.test.ts: install an in-memory `Storage` shim via
+    `Object.defineProperty(window/globalThis, 'localStorage', {value, configurable:true})`
+    BEFORE the dynamic `await import("./store")`. Future component tests
+    that exercise localStorage (any future persist'd store) need the same shim.
+  - Zustand persist `createJSONStorage` is a getter — its function runs lazily
+    on first access, so `window.localStorage` inside is safe on SSR as long
+    as no store actions fire server-side. Add `skipHydration: typeof window
+    === 'undefined'` to be explicit.
+  - `setCurrentSetup` clears the `dirty` flag because it represents loading
+    fresh canonical state from the URL (per US-018 spec: "currentSetup is
+    initialized from URL on mount; dirty flips true on user mutations").
+---
+
+## 2026-05-12T19:13:00Z — US-019
+- Implemented `/[lang]/page.tsx` (server component, ISR) matching Card Fan v2
+  wireframe. Added `landing.module.css` for layout. Extended Landing
+  i18n keys (titleTop, titleSub, pitchRange, ogDescription, langSwitchAria).
+  Toggle shows only the SELECTED language (literal interpretation of
+  reconciliation note "shows only the selected language"). Card-fan
+  uses 5 cards (villager, witch, seer, werewolf, wolf-cub) via
+  <CardArt size="md" priority>. generateMetadata emits OG/Twitter tags.
+  Build prerenders /en and /th statically.
+- Files changed: apps/warewolf/app/[lang]/page.tsx,
+  apps/warewolf/app/[lang]/landing.module.css (new),
+  apps/warewolf/messages/{en,th}.json
+- Verification: dev server screenshots saved to
+  .ralph/screenshots/US-019-{en,th}.png at 390x844 mobile viewport;
+  matches wireframe-B-v2.html composition (wordmark+toggle topbar,
+  overline+title+fleuron divider+card-fan hero, pitch+CTAs below).
+- **Learnings:**
+  - "Lang toggle shows only the selected language" per reconciliation
+    (design doc line 583) literally means "show the CURRENT lang label"
+    not "show the destination lang label". This contradicts the wireframe
+    which had `EN / ไทย` bilingual; story criterion + reconciliation win.
+  - CSS modules + Tailwind v4 `@theme inline` tokens compose cleanly:
+    the .module.css uses `var(--color-...)` and `var(--font-...)` to
+    reference globals.css tokens. No JIT/utility collisions.
+  - Per-`:nth-child` card-fan rotation works because the card order
+    (villager→wolf-cub) is iteration-stable from a literal const array;
+    keep that array order or the fan will look wrong.
+  - Next 16 with `params: Promise<{lang}>` in generateMetadata + page —
+    must `await params` then guard `hasLocale(routing.locales, lang)`
+    before passing to next-intl getTranslations (otherwise the
+    not-found locale leaks into translation lookups).
+---
+
+## 2026-05-12T19:17:00Z — US-020 — `/[lang]/setup/page.tsx` merged setup list
+- Created `apps/warewolf/app/[lang]/setup/page.tsx` (Client Component) as
+  the merged picker + variations page. Reads `playerCount` +
+  `activeFilters` from `useWarewolfStore`; passes them through
+  `computeSetupList(playerCount, activeFilters)` memoized via
+  `useMemo`. Renders `<ArchetypeChipStrip>` + `<SetupCard>` /
+  `<SolverErrorRow>` per item. Tap → `router.push(/[lang]/setup/customize?...)`
+  via `encodeSetup(...)`.
+- URL `?p=` sync via `useSearchParams` inside a `<Suspense>` boundary
+  (Next 16 requires this for prerendered Client Components). Out-of-range
+  values clamp to [5,20] via local `clampPlayerCount`; the page surfaces
+  a 4s-auto-dismiss toast with `t("playerCountAdjusted", { N })`. Missing
+  `?p=` is treated as "use store default" (no toast).
+- Stepper: `−` / display / `+` with `disabled` at bounds, 44×44 tap targets,
+  `aria-label`s, `aria-live="polite"` on the display.
+- Header: back-link to `/[lang]`, page title, language toggle to
+  `/[otherLang]/setup` (route mirror; middleware will preserve any other
+  query state).
+- i18n: added `SetupList.{pageTitle,backAria,stepperLabel,decreaseAria,
+  increaseAria,playerCountAdjusted}` to en.json + th.json.
+- Files changed:
+  - apps/warewolf/app/[lang]/setup/page.tsx (new)
+  - apps/warewolf/messages/en.json (added 5 SetupList keys)
+  - apps/warewolf/messages/th.json (added 5 SetupList keys)
+- Verification:
+  - `cd apps/warewolf && bunx tsc --noEmit` ✓
+  - `bun run lint` ✓
+  - `bunx vitest run` ✓ (170 passed in 19 files — no regressions)
+  - `bunx turbo run build --filter=@social-hub/warewolf` ✓ prerenders
+    /en/setup and /th/setup
+  - Dev server screenshots saved to
+    .ralph/screenshots/US-020-{en,th,toast}.png at 390x844:
+    * en: stepper @ 8, full sorted list rendering with balanced/tilt
+      verdicts, archetype seal+name+roman, vibe italics, role chips,
+      W:V summary, "Customize ▸" affordance.
+    * th: stepper @ 12, headline "หาเซ็ตอัพที่บาลานซ์", chip strip
+      narrowed to 12-player archetypes, Thai vibe copy + chip labels.
+    * toast: `?p=99` clamps to 20, `+` disabled, "Player count adjusted
+      to 20" toast pinned bottom-center.
+- E2E coverage for the page deferred to US-024 per AC.
+- **Learnings:**
+  - `useSearchParams` in a Client Component must live below a
+    `<Suspense>` boundary OR the route fails the build's static-export
+    pass with "useSearchParams() should be wrapped in a suspense
+    boundary". Pattern: outer `export default` wraps the page body in
+    `<Suspense fallback={null}>`; inner `function FooPageInner()` owns
+    the search-params logic. Next 16 default static export catches this.
+  - `<ArchetypeChipStrip>` accepts `onChange(next: Set)`, but the
+    Zustand store exposes only `toggleArchetypeFilter(id)`. Bridge by
+    diffing `current` vs `next` and toggling per-id — keeps the store
+    contract minimal and the chip strip pure.
+---
+
+## 2026-05-12T19:45:00Z — US-022 — `/[lang]/rules/page.tsx` (rules transcript)
+- Implemented:
+  - `apps/warewolf/lib/rules-content.ts` — typed chapter content for I-VI
+    (paragraphs / quotes / inline role-detail markers for Seer + Werewolf)
+    with bilingual EN + TH prose, paraphrased + community-toned from
+    `apps/warewolf/source/game-rule/getting-started.md`.
+  - `apps/warewolf/app/[lang]/rules/page.tsx` — single client page (mirrors
+    setup/page.tsx pattern). Sticky topbar with back-to-home, scrollspy-driven
+    chapter indicator, lang toggle. Collapsible `<nav data-testid="rules-toc">`
+    with `aria-expanded` toggle button; default open=true, collapsed on
+    `(max-width: 640px)` via post-mount `matchMedia` check. Chapters I-VI
+    rendered from `RULES_CHAPTERS`, each with `❦ · · · ❦` divider, dropcap on
+    EN openings, left-border blood-red quote callouts. Chapter VII (Role
+    Compendium) is a tabbed view (Wolves/Village/Neutral) that groups
+    `@social-hub/content` ROLES by team and renders each via the shared
+    `<RoleDetailBlock>` with `<CardArt size="sm">`. Sticky bottom CTA:
+    secondary Home + primary Find a Setup → `/${lang}/setup`.
+  - Scrollspy: `IntersectionObserver` keyed on `#ch-1`..`#ch-7` with
+    `rootMargin: "-80px 0px -60% 0px"` so the topmost section currently
+    intersecting the viewport (below the sticky topbar) wins.
+- Messages updated: added `chapterTag`, `homeCta`, `compendiumTitle`,
+  `compendiumTab{Wolves,Village,Neutral}`, `team{Wolf,Village,Neutral}`,
+  `balanceLabel`, `tocOpenAria`, `tocCloseAria`, `langToggleAria` in
+  both en.json + th.json under the `Rules` namespace.
+- Quality:
+  - `bunx tsc --noEmit` ✓
+  - `bun run lint` ✓ (warewolf lint == tsc; insider warnings pre-existing)
+  - `bunx vitest run` ✓ 170/170 (no regressions)
+  - `bunx turbo run build --filter=@social-hub/warewolf` ✓ `/en/rules` +
+    `/th/rules` prerendered as SSG via the `[lang]` `generateStaticParams`
+    in the layout.
+  - Browser verification: prod server on :3010, both routes 200; mobile
+    EN + TH + desktop EN screenshots written to
+    `.ralph/screenshots/US-022-{desktop,mobile}-{en,th}.png`. Visible:
+    topbar with "CHAPTER I · SETTING UP" indicator, "How to Play" title
+    with grimoire overline, expanded TOC listing I-VII (chapter I marked
+    current blood-red), chapter II dropcap on "O" + quote callout, Seer
+    role-detail block with card art + Village/+7 balance/Info short
+    badges, chapter VII role compendium with Wolves tab selected and
+    werewolf+wolf-cub+alpha-wolf+minion+sorceress entries below.
+- Tests: per AC the rules.spec.ts E2E coverage lives in US-024 — no unit
+  tests added here.
+- **Learnings:**
+  - Rules-content stored as a single typed array of `RulesBlock` discriminated
+    unions keeps the page renderer flat (one `switch (block.kind)`).
+    Bilingual prose lives inline on each block (`{en, th}`), so adding a
+    third language later is a single field on each block + one lookup.
+  - `next-intl` `useTranslations(...)` for a namespace can be passed
+    around inside the same render tree (a function `t(key, vars)` from
+    a parent works in nested children). Cleaner than calling
+    `useTranslations("Rules")` from every leaf.
+  - The dropcap effect (`float: left` first-letter at 38px blood-red)
+    only fires on EN — Thai script has no comparable initial-letter
+    convention and a giant Thai consonant looks broken. Leaf renderer
+    branches on `lang === "en"` before slicing the first character.
+  - `Role.i18n[lang].short` ("Core wolf", "Info role" etc.) doubles as
+    the third badge on each role-detail block — saves inventing a
+    category-label string set just for the compendium.
+- After commit: lane F complete (US-019..US-022). Next iteration should
+  push WIP commit `feat: warewolf lane F complete (all 4 routes)` per
+  AC and trigger /qa GATE.
+---
+US-023 | 2026-05-12T19:47:00Z | apps/warewolf/lib/solver-audit.test.ts — balance audit cartesian-loops every (archetype × playerCount × variationIdx) cell (~300 visible cells across the 8-archetype catalog) and asserts |balance| ≤ 5. Solver throws skipped (those become <SolverErrorRow>); |balance| > 5 fails loudly naming the tuple. Sanity floor of cellsChecked > 200 guards against silent generator regressions. Separate perf-gate test confirms computeSetupList(20) < 50ms (warmed run). The audit caught one real regression on first run: `(social-bluff, players=10, variation=1)` produced balance=-6 because village sum 6 + 3 fillers = target wolf sum -9, but the social-bluff wolf pool's minimum 3-wolf sum is -15. Fixed in village-seeds.ts by swapping spellcaster (+1) → prince (+3) in variation 1, lifting village sum to 8; vibe text + in-source comment updated. Full vitest run: 538 passed | 6 skipped. Typecheck + workspace lint green. Audit completes in <10ms; well under the 5s cap.
+---
+
+## 2026-05-12T19:55:00Z — US-024
+- Added 5 Playwright e2e specs covering landing flow, customize loop, share
+  roundtrip, invalid URL handling, and locale toggle. Clipboard-fallback test
+  is folded into customize-loop.spec.ts; card 404 fallback is covered at the
+  component level in components/CardArt.test.tsx (US-013 lane), which the
+  acceptance criteria allow ("Card 404 test (component-level OR E2E)").
+- Files:
+  - NEW apps/warewolf/e2e/landing.spec.ts
+  - NEW apps/warewolf/e2e/customize-loop.spec.ts
+  - NEW apps/warewolf/e2e/share-roundtrip.spec.ts
+  - NEW apps/warewolf/e2e/invalid-url.spec.ts
+  - NEW apps/warewolf/e2e/locale-toggle.spec.ts
+  - MOD apps/warewolf/app/[lang]/setup/customize/page.tsx — locale-toggle Link
+    now overrides `lang` in the preserved searchParams (was inheriting the old
+    locale and triggering the locale-precedence middleware to bounce the user
+    right back). New `toggleParamsFor(searchParams, otherLang)` helper.
+- **Learnings:**
+  - The customize page renders <RoleDetailModal> twice — once in the desktop
+    side-panel (`.customize-detail-panel`, hidden < 1024px) and once in the
+    mobile overlay. At 414×896 viewport (Playwright default for warewolf),
+    `page.getByTestId('role-detail-replace').first()` grabs the hidden desktop
+    copy and times out. ALWAYS scope to `page.getByTestId('customize-detail-
+    overlay').getByTestId('role-detail-replace')` in e2e specs.
+  - `ShareUrlSchema.p` uses `.catch(8)` not a true clamp. The existing
+    `lib/share-url.test.ts:18` locks `p: '25'` → 8 as a contract, so US-024's
+    invalid-url test asserts the same: p=99 → 8, not 20. The story criterion's
+    "p=20" wording is a story-vs-impl discrepancy; the contract wins.
+  - The playable-banner reason surfaces the FIRST blocker, in validator
+    priority order (no-wolves > wolves-gte-village > role-count-mismatch >
+    unknown-role). p=99 + foo,bar,baz produces both no-wolves AND
+    role-count-mismatch, but the banner shows "Zero wolves — no game possible.
+    Add at least one wolf." The role-count-mismatch is still detectable
+    independently (grid header "3 / 8" and `currentSetup.length < playerCount`).
+  - The locale-toggle href in customize MUST override `lang` in the inherited
+    searchParams. Without that, `<Link href="/th/setup/customize?...&lang=en">`
+    causes the locale-precedence middleware (Eng Review decision #5) to
+    301-redirect right back to /en. The setup-list page sidesteps this by not
+    preserving searchParams at all.
+- **New Codebase Pattern (added to top):** mobile/desktop dual-modal scoping.
+---
+
+## 2026-05-12T13:09:24Z — US-025 (CI perf gates — bundle budget + Lighthouse CI)
+- Wired `@next/bundle-analyzer@16.2.4` as a devDependency on apps/warewolf,
+  enabled via `ANALYZE=true bunx next build` (composed alongside next-intl
+  plugin in `apps/warewolf/next.config.ts`).
+- New script `apps/warewolf/scripts/check-bundle-budget.ts` (wired as
+  `bun run check:bundle`). Computes route-specific gzipped JS for
+  `/setup/customize` by diffing chunk references in the prerendered HTML
+  (`.next/server/app/en/setup/customize.html`) against the lighter
+  landing baseline (`.next/server/app/en.html`). Hard fails at 96 KB
+  (80 KB target + 20% per Eng Review decision); warns above 80 KB.
+- New `.github/workflows/warewolf-perf.yml` (two jobs):
+  - bundle-budget: install + turbo build + check:bundle on every PR
+    touching warewolf or its workspace deps.
+  - lighthouse: waits for Vercel preview via
+    patrickedqvist/wait-for-vercel-preview, then runs
+    treosh/lighthouse-ci-action against /en, /en/setup,
+    /en/setup/customize. Mobile + simulated 3G throttle. LCP <= 2.5s
+    (median of 3) is ERROR; FCP / CLS / TBT WARN only.
+- `.github/lighthouserc.json`: form factor mobile, 412x823 @ DPR 1.75,
+  3G throttling (rttMs 150, throughput 1638 kbps, cpu slowdown 4),
+  numberOfRuns 3, onlyCategories ['performance'].
+- `apps/warewolf/PERF.md` documents both gates, the route-specific JS
+  measurement convention (Turbopack-aware), and the initial baseline.
+- Initial baseline: /setup/customize = 83.62 KB gz (route-specific JS,
+  diff vs /en). Above 80 KB target, within +20% margin — script returns
+  exit 0 with a WARN line. 12.38 KB of headroom to the hard ceiling.
+- Verified: `bun run check:bundle` exits 0, typecheck green
+  (`bunx tsc --noEmit`), workspace lint green (`bun run lint`),
+  all 172 vitest tests still pass.
+- **Learnings:**
+  - Next 16.2.4 + Turbopack emits a per-route `build-manifest.json` under
+    `.next/server/app/<route>/page/build-manifest.json` but it only lists
+    `rootMainFiles` (shared across all routes) + `polyfillFiles`. Page-
+    specific chunks are NOT enumerated there. The reliable source for
+    route-specific JS is the prerendered HTML (which references every
+    chunk the route actually loads). The check:bundle script extracts
+    those refs with a regex and diffs against the landing baseline to
+    isolate the route-specific cost — matches the spirit of the old
+    webpack `next build` "Size" column.
+  - `@next/bundle-analyzer` composes outside the next-intl plugin
+    wrapper. Pattern: `withNextIntl(withAnalyzer(nextConfig))`. The
+    analyzer is gated by `ANALYZE=true` so it never runs in CI builds
+    (which would otherwise spawn the treemap browser process).
+  - The 80 KB + 20% Eng Review budget was likely calibrated against a
+    webpack `next build` output. Under Turbopack/Next 16 the customize
+    page lands at 83.62 KB gz route-specific — already above target.
+    Captured as a baseline + an architectural follow-up (see PERF.md's
+    "When you exceed the budget" section); did NOT raise the budget.
+- **New Codebase Pattern (added to top):** Turbopack route-specific JS
+  measurement via prerendered HTML diff.
+---
+
+## Codebase Patterns
+- **Turbopack route-specific JS measurement.** Per-route
+  `.next/server/app/<route>/page/build-manifest.json` only contains
+  shared root-main + polyfill files. To get the JS *added* by a
+  specific route (the spirit of webpack-Next's "Size" column), diff
+  the chunk references in the prerendered HTML for that route against
+  the prerendered HTML for the lightest baseline route (`/en`). The
+  diff is the set of chunks loaded ONLY when navigating to the target
+  route. `apps/warewolf/scripts/check-bundle-budget.ts` implements
+  this for /setup/customize.
+- **CI perf gates as separate jobs.** `.github/workflows/warewolf-perf.yml`
+  splits bundle-budget (synchronous, runs on every PR) from
+  lighthouse-LCP (requires Vercel preview URL, only runs on PRs).
+  Both are ERROR-level per Eng Review locked decision.
+
+## 2026-05-12T13:18:05Z — US-027 — PAUSE: manual work required
+- **Status:** Awaiting maintainer. Ralph CANNOT complete this story autonomously.
+- **Why paused:** US-027 requires Vercel dashboard project creation + DNS
+  provisioning (`warewolf.headball.app`) + TLS verification + manual
+  three-device smoke test + `/canary` baseline + `warewolf-v1-launch`
+  git tag. All of these require human credentials or physical devices
+  that the autonomous agent does not have.
+- **All preceding stories (US-001 .. US-026) are passes:true.** Lane H
+  a11y artifacts swept in 066e377.
+- **`.ralph/prd.json` left with US-027 passes:false intentionally** —
+  per Ralph instructions ("Manual Operational Story (Pause Required)"),
+  the maintainer flips this flag manually after completing the steps
+  below. DO NOT auto-flip on next iteration.
+- **Maintainer checklist (do these in order):**
+  1. Vercel dashboard → New Project → import this repo.
+     - Root Directory: `apps/warewolf`
+     - Framework Preset: Next.js
+     - Install Command: `cd ../.. && bun install`
+     - Build Command: `cd ../.. && bunx turbo run build --filter=@social-hub/warewolf`
+     - Output Directory: (default; Next will fill it)
+     - Node version: 22.x (or default)
+     - No environment variables needed (V1 has no backend).
+  2. DNS: add CNAME `warewolf` → `cname.vercel-dns.com` (or A record per
+     Vercel's UI prompt) on the `headball.app` zone. Verify TLS cert
+     issues within ~minutes (Vercel handles Let's Encrypt).
+  3. Push `feat/warewolf` to GitHub if not already; promote the resulting
+     Vercel deployment to Production (or merge `feat/warewolf` → `main`
+     and let Vercel auto-deploy main to production — your choice).
+  4. Three-device smoke test on `https://warewolf.headball.app/`:
+     - iOS Safari, Android Chrome, desktop Firefox.
+     - Each: cold load `/`, navigate `/setup`, tap a row, customize,
+       Save URL, paste URL in second tab → setup reproduces identically.
+     - Each: toggle locale TH ↔ EN; verify segment changes, URL state preserved.
+  5. Run `/canary` skill against production URL — capture pre-launch
+     baseline (console errors, perf, screenshots) per
+     `tasks/warewolf/prd.md` "/qa GATE PROTOCOL".
+  6. `git tag warewolf-v1-launch && git push origin warewolf-v1-launch`.
+  7. Update `apps/warewolf/README.md` with the production URL line.
+  8. Update `tasks/warewolf/prd.md` Success Metrics with the launch date
+     + production URL.
+  9. Draft (do NOT post) the launch announcement: screenshot of a balanced
+     setup + 1-paragraph Thai blurb. Post manually to the 2 target Werewolf
+     groups + 1 BGG forum thread later — explicitly out of scope for this
+     story per AC line 23.
+  10. Optional: schedule `/retro` for 1 week post-launch.
+  11. Edit `.ralph/prd.json` US-027 → `"passes": true` once all above are done.
+- **Lint check:** `bun run lint` was last green at HEAD~1 (US-025 pass).
+  Re-run it before tagging to confirm nothing in the sweep broke it.
+- **Files changed this iteration:** none beyond this progress.txt entry
+  and the sweep commit 066e377.
+---

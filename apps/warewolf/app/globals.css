@@ -1,0 +1,152 @@
+@import "tailwindcss";
+
+/*
+ * Warewolf — Grimoire Design System.
+ *
+ * Canonical reference: docs/DESIGN-warewolf.md. Token names match 1:1.
+ * Stadium Energy (docs/DESIGN.md) does NOT apply here. Headball lives in
+ * a different aesthetic; do not cross-pollinate.
+ *
+ * Tailwind v4 does not yet support cross-package @theme imports, so the
+ * tokens are copy-pasted into this app's globals.css. When docs/DESIGN-warewolf.md
+ * changes, update this file in lockstep.
+ */
+
+@theme inline {
+  /* Surfaces — parchment family */
+  --color-parchment: #f5ecd6;
+  --color-parchment-soft: #f0e5c4;
+  --color-cream: #fbf4e0;
+  --color-cream-2: #e6dcc0;
+
+  /* Ink — text family */
+  --color-ink: #1a1612;
+  --color-ink-soft: #3a322a;
+  --color-ink-muted: #5a4a36;
+  --color-ink-faint: #9a8d6b;
+
+  /* Accent — Grimoire blood */
+  --color-blood: #8b1a1a;
+  --color-blood-dim: #7a1818;
+  --color-blood-bg: #f5d6d6;
+
+  /* Status — verdict states */
+  --color-green: #0f5132;
+  --color-green-bg: #dcf2e3;
+  --color-amber: #7a4d00;
+  --color-warn: #fbbf24;
+  --color-warn-bg: #fdf0c4;
+
+  /* Fonts */
+  --font-serif: "Cormorant Garamond", serif;
+  --font-serif-th: "Noto Serif Thai", serif;
+  --font-ui: Inter, system-ui, sans-serif;
+
+  /* Type scale */
+  --t-display-xl: 48px;
+  --t-display: 32px;
+  --t-display-sm: 26px;
+  --t-h: 20px;
+  --t-body: 16px;
+  --t-body-sm: 14px;
+  --t-micro: 13px;
+
+  /* Spacing */
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 24px;
+  --s-6: 32px;
+
+  /* Borders + radius */
+  --b: 1px solid var(--color-ink);
+  --b-thick: 1.5px solid var(--color-ink);
+  --b-soft: 1px dashed rgba(26, 22, 18, 0.3);
+  --r-1: 2px;
+  --r-2: 4px;
+
+  /* Motion */
+  --motion-fast: 150ms ease-out;
+  --motion-med: 200ms cubic-bezier(0.2, 0, 0.2, 1);
+  --motion-slide: 280ms cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* Texture */
+  --texture-grain: radial-gradient(rgba(120, 90, 40, 0.06) 1px, transparent 1px);
+}
+
+/* Reduced motion: collapse durations to 0ms (mirrors prototype lines 73–76). */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion-fast: 0ms;
+    --motion-med: 0ms;
+    --motion-slide: 0ms;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0ms !important;
+    transition-duration: 0ms !important;
+  }
+}
+
+@layer base {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  html,
+  body {
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+    font-family: var(--font-serif);
+    color: var(--color-ink);
+    background: var(--color-parchment);
+    background-image: var(--texture-grain);
+    background-size: 3px 3px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  body {
+    overflow-x: hidden;
+  }
+
+  button,
+  input,
+  select {
+    font: inherit;
+    color: inherit;
+  }
+
+  button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+  }
+
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-blood);
+    outline-offset: 2px;
+    border-radius: 1px;
+  }
+
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    border: 0;
+  }
+}

@@ -1,0 +1,66 @@
+name: warewolf perf gates
+
+on:
+  pull_request:
+    paths:
+      - "apps/warewolf/**"
+      - "packages/content/**"
+      - "packages/core/**"
+      - "packages/ui/**"
+      - "packages/types/**"
+      - ".github/workflows/warewolf-perf.yml"
+  push:
+    branches: [main]
+    paths:
+      - "apps/warewolf/**"
+      - "packages/content/**"
+      - "packages/core/**"
+      - "packages/ui/**"
+      - "packages/types/**"
+      - ".github/workflows/warewolf-perf.yml"
+
+jobs:
+  bundle-budget:
+    name: Bundle budget (/setup/customize ≤ 96KB gz)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - name: Install workspace deps
+        run: bun install --frozen-lockfile
+      - name: Build warewolf
+        run: bunx turbo run build --filter=@social-hub/warewolf
+      - name: Bundle budget gate
+        working-directory: apps/warewolf
+        run: bun run check:bundle
+
+  lighthouse:
+    name: Lighthouse mobile LCP < 2.5s (3G)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # Requires a Vercel preview URL; skips on push-to-main (preview is PR-only).
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Wait for Vercel preview deployment
+        id: vercel-preview
+        uses: patrickedqvist/wait-for-vercel-preview@v1.3.2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          max_timeout: 600
+          check_interval: 15
+          path: /en/setup/customize
+          environment: Preview
+      - name: Lighthouse CI
+        uses: treosh/lighthouse-ci-action@v12
+        with:
+          urls: |
+            ${{ steps.vercel-preview.outputs.url }}/en
+            ${{ steps.vercel-preview.outputs.url }}/en/setup
+            ${{ steps.vercel-preview.outputs.url }}/en/setup/customize
+          configPath: ./.github/lighthouserc.json
+          uploadArtifacts: true
+          temporaryPublicStorage: true
