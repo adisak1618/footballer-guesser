@@ -8,7 +8,8 @@
     "build": "echo \"warewolf build placeholder — replaced in US-009\""
   },
   "dependencies": {
-    "@social-hub/content": "workspace:*"
+    "@social-hub/content": "workspace:*",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@types/node": "^20",
