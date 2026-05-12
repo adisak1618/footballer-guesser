@@ -25,6 +25,7 @@ import { useEffect, useMemo, useRef, useState } from "react"
 import { useLocale, useTranslations } from "next-intl"
 
 import { CardArt } from "@/components/CardArt"
+import { Container } from "@/components/Container"
 import { ROLES, ROLE_IDS, type RoleId, type Team } from "@social-hub/content"
 import { RULES_CHAPTERS, type RulesBlock } from "@/lib/rules-content"
 
@@ -128,13 +129,17 @@ export default function RulesPage() {
           position: "sticky",
           top: 0,
           zIndex: 10,
+          borderBottom: "var(--b)",
+          background: "var(--color-parchment)",
+        }}
+      >
+      <Container
+        style={{
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
           gap: "var(--s-2)",
           padding: "var(--s-2) var(--s-4)",
-          borderBottom: "var(--b)",
-          background: "var(--color-parchment)",
         }}
       >
         <Link
@@ -195,14 +200,16 @@ export default function RulesPage() {
         >
           {langLabel}
         </Link>
+      </Container>
       </header>
 
       {/* Page title */}
-      <section
+      <section style={{ flexShrink: 0 }}>
+      <Container
+        variant="narrow"
         style={{
           textAlign: "center",
           padding: "var(--s-4) var(--s-4) var(--s-2)",
-          flexShrink: 0,
         }}
       >
         <div
@@ -229,14 +236,19 @@ export default function RulesPage() {
         >
           {t("title")}
         </h1>
+      </Container>
       </section>
 
       {/* Collapsible TOC */}
+      <Container
+        variant="narrow"
+        style={{ paddingInline: "var(--s-4)" }}
+      >
       <nav
         data-testid="rules-toc"
         data-open={tocOpen ? "true" : "false"}
         style={{
-          margin: "var(--s-2) var(--s-4)",
+          margin: "var(--s-2) 0",
           border: "var(--b)",
           background: "var(--color-cream)",
           fontStyle: "italic",
@@ -318,11 +330,12 @@ export default function RulesPage() {
           </ol>
         ) : null}
       </nav>
+      </Container>
 
       {/* Body — chapters I-VI then chapter VII compendium */}
+      <Container variant="narrow" style={{ flex: 1 }}>
       <article
         style={{
-          flex: 1,
           padding: "var(--s-3) var(--s-4) var(--s-6)",
         }}
       >
@@ -363,6 +376,7 @@ export default function RulesPage() {
           <RoleCompendium lang={lang} />
         </section>
       </article>
+      </Container>
 
       {/* Sticky bottom CTA */}
       <div
@@ -371,11 +385,15 @@ export default function RulesPage() {
           position: "sticky",
           bottom: 0,
           flexShrink: 0,
+          borderTop: "var(--b)",
+          background: "var(--color-parchment)",
+        }}
+      >
+      <Container
+        style={{
           display: "flex",
           gap: "var(--s-2)",
           padding: "var(--s-2) var(--s-4)",
-          borderTop: "var(--b)",
-          background: "var(--color-parchment)",
         }}
       >
         <Link
@@ -416,6 +434,7 @@ export default function RulesPage() {
         >
           {t("backToSetup")}
         </Link>
+      </Container>
       </div>
     </main>
   )

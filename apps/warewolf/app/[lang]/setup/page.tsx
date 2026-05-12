@@ -20,6 +20,7 @@ import { Suspense, useEffect, useMemo, useRef, useState } from "react"
 import { useLocale, useTranslations } from "next-intl"
 
 import { ArchetypeChipStrip } from "@/components/ArchetypeChipStrip"
+import { Container } from "@/components/Container"
 import { SetupCard } from "@/components/SetupCard"
 import { SolverErrorRow } from "@/components/SolverErrorRow"
 import { computeSetupList, isSolverError, type Setup } from "@/lib/solver"
@@ -129,16 +130,20 @@ function SetupListPageInner() {
     >
       <header
         style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: "var(--s-3)",
-          padding: "var(--s-3) var(--s-4)",
           borderBottom: "var(--b)",
           background: "var(--color-cream)",
           flexShrink: 0,
         }}
       >
+        <Container
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: "var(--s-3)",
+            padding: "var(--s-3) var(--s-4)",
+          }}
+        >
         <Link
           href={`/${lang}`}
           data-testid="setup-back-home"
@@ -197,15 +202,16 @@ function SetupListPageInner() {
         >
           {selectedLangLabel}
         </Link>
+        </Container>
       </header>
 
       <section
         style={{
-          padding: "var(--s-4) var(--s-4) var(--s-3)",
           borderBottom: "var(--b)",
           background: "var(--color-parchment)",
         }}
       >
+        <Container style={{ padding: "var(--s-4) var(--s-4) var(--s-3)" }}>
         <p
           data-testid="setup-subhead"
           style={{
@@ -307,28 +313,39 @@ function SetupListPageInner() {
             +
           </button>
         </div>
+        </Container>
       </section>
 
-      <ArchetypeChipStrip
-        playerCount={playerCount}
-        activeFilters={activeFilters}
-        onChange={(next) => {
-          // Diff and toggle each changed id; the store owns the set.
-          const current = activeFilters
-          for (const id of next) if (!current.has(id)) toggleArchetypeFilter(id)
-          for (const id of current) if (!next.has(id)) toggleArchetypeFilter(id)
+      <div
+        style={{
+          borderBottom: "var(--b)",
+          background: "var(--color-parchment)",
+          flexShrink: 0,
         }}
-        lang={lang}
-      />
+      >
+        <Container>
+          <ArchetypeChipStrip
+            playerCount={playerCount}
+            activeFilters={activeFilters}
+            onChange={(next) => {
+              // Diff and toggle each changed id; the store owns the set.
+              const current = activeFilters
+              for (const id of next) if (!current.has(id)) toggleArchetypeFilter(id)
+              for (const id of current) if (!next.has(id)) toggleArchetypeFilter(id)
+            }}
+            lang={lang}
+          />
+        </Container>
+      </div>
 
       <section
         data-testid="setup-list"
         style={{
           flex: 1,
-          padding: "var(--s-3) var(--s-4) var(--s-5)",
           overflowY: "auto",
         }}
       >
+        <Container style={{ padding: "var(--s-3) var(--s-4) var(--s-5)" }}>
         {setupList.length === 0 ? (
           <p
             data-testid="setup-list-empty"
@@ -366,6 +383,7 @@ function SetupListPageInner() {
             )
           })
         )}
+        </Container>
       </section>
 
       {toast !== null ? (

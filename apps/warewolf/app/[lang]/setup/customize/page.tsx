@@ -35,6 +35,7 @@ import type { CSSProperties } from "react"
 import { AddRoleSheet } from "@/components/AddRoleSheet"
 import { BalanceScale } from "@/components/BalanceScale"
 import { CardArt } from "@/components/CardArt"
+import { Container } from "@/components/Container"
 import { PlayableBanner, type PlayableBannerState } from "@/components/PlayableBanner"
 import { RoleDetailModal } from "@/components/RoleDetailModal"
 import { decodeSetup, encodeSetup } from "@/lib/share-url"
@@ -239,12 +240,16 @@ function CustomizePageInner() {
     >
       <header
         style={{
+          borderBottom: "var(--b)",
+          background: "var(--color-parchment)",
+        }}
+      >
+      <Container
+        style={{
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
           padding: "var(--s-3) var(--s-4)",
-          borderBottom: "var(--b)",
-          background: "var(--color-parchment)",
         }}
       >
         <Link
@@ -286,24 +291,29 @@ function CustomizePageInner() {
         >
           {otherLangLabel}
         </Link>
+      </Container>
       </header>
 
       {importedInvalid ? (
         <div
-          data-testid="customize-imported-invalid"
-          role="status"
           style={{
-            padding: "10px 14px",
             background: "var(--color-blood-bg)",
-            color: "#5a1818",
             borderBottom: "2px solid var(--color-blood)",
-            fontStyle: "italic",
-            fontWeight: 500,
-            fontSize: 13,
-            textAlign: "center",
           }}
         >
-          {t("importedInvalid")}
+          <Container
+            testId="customize-imported-invalid"
+            style={{
+              padding: "10px 14px",
+              color: "#5a1818",
+              fontStyle: "italic",
+              fontWeight: 500,
+              fontSize: 13,
+              textAlign: "center",
+            }}
+          >
+            {t("importedInvalid")}
+          </Container>
         </div>
       ) : null}
 
@@ -320,23 +330,24 @@ function CustomizePageInner() {
           borderBottom: "var(--b)",
         }}
       >
-        <BalanceScale
-          wolfSum={result.wolfSum}
-          villageSum={result.villageSum}
-          balance={result.balance}
-          hasBlocker={!result.ok}
-        />
-        <div style={{ padding: "0 var(--s-4) var(--s-3)" }}>
-          <PlayableBanner state={bannerState} reason={reasonText} />
-        </div>
+        <Container>
+          <BalanceScale
+            wolfSum={result.wolfSum}
+            villageSum={result.villageSum}
+            balance={result.balance}
+            hasBlocker={!result.ok}
+          />
+          <div style={{ padding: "0 var(--s-4) var(--s-3)" }}>
+            <PlayableBanner state={bannerState} reason={reasonText} />
+          </div>
+        </Container>
       </div>
 
       {/* Body: card grid (LEFT on desktop ≥1024px, full-width on mobile) +
           detail panel (RIGHT on desktop, overlay on mobile).
-          Grid-template-columns lives in the <style> block below so the media
-          query can switch it; inline style cannot host media queries. */}
-      <div
-        data-testid="customize-body"
+          Grid-template-columns lives in globals.css `.customize-body` so the
+          media query can switch it; inline style cannot host media queries. */}
+      <Container
         className="customize-body"
         style={{
           flex: 1,
@@ -344,6 +355,7 @@ function CustomizePageInner() {
           display: "grid",
           gap: "var(--s-4)",
         }}
+        testId="customize-body"
       >
         {/* Card grid column */}
         <section
@@ -468,7 +480,7 @@ function CustomizePageInner() {
             </div>
           )}
         </aside>
-      </div>
+      </Container>
 
       {/* Sticky bottom Save CTA */}
       <footer
@@ -478,12 +490,16 @@ function CustomizePageInner() {
           left: 0,
           right: 0,
           bottom: 0,
-          padding: "8px 14px",
           borderTop: "var(--b)",
           background: "var(--color-cream)",
+          zIndex: 3,
+        }}
+      >
+      <Container
+        style={{
+          padding: "8px 14px",
           display: "flex",
           gap: 6,
-          zIndex: 3,
         }}
       >
         <button
@@ -510,6 +526,7 @@ function CustomizePageInner() {
         >
           {t("saveSetup")}
         </button>
+      </Container>
       </footer>
 
       {/* Mobile overlay: RoleDetailModal */}
@@ -597,25 +614,6 @@ function CustomizePageInner() {
         </div>
       ) : null}
 
-      {/* Desktop 2-column layout per Pass 6. Inline <style> here so we can keep
-          the page self-contained; tokens come from globals.css. The same
-          breakpoint hides the mobile overlay so the right-column panel is
-          the single source of detail render. */}
-      <style>{`
-        .customize-body { grid-template-columns: 1fr; }
-        @media (min-width: 1024px) {
-          .customize-body {
-            grid-template-columns: 1fr minmax(320px, 420px);
-            max-width: 1100px;
-            margin: 0 auto;
-            width: 100%;
-          }
-          .customize-detail-overlay { display: none !important; }
-        }
-        @media (max-width: 1023px) {
-          .customize-detail-panel { display: none; }
-        }
-      `}</style>
     </main>
   )
 }
