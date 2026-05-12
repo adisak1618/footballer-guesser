@@ -46,6 +46,15 @@
   blockers (`'unknown-role'`). The parser (`lib/share-url.ts`, US-007) is the
   sole place that silently substitutes unknowns to `villager` — keep that
   single source-of-truth split per Eng Review decision #3.
+- `zod` 4.3.6 is hoisted at the workspace root via Headball; warewolf declares
+  `"zod": "^4.3.6"` in `apps/warewolf/package.json` to make the dependency
+  explicit. Schemas with `.catch(fallback)` swallow validation errors and
+  return the fallback — useful for graceful URL parsing where the URL is
+  user-modifiable.
+- decodeSetup pre-filters `lang` to `'en' | 'th' | undefined` BEFORE handing to
+  Zod, so invalid values (e.g. `?lang=fr`) trigger `.default('en')` instead of
+  the enum throwing. Same pattern works for any z.enum field reachable from
+  user input.
 
 ## Story Log
 
@@ -55,3 +64,4 @@ US-003 | 2026-05-12T17:55:00Z | apps/warewolf/lib/archetypes.ts with ARCHETYPES 
 US-004 | 2026-05-12T17:58:00Z | apps/warewolf/lib/village-seeds.ts with VILLAGE_SEEDS — 8 archetypes × 3 variations = 24 entries ported verbatim from prototype finalized.html:722-763. Type expressed as `Record<ArchetypeId, [VillageSeed, VillageSeed, VillageSeed]>` (tuple statically guarantees the 3-entry shape). 5 new tests in village-seeds.test.ts (presence, count=24, role-id resolution, en+th vibe, neutrals team check); total apps/warewolf vitest = 17 passing. Typecheck + workspace lint green.
 US-005 | 2026-05-12T18:02:00Z | apps/warewolf/lib/solver.ts — communityWolfCount (renamed from prototype bookletWolfCount), pickWolvesForBalance (DFS w/ SINGLETON/MAX_WOLF_CUB/PACK_REQUIRED constraints; THROWS on empty pool per Eng Review decision #2; deterministic; count=0 → []), generateVariations (3 Setup objects, wolfDelta applied, targetWolfSum = -(village+neutrals+filler villager sums)), computeSetupList (range filter + activeFilters + catches throws into SolverError marker; sorts non-errors by |balance| ASC, errors at end). 26 new tests; perf gate computeSetupList(20) < 50ms passes. Total apps/warewolf vitest = 43 passing. Typecheck + workspace lint green.
 US-006 | 2026-05-12T18:06:00Z | apps/warewolf/lib/validator.ts — single-pass `validate(setup, playerCount)` returning {ok, blockers, balance, wolfSum, villageSum, wolfCount, villageCount, neutralCount}. BlockerCode union: 'no-wolves' | 'wolves-gte-village' | 'role-count-mismatch' | 'unknown-role'. Strict on unknown role ids (Eng Review decision #3 — validator stays strict; only `decodeSetup` substitutes). Neutrals excluded from wolves-vs-village parity check (design doc Premise #3). 9 new tests in validator.test.ts incl. 2 fast-check properties (valid setup passes; all-village returns no-wolves). Added `fast-check@4.8.0` to apps/warewolf devDependencies. Total apps/warewolf vitest = 52 passing; workspace lib tests 303 passing. Typecheck + workspace lint green.
+US-007 | 2026-05-12T18:09:30Z | apps/warewolf/lib/share-url.ts — ShareUrlSchema (Zod 4.3.6 per Eng Review spec: p coerce+int+min(5)+max(20)+catch(8); roles csv split → unknown ids substituted with 'villager' via runtime ROLES lookup; lang enum default 'en'). encodeSetup builds URLSearchParams; decodeSetup returns {playerCount, roles, lang, clampedP, substitutedIds}. clampedP detected pre-parse by integer/range check on raw p. substitutedIds collected pre-parse from rolesRaw. Invalid lang values pre-filtered to undefined so default applies. Single source of truth for unknown-id substitution per Eng Review decision #3. 18 new tests; total apps/warewolf vitest = 70 passing. Typecheck + workspace lint green. Added `zod@^4.3.6` to apps/warewolf dependencies (was hoisted via Headball; now explicit).
