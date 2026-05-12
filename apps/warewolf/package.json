@@ -3,17 +3,34 @@
   "version": "0.0.1",
   "private": true,
   "scripts": {
+    "dev": "next dev -p 3003",
+    "build": "next build",
+    "start": "next start -p 3003",
     "lint": "tsc --noEmit",
     "test": "vitest run",
-    "build": "echo \"warewolf build placeholder — replaced in US-009\""
+    "e2e": "playwright test",
+    "build:cards": "echo 'warewolf build:cards placeholder — replaced in US-012'"
   },
   "dependencies": {
     "@social-hub/content": "workspace:*",
-    "zod": "^4.3.6"
+    "next": "16.2.4",
+    "next-intl": "^4.5.0",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "zod": "^4.3.6",
+    "zustand": "5.0.12"
   },
   "devDependencies": {
+    "@playwright/test": "^1.59.1",
+    "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
     "fast-check": "^4.8.0",
+    "playwright": "^1.59.1",
+    "sharp": "^0.34.4",
+    "tailwindcss": "^4",
+    "typescript": "^5",
     "vitest": "^4.1.5"
   }
 }

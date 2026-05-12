@@ -6,8 +6,14 @@
       "@/data/*": ["../../data/*"],
       "@/*": ["./*"],
       "@social-hub/*": ["../../packages/*/src/index.ts"]
-    }
+    },
+    "plugins": [{ "name": "next" }]
   },
-  "include": ["**/*.ts", "**/*.tsx"],
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts"
+  ],
   "exclude": ["node_modules", "e2e/**"]
 }

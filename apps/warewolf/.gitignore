@@ -1,0 +1,19 @@
+# Next.js build output
+.next/
+out/
+
+# Dependencies
+node_modules/
+
+# Playwright
+playwright-report/
+test-results/
+
+# Local env
+.env.local
+.env.*.local
+
+# Logs + caches
+*.log
+.turbo/
+tsconfig.tsbuildinfo
