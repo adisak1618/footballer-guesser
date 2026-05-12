@@ -9,7 +9,8 @@
     "lint": "tsc --noEmit",
     "test": "vitest run",
     "e2e": "playwright test",
-    "build:cards": "bun run scripts/build-cards.ts"
+    "build:cards": "bun run scripts/build-cards.ts",
+    "check:bundle": "bun run scripts/check-bundle-budget.ts"
   },
   "dependencies": {
     "@social-hub/content": "workspace:*",
@@ -21,6 +22,7 @@
     "zustand": "5.0.12"
   },
   "devDependencies": {
+    "@next/bundle-analyzer": "16.2.4",
     "@playwright/test": "^1.59.1",
     "@tailwindcss/postcss": "^4",
     "@testing-library/jest-dom": "^6.9.1",
