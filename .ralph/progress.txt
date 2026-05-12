@@ -1,0 +1,26 @@
+# Ralph Progress Log — Warewolf Balance & Setup Recommender
+# Branch: feat/warewolf (project-level Ralph CLAUDE.md) / main (warewolf CLAUDE.md latest)
+# PRD: tasks/warewolf/prd.md
+# Design doc: ~/.gstack/projects/board-game/adisakchaiyakul-main-design-20260512-051400-werewolf-balance-tool.md
+# Started: 2026-05-12T10:31:00Z
+
+## Codebase Patterns
+
+- `@social-hub/content` is the cross-app source of truth for static role/content data.
+  Place new role-data modules under `packages/content/src/` (NOT the package root) so
+  the existing `tsconfig.json` (`include: ["src/**/*.ts"]`) and `vitest.config.ts`
+  (`include: ["src/**/*.test.ts"]`) pick them up. Re-export from `src/index.ts`.
+- Tests live next to the source as `src/<name>.test.ts` (vitest picks them up via
+  the workspace-root vitest projects pointer plus the package-local config).
+- Spec/typo note for V1 warewolf roles: design doc + story US-001 both say
+  "22 V1 roles" but enumerate 25 named role IDs (5 wolf + 4 info + 8 power +
+  4 vanilla + 4 neutral). The prototype `finalized.html` also has 25. Treat the
+  enumerated list as the substantive contract; "22" is an upstream typo.
+- Role.category enum is fine-grained (info/protection/kill/vote/chaos/vanilla/neutral);
+  the customize-page 6-tab mapping in `lib/category-tabs.ts` (Eng Review decision #6)
+  derives display tabs from team + category. Do not collapse the enum to match the
+  prototype's coarse wolf/info/power/social/neutral.
+
+## Story Log
+
+US-001 | 2026-05-12T17:47:00Z | Frozen role catalog (25 roles) + types in packages/content/src/werewolf-roles.ts; 11 tests pass; re-exported from index.ts.

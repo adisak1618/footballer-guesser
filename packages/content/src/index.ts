@@ -1,6 +1,16 @@
 import type { SupabaseClient } from "@supabase/supabase-js"
 import { GameRpcError, dispatch, parsePgErrCode } from "@social-hub/core"
 
+export {
+  ROLES,
+  ROLE_IDS,
+  type Category,
+  type Role,
+  type RoleI18nEntry,
+  type RoleId,
+  type Team,
+} from "./werewolf-roles"
+
 export interface PackItem {
   itemId: string
   displayValue: string
