@@ -174,7 +174,7 @@
         "Lint passes: `bun run lint` workspace-wide (including realtime publication lint, which must no-op on warewolf since there are no Supabase migrations)."
       ],
       "priority": 9,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
