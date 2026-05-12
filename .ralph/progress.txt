@@ -405,3 +405,70 @@ US-023 | 2026-05-12T19:47:00Z | apps/warewolf/lib/solver-audit.test.ts — balan
     preserving searchParams at all.
 - **New Codebase Pattern (added to top):** mobile/desktop dual-modal scoping.
 ---
+
+## 2026-05-12T13:09:24Z — US-025 (CI perf gates — bundle budget + Lighthouse CI)
+- Wired `@next/bundle-analyzer@16.2.4` as a devDependency on apps/warewolf,
+  enabled via `ANALYZE=true bunx next build` (composed alongside next-intl
+  plugin in `apps/warewolf/next.config.ts`).
+- New script `apps/warewolf/scripts/check-bundle-budget.ts` (wired as
+  `bun run check:bundle`). Computes route-specific gzipped JS for
+  `/setup/customize` by diffing chunk references in the prerendered HTML
+  (`.next/server/app/en/setup/customize.html`) against the lighter
+  landing baseline (`.next/server/app/en.html`). Hard fails at 96 KB
+  (80 KB target + 20% per Eng Review decision); warns above 80 KB.
+- New `.github/workflows/warewolf-perf.yml` (two jobs):
+  - bundle-budget: install + turbo build + check:bundle on every PR
+    touching warewolf or its workspace deps.
+  - lighthouse: waits for Vercel preview via
+    patrickedqvist/wait-for-vercel-preview, then runs
+    treosh/lighthouse-ci-action against /en, /en/setup,
+    /en/setup/customize. Mobile + simulated 3G throttle. LCP <= 2.5s
+    (median of 3) is ERROR; FCP / CLS / TBT WARN only.
+- `.github/lighthouserc.json`: form factor mobile, 412x823 @ DPR 1.75,
+  3G throttling (rttMs 150, throughput 1638 kbps, cpu slowdown 4),
+  numberOfRuns 3, onlyCategories ['performance'].
+- `apps/warewolf/PERF.md` documents both gates, the route-specific JS
+  measurement convention (Turbopack-aware), and the initial baseline.
+- Initial baseline: /setup/customize = 83.62 KB gz (route-specific JS,
+  diff vs /en). Above 80 KB target, within +20% margin — script returns
+  exit 0 with a WARN line. 12.38 KB of headroom to the hard ceiling.
+- Verified: `bun run check:bundle` exits 0, typecheck green
+  (`bunx tsc --noEmit`), workspace lint green (`bun run lint`),
+  all 172 vitest tests still pass.
+- **Learnings:**
+  - Next 16.2.4 + Turbopack emits a per-route `build-manifest.json` under
+    `.next/server/app/<route>/page/build-manifest.json` but it only lists
+    `rootMainFiles` (shared across all routes) + `polyfillFiles`. Page-
+    specific chunks are NOT enumerated there. The reliable source for
+    route-specific JS is the prerendered HTML (which references every
+    chunk the route actually loads). The check:bundle script extracts
+    those refs with a regex and diffs against the landing baseline to
+    isolate the route-specific cost — matches the spirit of the old
+    webpack `next build` "Size" column.
+  - `@next/bundle-analyzer` composes outside the next-intl plugin
+    wrapper. Pattern: `withNextIntl(withAnalyzer(nextConfig))`. The
+    analyzer is gated by `ANALYZE=true` so it never runs in CI builds
+    (which would otherwise spawn the treemap browser process).
+  - The 80 KB + 20% Eng Review budget was likely calibrated against a
+    webpack `next build` output. Under Turbopack/Next 16 the customize
+    page lands at 83.62 KB gz route-specific — already above target.
+    Captured as a baseline + an architectural follow-up (see PERF.md's
+    "When you exceed the budget" section); did NOT raise the budget.
+- **New Codebase Pattern (added to top):** Turbopack route-specific JS
+  measurement via prerendered HTML diff.
+---
+
+## Codebase Patterns
+- **Turbopack route-specific JS measurement.** Per-route
+  `.next/server/app/<route>/page/build-manifest.json` only contains
+  shared root-main + polyfill files. To get the JS *added* by a
+  specific route (the spirit of webpack-Next's "Size" column), diff
+  the chunk references in the prerendered HTML for that route against
+  the prerendered HTML for the lightest baseline route (`/en`). The
+  diff is the set of chunks loaded ONLY when navigating to the target
+  route. `apps/warewolf/scripts/check-bundle-budget.ts` implements
+  this for /setup/customize.
+- **CI perf gates as separate jobs.** `.github/workflows/warewolf-perf.yml`
+  splits bundle-budget (synchronous, runs on every PR) from
+  lighthouse-LCP (requires Vercel preview URL, only runs on PRs).
+  Both are ERROR-level per Eng Review locked decision.
