@@ -20,7 +20,19 @@
   the customize-page 6-tab mapping in `lib/category-tabs.ts` (Eng Review decision #6)
   derives display tabs from team + category. Do not collapse the enum to match the
   prototype's coarse wolf/info/power/social/neutral.
+- Lane A (US-002..US-008) files live under `apps/warewolf/lib/` but US-009
+  (full Next.js scaffold) is later in build order. To make Lane A's per-package
+  typecheck + tests work, US-002 added minimal `apps/warewolf/{package.json,
+  tsconfig.json,vitest.config.ts}`. US-009 will replace/extend these with the
+  full Next.js + Tailwind + Playwright scaffolding; do NOT remove the minimal
+  files during US-009, only augment them.
+- `ArchetypeId` literal-union is defined locally in `apps/warewolf/lib/wolf-pools.ts`
+  for self-contained Lane A. US-003 (`lib/archetypes.ts`) is the canonical owner
+  per the story spec; when implementing US-003, either re-export ArchetypeId from
+  archetypes.ts and have wolf-pools.ts import it, or keep the single declaration
+  here and have archetypes.ts import — pick whichever produces less churn.
 
 ## Story Log
 
 US-001 | 2026-05-12T17:47:00Z | Frozen role catalog (25 roles) + types in packages/content/src/werewolf-roles.ts; 11 tests pass; re-exported from index.ts.
+US-002 | 2026-05-12T17:53:00Z | apps/warewolf/lib/wolf-pools.ts with WOLF_POOLS (8 archetypes), SINGLETON_WOLVES, PACK_REQUIRED, MAX_WOLF_CUB; 7 tests pass; ArchetypeId defined locally (US-003 may canonicalize). Created minimal apps/warewolf scaffolding (package.json + tsconfig.json + vitest.config.ts) so Lane A typecheck/test works pre-US-009.

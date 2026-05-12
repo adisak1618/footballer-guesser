@@ -1,0 +1,17 @@
+{
+  "name": "@social-hub/warewolf",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "lint": "tsc --noEmit",
+    "test": "vitest run",
+    "build": "echo \"warewolf build placeholder — replaced in US-009\""
+  },
+  "dependencies": {
+    "@social-hub/content": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "vitest": "^4.1.5"
+  }
+}
