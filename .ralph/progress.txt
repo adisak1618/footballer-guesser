@@ -6,6 +6,14 @@
 
 ## Codebase Patterns
 
+- Zustand persist + jsdom test gotcha: Node 25 forwards a `--localstorage-file`
+  flag to vitest workers that activates Node's built-in `localStorage` WITHOUT
+  a valid path → it becomes a non-functional stub that *shadows* jsdom's
+  working localStorage. Tests that touch `localStorage` must install an
+  in-memory `Storage` shim via `Object.defineProperty(window/globalThis,
+  'localStorage', {value, configurable: true})` BEFORE dynamically importing
+  the module under test (see `apps/warewolf/lib/store.test.ts`). Production
+  code is unaffected — browsers provide a real localStorage.
 - `<CardArt>` is the only component that should ever render a card image —
   callers never reach for raw `next/image` against `cardArtPath(...)`. Its
   `onError` falls through to `<CardArtPlaceholder>` (Grimoire empty card with
@@ -27,6 +35,14 @@
 - When unit-testing components that wrap `next/image`, mock it to a plain
   `<img>` via `vi.mock("next/image", ...)`. Strip the `priority` boolean
   before spreading so React doesn't warn about non-DOM attrs.
+- Client-Component pages that call `useSearchParams()` MUST be wrapped in
+  `<Suspense fallback={...}>` or Next 16's static-export pass fails the
+  build with "useSearchParams() should be wrapped in a suspense boundary".
+  Pattern (see `apps/warewolf/app/[lang]/setup/page.tsx`): outer
+  `export default function FooPage()` returns
+  `<Suspense fallback={null}><FooPageInner /></Suspense>`; inner
+  `function FooPageInner()` owns the `useSearchParams` + `useRouter`
+  logic. Same restriction applies to `useRouter` reads of `?query`.
 
 - Grimoire design tokens live in `docs/DESIGN-warewolf.md` (canonical) and are
   mirrored into `apps/warewolf/app/globals.css` (Tailwind v4 `@theme inline`).
@@ -151,4 +167,119 @@ NOTE: Preceding the US-016 commit was a sweeper commit that finally landed US-01
 ---
 
 US-017 | 2026-05-12T19:00:00Z | apps/warewolf/components/{RoleDetailModal,AddRoleSheet}.{tsx,test.tsx} — paired customize-page modals. <RoleDetailModal roleId slotIndex onReplace onDelete onClose lang?='en'>: design doc lines 511–516 layout — left half full card art via <CardArt size="lg" />, right half role name (current lang only) + team/balance/category badges (badge bg keys off team color/balance sign; signed-balance fontFeatureSettings 'tnum'), mechanic description from ROLES[roleId].i18n[lang].description, two action buttons "Replace · เปลี่ยน" (cream) and "Delete · ลบ" (blood) wired to onReplace(slotIndex)/onDelete(slotIndex). role="dialog" aria-modal="true" aria-labelledby. Escape key (window-level keydown listener) fires onClose. Light focus trap: cycles Tab/Shift+Tab within button group; auto-focuses the Replace button on mount; restore-on-close is the caller's responsibility. Slide-up transition declared via inline `transition: transform var(--motion-slide, 280ms) cubic-bezier(0.16, 1, 0.3, 1)` — global `prefers-reduced-motion: reduce` rule zeros --motion-slide automatically. Mobile bottom-sheet vs desktop sticky right-column (Pass 6) is a wrapper-layout concern (parent route in US-021); component body is layout-agnostic. <AddRoleSheet initialTab existingSetup onAdd onClose lang?='en'>: role="dialog" + role="tablist" wrapping the 6 TABS in display order from US-008. Active tab keys off useState<TabKey>(initialTab) — Replace flow pre-selects the swapped role's tab per Pass 7. Candidates derived per tab via mapCategoryToTab from lib/category-tabs.ts (Eng Review decision #6 — no new Role fields). Each candidate card: 2:3 <CardArt size="md" />, italic role name (current lang), team chip + signed balance delta (`+N`/`-N`/`0`, green/blood/ink-soft color) with fontFeatureSettings 'tnum'. Multi-add discipline: onClick fires onAdd(roleId) and the sheet stays mounted (no onClose call). Dismissal via X header button (44×44 tap target, ✕) or window-level Escape keydown. Tests: 11 RoleDetailModal cases (en+th name+description, badges presence + signed-balance prefix, CardArt size=lg w240×h360, Replace fires with slotIndex, Delete fires with slotIndex, Escape closes, aria-modal, transition keyword) + 7 AddRoleSheet cases (6 tabs in TABS order, initialTab aria-selected, tab filter swaps werewolf↔seer, candidate name+balance delta, th lang, multi-add keeps sheet open + onClose not called, X button closes, Escape closes) = 18 new. Both files use the established next/image vi.mock pattern from CardArt.test.tsx (strip priority + alt fallback). Full warewolf vitest = 162/162 (144 prior + 18 new); per-package `bunx tsc --noEmit` green; workspace `bun run lint` green; full workspace vitest = 528 passing + 6 skipped (73 files). Browser verification deferred — these modals mount on /setup/customize in US-021; jsdom unit tests are the verification contract per CLAUDE.md fallback.
+---
+
+## 2026-05-12T19:05:00Z — US-018 — useWarewolfStore Zustand store
+- Implemented `apps/warewolf/lib/store.ts` — thin Zustand 5 store wrapped in
+  `persist` middleware with `partialize` to persist ONLY `lang` (transient
+  UI state stays in-memory per Eng Review decision #4).
+- State: `{ playerCount=8, activeFilters=Set<ArchetypeId>(), currentSetup=[],
+  dirty=false, lang='en' }`. Actions: setPlayerCount, toggleArchetypeFilter,
+  setCurrentSetup (also clears dirty), markDirty, setLang, reset.
+- Tests: `apps/warewolf/lib/store.test.ts` — 8 tests covering default state,
+  toggle add/remove, setCurrentSetup clearing dirty, markDirty, lang persist
+  + rehydrate, partialize-excludes-transient, reset.
+- Files: apps/warewolf/lib/store.ts (+55 LOC), apps/warewolf/lib/store.test.ts.
+- **Learnings:**
+  - Node 25 ships a built-in `localStorage` that activates when vitest forwards
+    a `--localstorage-file` flag (without a path → broken stub). The broken
+    one *shadows* jsdom's localStorage in vitest 4 + jsdom env, so
+    `window.localStorage.setItem` is `undefined` by default. Workaround in
+    store.test.ts: install an in-memory `Storage` shim via
+    `Object.defineProperty(window/globalThis, 'localStorage', {value, configurable:true})`
+    BEFORE the dynamic `await import("./store")`. Future component tests
+    that exercise localStorage (any future persist'd store) need the same shim.
+  - Zustand persist `createJSONStorage` is a getter — its function runs lazily
+    on first access, so `window.localStorage` inside is safe on SSR as long
+    as no store actions fire server-side. Add `skipHydration: typeof window
+    === 'undefined'` to be explicit.
+  - `setCurrentSetup` clears the `dirty` flag because it represents loading
+    fresh canonical state from the URL (per US-018 spec: "currentSetup is
+    initialized from URL on mount; dirty flips true on user mutations").
+---
+
+## 2026-05-12T19:13:00Z — US-019
+- Implemented `/[lang]/page.tsx` (server component, ISR) matching Card Fan v2
+  wireframe. Added `landing.module.css` for layout. Extended Landing
+  i18n keys (titleTop, titleSub, pitchRange, ogDescription, langSwitchAria).
+  Toggle shows only the SELECTED language (literal interpretation of
+  reconciliation note "shows only the selected language"). Card-fan
+  uses 5 cards (villager, witch, seer, werewolf, wolf-cub) via
+  <CardArt size="md" priority>. generateMetadata emits OG/Twitter tags.
+  Build prerenders /en and /th statically.
+- Files changed: apps/warewolf/app/[lang]/page.tsx,
+  apps/warewolf/app/[lang]/landing.module.css (new),
+  apps/warewolf/messages/{en,th}.json
+- Verification: dev server screenshots saved to
+  .ralph/screenshots/US-019-{en,th}.png at 390x844 mobile viewport;
+  matches wireframe-B-v2.html composition (wordmark+toggle topbar,
+  overline+title+fleuron divider+card-fan hero, pitch+CTAs below).
+- **Learnings:**
+  - "Lang toggle shows only the selected language" per reconciliation
+    (design doc line 583) literally means "show the CURRENT lang label"
+    not "show the destination lang label". This contradicts the wireframe
+    which had `EN / ไทย` bilingual; story criterion + reconciliation win.
+  - CSS modules + Tailwind v4 `@theme inline` tokens compose cleanly:
+    the .module.css uses `var(--color-...)` and `var(--font-...)` to
+    reference globals.css tokens. No JIT/utility collisions.
+  - Per-`:nth-child` card-fan rotation works because the card order
+    (villager→wolf-cub) is iteration-stable from a literal const array;
+    keep that array order or the fan will look wrong.
+  - Next 16 with `params: Promise<{lang}>` in generateMetadata + page —
+    must `await params` then guard `hasLocale(routing.locales, lang)`
+    before passing to next-intl getTranslations (otherwise the
+    not-found locale leaks into translation lookups).
+---
+
+## 2026-05-12T19:17:00Z — US-020 — `/[lang]/setup/page.tsx` merged setup list
+- Created `apps/warewolf/app/[lang]/setup/page.tsx` (Client Component) as
+  the merged picker + variations page. Reads `playerCount` +
+  `activeFilters` from `useWarewolfStore`; passes them through
+  `computeSetupList(playerCount, activeFilters)` memoized via
+  `useMemo`. Renders `<ArchetypeChipStrip>` + `<SetupCard>` /
+  `<SolverErrorRow>` per item. Tap → `router.push(/[lang]/setup/customize?...)`
+  via `encodeSetup(...)`.
+- URL `?p=` sync via `useSearchParams` inside a `<Suspense>` boundary
+  (Next 16 requires this for prerendered Client Components). Out-of-range
+  values clamp to [5,20] via local `clampPlayerCount`; the page surfaces
+  a 4s-auto-dismiss toast with `t("playerCountAdjusted", { N })`. Missing
+  `?p=` is treated as "use store default" (no toast).
+- Stepper: `−` / display / `+` with `disabled` at bounds, 44×44 tap targets,
+  `aria-label`s, `aria-live="polite"` on the display.
+- Header: back-link to `/[lang]`, page title, language toggle to
+  `/[otherLang]/setup` (route mirror; middleware will preserve any other
+  query state).
+- i18n: added `SetupList.{pageTitle,backAria,stepperLabel,decreaseAria,
+  increaseAria,playerCountAdjusted}` to en.json + th.json.
+- Files changed:
+  - apps/warewolf/app/[lang]/setup/page.tsx (new)
+  - apps/warewolf/messages/en.json (added 5 SetupList keys)
+  - apps/warewolf/messages/th.json (added 5 SetupList keys)
+- Verification:
+  - `cd apps/warewolf && bunx tsc --noEmit` ✓
+  - `bun run lint` ✓
+  - `bunx vitest run` ✓ (170 passed in 19 files — no regressions)
+  - `bunx turbo run build --filter=@social-hub/warewolf` ✓ prerenders
+    /en/setup and /th/setup
+  - Dev server screenshots saved to
+    .ralph/screenshots/US-020-{en,th,toast}.png at 390x844:
+    * en: stepper @ 8, full sorted list rendering with balanced/tilt
+      verdicts, archetype seal+name+roman, vibe italics, role chips,
+      W:V summary, "Customize ▸" affordance.
+    * th: stepper @ 12, headline "หาเซ็ตอัพที่บาลานซ์", chip strip
+      narrowed to 12-player archetypes, Thai vibe copy + chip labels.
+    * toast: `?p=99` clamps to 20, `+` disabled, "Player count adjusted
+      to 20" toast pinned bottom-center.
+- E2E coverage for the page deferred to US-024 per AC.
+- **Learnings:**
+  - `useSearchParams` in a Client Component must live below a
+    `<Suspense>` boundary OR the route fails the build's static-export
+    pass with "useSearchParams() should be wrapped in a suspense
+    boundary". Pattern: outer `export default` wraps the page body in
+    `<Suspense fallback={null}>`; inner `function FooPageInner()` owns
+    the search-params logic. Next 16 default static export catches this.
+  - `<ArchetypeChipStrip>` accepts `onChange(next: Set)`, but the
+    Zustand store exposes only `toggleArchetypeFilter(id)`. Bridge by
+    diffing `current` vs `next` and toggling per-id — keeps the store
+    contract minimal and the chip strip pure.
 ---

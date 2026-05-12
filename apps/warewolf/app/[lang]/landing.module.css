@@ -1,0 +1,356 @@
+/*
+ * Landing page styles for /[lang]/ — Card Fan v2 wireframe.
+ *
+ * Locked layout reference:
+ *   ~/.gstack/projects/board-game/designs/warewolf-landing-20260512/wireframe-B-v2.html
+ *
+ * Tokens come from globals.css (@theme inline). Per Pass 7: no idle
+ * animation V1; cards are static.
+ */
+
+.page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-parchment);
+  background-image: var(--texture-grain);
+  background-size: 3px 3px;
+  color: var(--color-ink);
+  font-family: var(--font-serif);
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  flex-shrink: 0;
+}
+
+.wordmark {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-weight: 600;
+  font-size: 16px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--color-ink);
+}
+
+.wordmarkGlyph {
+  color: var(--color-blood);
+  font-size: 16px;
+  line-height: 1;
+}
+
+.langToggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  min-width: 44px;
+  padding: 6px 12px;
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 1;
+  color: var(--color-ink);
+  border: 1px solid transparent;
+  background: transparent;
+}
+
+.langToggle:hover {
+  border-color: var(--color-ink);
+}
+
+.hero {
+  position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-cream);
+  border-top: 1px solid var(--color-ink);
+  border-bottom: 1px solid var(--color-ink);
+  overflow: hidden;
+  min-height: 360px;
+}
+
+.hero::before,
+.hero::after {
+  content: "";
+  position: absolute;
+  width: 60px;
+  height: 60px;
+  pointer-events: none;
+  background-image: radial-gradient(circle at center, var(--color-blood) 1.5px, transparent 2px);
+  background-size: 8px 8px;
+  opacity: 0.35;
+}
+
+.hero::before {
+  top: 0;
+  left: 0;
+}
+
+.hero::after {
+  top: 0;
+  right: 0;
+  transform: scaleX(-1);
+}
+
+.heroHead {
+  text-align: center;
+  padding: 28px 20px 8px;
+  position: relative;
+  z-index: 1;
+}
+
+.overline {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-weight: 500;
+  font-size: 12px;
+  line-height: 1;
+  color: var(--color-blood);
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  margin-bottom: 12px;
+}
+
+.title {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-weight: 700;
+  font-size: var(--t-display-xl);
+  line-height: 0.95;
+  letter-spacing: 0.005em;
+  color: var(--color-ink);
+}
+
+.titleSub {
+  display: block;
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-weight: 500;
+  font-size: 18px;
+  line-height: 1;
+  color: var(--color-ink-soft);
+  margin-top: 8px;
+  letter-spacing: 0.02em;
+}
+
+.titleSubTh {
+  display: block;
+  font-family: var(--font-serif-th);
+  font-style: normal;
+  font-weight: 600;
+  font-size: 18px;
+  line-height: 1;
+  color: var(--color-ink-soft);
+  margin-top: 8px;
+}
+
+.divider {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: var(--color-blood);
+  font-family: serif;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 1;
+  letter-spacing: 0.3em;
+  padding: 16px 28px 0;
+  position: relative;
+  z-index: 1;
+}
+
+.divider::before,
+.divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--color-ink);
+  opacity: 0.4;
+}
+
+.heroCards {
+  position: relative;
+  flex: 1;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 24px 0 16px;
+  overflow: hidden;
+}
+
+.heroCards::before {
+  content: "";
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  bottom: 0;
+  height: 24px;
+  background: radial-gradient(ellipse at center, rgba(26, 22, 18, 0.18), transparent 70%);
+  filter: blur(3px);
+  pointer-events: none;
+}
+
+.cardFan {
+  display: flex;
+  align-items: flex-end;
+  gap: 0;
+  padding-bottom: 4px;
+}
+
+.cardFanCard {
+  width: 84px;
+  aspect-ratio: 2 / 3;
+  border: 1.5px solid var(--color-ink);
+  background-color: var(--color-cream-2);
+  box-shadow:
+    0 6px 12px rgba(26, 22, 18, 0.22),
+    inset 0 0 0 1px rgba(245, 236, 214, 0.4);
+  transform-origin: bottom center;
+  position: relative;
+  overflow: hidden;
+}
+
+.cardFanCard::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(245, 236, 214, 0.12), transparent 40%);
+  pointer-events: none;
+}
+
+.cardFanCard:nth-child(1) {
+  transform: translateX(60px) rotate(-26deg);
+}
+
+.cardFanCard:nth-child(2) {
+  transform: translateX(30px) rotate(-13deg);
+  z-index: 2;
+}
+
+.cardFanCard:nth-child(3) {
+  transform: translateY(-14px);
+  z-index: 3;
+}
+
+.cardFanCard:nth-child(4) {
+  transform: translateX(-30px) rotate(13deg);
+  z-index: 2;
+}
+
+.cardFanCard:nth-child(5) {
+  transform: translateX(-60px) rotate(26deg);
+}
+
+.below {
+  padding: 18px 22px 28px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  background: var(--color-parchment);
+}
+
+.pitch {
+  margin: 0;
+  text-align: center;
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-weight: 500;
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--color-ink-soft);
+}
+
+.pitchTh {
+  margin: 0;
+  text-align: center;
+  font-family: var(--font-serif-th);
+  font-style: normal;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--color-ink-soft);
+}
+
+.pitchRange {
+  color: var(--color-blood);
+  font-weight: 700;
+  font-style: normal;
+  font-feature-settings: "tnum" 1;
+}
+
+.ctaRow {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  padding: 14px 16px;
+  text-align: center;
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-weight: 600;
+  font-size: 17px;
+  line-height: 1.2;
+  border: 1.5px solid var(--color-ink);
+  background: var(--color-cream);
+  color: var(--color-ink);
+  text-decoration: none;
+}
+
+.cta:hover {
+  background: var(--color-parchment-soft);
+}
+
+.ctaPrimary {
+  background: var(--color-blood);
+  color: var(--color-cream);
+  border-color: var(--color-blood);
+}
+
+.ctaPrimary:hover {
+  background: var(--color-blood-dim);
+}
+
+.ctaTh {
+  display: block;
+  font-family: var(--font-serif-th);
+  font-style: normal;
+  font-weight: 500;
+  font-size: 11px;
+  line-height: 1.3;
+  margin-top: 2px;
+}
+
+@media (min-width: 720px) {
+  /* Desktop breathing room per Open Question #4 in story Tech Notes. */
+  .page {
+    max-width: 560px;
+    margin: 0 auto;
+    box-shadow: 0 0 0 1px rgba(26, 22, 18, 0.08);
+  }
+
+  .title {
+    font-size: 52px;
+  }
+
+  .cardFanCard {
+    width: 96px;
+  }
+}

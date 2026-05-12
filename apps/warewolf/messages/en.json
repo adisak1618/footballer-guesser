@@ -1,9 +1,14 @@
 {
   "Landing": {
     "title": "Werewolf Setup Tome",
+    "titleTop": "Werewolf",
+    "titleSub": "Balance & Setup Tome",
     "overline": "A balanced room awaits",
     "pitchPart1": "Tell us how many",
     "pitchPart2": "souls. We pick cards that make the night fair, with reasoning you can trust.",
+    "pitchRange": "5–20",
+    "ogDescription": "Find a balanced Werewolf setup for 5–20 souls. Pick a vibe, get fresh role combinations, share by link.",
+    "langSwitchAria": "Switch to Thai",
     "ctaFind": "Find a Balanced Setup",
     "ctaHow": "How to Play",
     "ctaBackHome": "Home",
@@ -11,6 +16,7 @@
     "labelSouls": "souls"
   },
   "SetupList": {
+    "pageTitle": "Find a balanced setup",
     "pickerSubhead": "We'll suggest balanced rooms for {N} players. Pick an archetype to start.",
     "forSouls": "for {N} souls",
     "pathsCount": "{N} BALANCED PATHS",
@@ -20,7 +26,12 @@
     "ctaChoose": "Choose ▸",
     "ctaSelected": "Selected",
     "wolves": "Wolves",
-    "village": "Village"
+    "village": "Village",
+    "backAria": "Back to home",
+    "stepperLabel": "Players",
+    "decreaseAria": "Decrease player count",
+    "increaseAria": "Increase player count",
+    "playerCountAdjusted": "Player count adjusted to {N}"
   },
   "Customize": {
     "title": "Customize",
