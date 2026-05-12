@@ -56,7 +56,7 @@
         "Lint passes: `bun run lint`."
       ],
       "priority": 3,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {

@@ -36,3 +36,4 @@
 
 US-001 | 2026-05-12T17:47:00Z | Frozen role catalog (25 roles) + types in packages/content/src/werewolf-roles.ts; 11 tests pass; re-exported from index.ts.
 US-002 | 2026-05-12T17:53:00Z | apps/warewolf/lib/wolf-pools.ts with WOLF_POOLS (8 archetypes), SINGLETON_WOLVES, PACK_REQUIRED, MAX_WOLF_CUB; 7 tests pass; ArchetypeId defined locally (US-003 may canonicalize). Created minimal apps/warewolf scaffolding (package.json + tsconfig.json + vitest.config.ts) so Lane A typecheck/test works pre-US-009.
+US-003 | 2026-05-12T17:55:00Z | apps/warewolf/lib/archetypes.ts with ARCHETYPES (8 entries: id, seal, minPlayers, maxPlayers, wolfDelta, i18n en+th name+vibe). Caps + copy pulled from prototype finalized.html:510-518. ArchetypeId stayed canonical in wolf-pools.ts and is re-exported from archetypes.ts (lower-churn path per the pattern note). 5 new tests in archetypes.test.ts; total apps/warewolf vitest = 12 passing. Typecheck + workspace lint green.
