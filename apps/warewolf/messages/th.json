@@ -51,7 +51,15 @@
     "reasonWolfEdge": "หมาป่าได้เปรียบเล็กน้อย แต่ยังบาลานซ์",
     "reasonTiltVillage": "เซ็ตอัพเอียงไปทางชาวบ้านมาก",
     "reasonTiltWolf": "เซ็ตอัพเอียงไปทางหมาป่ามาก",
-    "savedToast": "บันทึกลิงก์แล้ว แชร์กับเพื่อนได้เลย"
+    "reasonNoWolves": "ไม่มีหมาป่า เล่นไม่ได้ ใส่หมาป่าอย่างน้อยหนึ่งตัว",
+    "reasonTooManyWolves": "หมาป่า ({W}) มากกว่าหรือเท่ากับชาวบ้าน ({V}) ใส่ชาวบ้านเพิ่มหรือลดหมาป่า",
+    "reasonRoleCount": "ต้องการอีก {X} บทบาทเพื่อเติมห้อง",
+    "savedToast": "บันทึกลิงก์แล้ว แชร์กับเพื่อนได้เลย",
+    "importedInvalid": "ลิงก์ไม่ถูกต้อง เริ่มจากเซ็ตอัพมาตรฐานแทน",
+    "tapCardHint": "แตะไพ่ใบใดก็ได้เพื่อดูรายละเอียดและแก้ไข",
+    "backToSetups": "รายการ",
+    "emptySlotsLabel": "ขาด",
+    "soulsLabel": "คน"
   },
   "Blockers": {
     "wolves-gte-village": "หมาป่าเยอะเกิน: หมาป่า {W} ตน vs ชาวบ้าน {V} คน",
@@ -77,12 +85,19 @@
     "overline": "หนังสือเวทกฎ",
     "toc": "สารบัญ",
     "chapter": "บทที่",
+    "chapterTag": "บทที่ {roman} · {title}",
     "backToSetup": "หาเซ็ตอัพ",
-    "chapter1": "ตั้งค่า",
-    "chapter2": "คืนแรก",
-    "chapter3": "วันแรก",
-    "chapter4": "ทุกคืน",
-    "chapter5": "ทุกวันและการโหวต",
-    "chapter6": "จบเกม"
+    "homeCta": "หน้าหลัก",
+    "compendiumTitle": "บัญชีไพ่",
+    "compendiumTabWolves": "หมาป่า",
+    "compendiumTabVillage": "ชาวบ้าน",
+    "compendiumTabNeutral": "กลาง",
+    "teamWolf": "หมาป่า",
+    "teamVillage": "ชาวบ้าน",
+    "teamNeutral": "กลาง",
+    "balanceLabel": "บาลานซ์ {N}",
+    "tocOpenAria": "เปิดสารบัญ",
+    "tocCloseAria": "ปิดสารบัญ",
+    "langToggleAria": "เปลี่ยนภาษา"
   }
 }

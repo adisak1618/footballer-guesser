@@ -283,3 +283,66 @@ US-017 | 2026-05-12T19:00:00Z | apps/warewolf/components/{RoleDetailModal,AddRol
     diffing `current` vs `next` and toggling per-id — keeps the store
     contract minimal and the chip strip pure.
 ---
+
+## 2026-05-12T19:45:00Z — US-022 — `/[lang]/rules/page.tsx` (rules transcript)
+- Implemented:
+  - `apps/warewolf/lib/rules-content.ts` — typed chapter content for I-VI
+    (paragraphs / quotes / inline role-detail markers for Seer + Werewolf)
+    with bilingual EN + TH prose, paraphrased + community-toned from
+    `apps/warewolf/source/game-rule/getting-started.md`.
+  - `apps/warewolf/app/[lang]/rules/page.tsx` — single client page (mirrors
+    setup/page.tsx pattern). Sticky topbar with back-to-home, scrollspy-driven
+    chapter indicator, lang toggle. Collapsible `<nav data-testid="rules-toc">`
+    with `aria-expanded` toggle button; default open=true, collapsed on
+    `(max-width: 640px)` via post-mount `matchMedia` check. Chapters I-VI
+    rendered from `RULES_CHAPTERS`, each with `❦ · · · ❦` divider, dropcap on
+    EN openings, left-border blood-red quote callouts. Chapter VII (Role
+    Compendium) is a tabbed view (Wolves/Village/Neutral) that groups
+    `@social-hub/content` ROLES by team and renders each via the shared
+    `<RoleDetailBlock>` with `<CardArt size="sm">`. Sticky bottom CTA:
+    secondary Home + primary Find a Setup → `/${lang}/setup`.
+  - Scrollspy: `IntersectionObserver` keyed on `#ch-1`..`#ch-7` with
+    `rootMargin: "-80px 0px -60% 0px"` so the topmost section currently
+    intersecting the viewport (below the sticky topbar) wins.
+- Messages updated: added `chapterTag`, `homeCta`, `compendiumTitle`,
+  `compendiumTab{Wolves,Village,Neutral}`, `team{Wolf,Village,Neutral}`,
+  `balanceLabel`, `tocOpenAria`, `tocCloseAria`, `langToggleAria` in
+  both en.json + th.json under the `Rules` namespace.
+- Quality:
+  - `bunx tsc --noEmit` ✓
+  - `bun run lint` ✓ (warewolf lint == tsc; insider warnings pre-existing)
+  - `bunx vitest run` ✓ 170/170 (no regressions)
+  - `bunx turbo run build --filter=@social-hub/warewolf` ✓ `/en/rules` +
+    `/th/rules` prerendered as SSG via the `[lang]` `generateStaticParams`
+    in the layout.
+  - Browser verification: prod server on :3010, both routes 200; mobile
+    EN + TH + desktop EN screenshots written to
+    `.ralph/screenshots/US-022-{desktop,mobile}-{en,th}.png`. Visible:
+    topbar with "CHAPTER I · SETTING UP" indicator, "How to Play" title
+    with grimoire overline, expanded TOC listing I-VII (chapter I marked
+    current blood-red), chapter II dropcap on "O" + quote callout, Seer
+    role-detail block with card art + Village/+7 balance/Info short
+    badges, chapter VII role compendium with Wolves tab selected and
+    werewolf+wolf-cub+alpha-wolf+minion+sorceress entries below.
+- Tests: per AC the rules.spec.ts E2E coverage lives in US-024 — no unit
+  tests added here.
+- **Learnings:**
+  - Rules-content stored as a single typed array of `RulesBlock` discriminated
+    unions keeps the page renderer flat (one `switch (block.kind)`).
+    Bilingual prose lives inline on each block (`{en, th}`), so adding a
+    third language later is a single field on each block + one lookup.
+  - `next-intl` `useTranslations(...)` for a namespace can be passed
+    around inside the same render tree (a function `t(key, vars)` from
+    a parent works in nested children). Cleaner than calling
+    `useTranslations("Rules")` from every leaf.
+  - The dropcap effect (`float: left` first-letter at 38px blood-red)
+    only fires on EN — Thai script has no comparable initial-letter
+    convention and a giant Thai consonant looks broken. Leaf renderer
+    branches on `lang === "en"` before slicing the first character.
+  - `Role.i18n[lang].short` ("Core wolf", "Info role" etc.) doubles as
+    the third badge on each role-detail block — saves inventing a
+    category-label string set just for the compendium.
+- After commit: lane F complete (US-019..US-022). Next iteration should
+  push WIP commit `feat: warewolf lane F complete (all 4 routes)` per
+  AC and trigger /qa GATE.
+---

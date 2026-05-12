@@ -51,7 +51,15 @@
     "reasonWolfEdge": "Wolves have a slight edge, but the setup is balanced.",
     "reasonTiltVillage": "Setup tilts strongly toward Village.",
     "reasonTiltWolf": "Setup tilts strongly toward Wolves.",
-    "savedToast": "Setup saved to clipboard. Share with your friends."
+    "reasonNoWolves": "Zero wolves — no game possible. Add at least one wolf.",
+    "reasonTooManyWolves": "Wolves ({W}) match or exceed Villagers ({V}). Add more villagers or remove a wolf.",
+    "reasonRoleCount": "Need {X} more role(s) to fill the room.",
+    "savedToast": "Setup saved to clipboard. Share with your friends.",
+    "importedInvalid": "Imported setup invalid — starting with a default room.",
+    "tapCardHint": "Tap a card to see role details and edit.",
+    "backToSetups": "Setups",
+    "emptySlotsLabel": "needed",
+    "soulsLabel": "souls"
   },
   "Blockers": {
     "wolves-gte-village": "Too many wolves: {W} wolves vs {V} village",
@@ -77,12 +85,19 @@
     "overline": "A grimoire of rules",
     "toc": "Table of Contents",
     "chapter": "CHAPTER",
+    "chapterTag": "Chapter {roman} · {title}",
     "backToSetup": "Find a Setup",
-    "chapter1": "Setting Up",
-    "chapter2": "The First Night",
-    "chapter3": "The First Day",
-    "chapter4": "Every Night",
-    "chapter5": "Every Day & Voting",
-    "chapter6": "Ending the Game"
+    "homeCta": "Home",
+    "compendiumTitle": "Role Compendium",
+    "compendiumTabWolves": "Wolves",
+    "compendiumTabVillage": "Village",
+    "compendiumTabNeutral": "Neutral",
+    "teamWolf": "Wolf",
+    "teamVillage": "Village",
+    "teamNeutral": "Neutral",
+    "balanceLabel": "{N} balance",
+    "tocOpenAria": "Expand table of contents",
+    "tocCloseAria": "Collapse table of contents",
+    "langToggleAria": "Switch language"
   }
 }
