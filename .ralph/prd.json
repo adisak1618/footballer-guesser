@@ -191,7 +191,7 @@
         "After this and US-009 pass, push a WIP commit `feat: warewolf lane B complete (scaffold + design system)`."
       ],
       "priority": 10,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
