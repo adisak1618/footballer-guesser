@@ -138,6 +138,22 @@
   `{W, V}` / `{actual, expected}` to `t(...)` — never hand-format these
   strings with template literals.
 
+- US-023 balance audit (`apps/warewolf/lib/solver-audit.test.ts`) cartesian-loops
+  every visible (archetype × playerCount × variationIdx) cell and asserts
+  |balance| ≤ 5. Solver throws are skipped (they render as <SolverErrorRow>),
+  but |balance| > 5 is an immediate failure that names the offending tuple.
+  Pairs with a perf-gate test asserting `computeSetupList(20) < 50ms`. If a cell
+  fails post-data-change, FIX THE SEED OR WOLF POOL — never the threshold (per
+  story US-023 Technical Notes).
+- `social-bluff` variation 1 originally shipped from the prototype with village
+  `[mason, mason, spellcaster, old-hag]` (sum 6). At playerCount=10 the solver
+  needs target wolf sum -9 but the wolf pool's minimum 3-wolf sum is -15
+  (werewolf+werewolf+sorceress or werewolf+minion+sorceress), so the cell
+  rendered |balance|=6 and tripped the US-023 audit. Swapped `spellcaster` (+1)
+  → `prince` (+3) lifting village sum to 8; entire 5–13 player span now lands
+  |balance| ≤ 5. Vibe text updated to mention prince. See in-source comment
+  block above the variation 1 entry for context.
+
 ## Story Log
 
 US-001 | 2026-05-12T17:47:00Z | Frozen role catalog (25 roles) + types in packages/content/src/werewolf-roles.ts; 11 tests pass; re-exported from index.ts.
@@ -345,4 +361,47 @@ US-017 | 2026-05-12T19:00:00Z | apps/warewolf/components/{RoleDetailModal,AddRol
 - After commit: lane F complete (US-019..US-022). Next iteration should
   push WIP commit `feat: warewolf lane F complete (all 4 routes)` per
   AC and trigger /qa GATE.
+---
+US-023 | 2026-05-12T19:47:00Z | apps/warewolf/lib/solver-audit.test.ts — balance audit cartesian-loops every (archetype × playerCount × variationIdx) cell (~300 visible cells across the 8-archetype catalog) and asserts |balance| ≤ 5. Solver throws skipped (those become <SolverErrorRow>); |balance| > 5 fails loudly naming the tuple. Sanity floor of cellsChecked > 200 guards against silent generator regressions. Separate perf-gate test confirms computeSetupList(20) < 50ms (warmed run). The audit caught one real regression on first run: `(social-bluff, players=10, variation=1)` produced balance=-6 because village sum 6 + 3 fillers = target wolf sum -9, but the social-bluff wolf pool's minimum 3-wolf sum is -15. Fixed in village-seeds.ts by swapping spellcaster (+1) → prince (+3) in variation 1, lifting village sum to 8; vibe text + in-source comment updated. Full vitest run: 538 passed | 6 skipped. Typecheck + workspace lint green. Audit completes in <10ms; well under the 5s cap.
+---
+
+## 2026-05-12T19:55:00Z — US-024
+- Added 5 Playwright e2e specs covering landing flow, customize loop, share
+  roundtrip, invalid URL handling, and locale toggle. Clipboard-fallback test
+  is folded into customize-loop.spec.ts; card 404 fallback is covered at the
+  component level in components/CardArt.test.tsx (US-013 lane), which the
+  acceptance criteria allow ("Card 404 test (component-level OR E2E)").
+- Files:
+  - NEW apps/warewolf/e2e/landing.spec.ts
+  - NEW apps/warewolf/e2e/customize-loop.spec.ts
+  - NEW apps/warewolf/e2e/share-roundtrip.spec.ts
+  - NEW apps/warewolf/e2e/invalid-url.spec.ts
+  - NEW apps/warewolf/e2e/locale-toggle.spec.ts
+  - MOD apps/warewolf/app/[lang]/setup/customize/page.tsx — locale-toggle Link
+    now overrides `lang` in the preserved searchParams (was inheriting the old
+    locale and triggering the locale-precedence middleware to bounce the user
+    right back). New `toggleParamsFor(searchParams, otherLang)` helper.
+- **Learnings:**
+  - The customize page renders <RoleDetailModal> twice — once in the desktop
+    side-panel (`.customize-detail-panel`, hidden < 1024px) and once in the
+    mobile overlay. At 414×896 viewport (Playwright default for warewolf),
+    `page.getByTestId('role-detail-replace').first()` grabs the hidden desktop
+    copy and times out. ALWAYS scope to `page.getByTestId('customize-detail-
+    overlay').getByTestId('role-detail-replace')` in e2e specs.
+  - `ShareUrlSchema.p` uses `.catch(8)` not a true clamp. The existing
+    `lib/share-url.test.ts:18` locks `p: '25'` → 8 as a contract, so US-024's
+    invalid-url test asserts the same: p=99 → 8, not 20. The story criterion's
+    "p=20" wording is a story-vs-impl discrepancy; the contract wins.
+  - The playable-banner reason surfaces the FIRST blocker, in validator
+    priority order (no-wolves > wolves-gte-village > role-count-mismatch >
+    unknown-role). p=99 + foo,bar,baz produces both no-wolves AND
+    role-count-mismatch, but the banner shows "Zero wolves — no game possible.
+    Add at least one wolf." The role-count-mismatch is still detectable
+    independently (grid header "3 / 8" and `currentSetup.length < playerCount`).
+  - The locale-toggle href in customize MUST override `lang` in the inherited
+    searchParams. Without that, `<Link href="/th/setup/customize?...&lang=en">`
+    causes the locale-precedence middleware (Eng Review decision #5) to
+    301-redirect right back to /en. The setup-list page sidesteps this by not
+    preserving searchParams at all.
+- **New Codebase Pattern (added to top):** mobile/desktop dual-modal scoping.
 ---

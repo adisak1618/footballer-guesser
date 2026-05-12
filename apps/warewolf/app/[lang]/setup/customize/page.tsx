@@ -275,7 +275,7 @@ function CustomizePageInner() {
           {t("title")}
         </div>
         <Link
-          href={`/${otherLang}/setup/customize?${searchParams.toString()}`}
+          href={`/${otherLang}/setup/customize?${toggleParamsFor(searchParams, otherLang)}`}
           data-testid="customize-lang-toggle"
           style={{
             fontStyle: "italic",
@@ -749,6 +749,22 @@ function computeReason(
   if (result.balance > 0) return t("reasonVillageEdge")
   if (result.balance < 0) return t("reasonWolfEdge")
   return t("reasonBalanced")
+}
+
+/**
+ * Build the share-URL query string for the locale-toggle link. Preserves
+ * setup state (p, roles) but overrides `lang` to match the new segment.
+ * Without this, the inherited `?lang=` would disagree with the new segment
+ * and trigger the locale-precedence middleware to 301-redirect back to the
+ * original locale (per Eng Review decision #5).
+ */
+function toggleParamsFor(
+  searchParams: URLSearchParams,
+  targetLang: "en" | "th",
+): string {
+  const next = new URLSearchParams(searchParams)
+  next.set("lang", targetLang)
+  return next.toString()
 }
 
 function copyViaTextarea(text: string) {

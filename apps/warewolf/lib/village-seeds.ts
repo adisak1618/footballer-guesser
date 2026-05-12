@@ -153,10 +153,17 @@ export const VILLAGE_SEEDS: Record<ArchetypeId, [VillageSeed, VillageSeed, Villa
       },
     },
     {
-      village: ["mason", "mason", "spellcaster", "old-hag"],
+      // Note: prototype shipped this as ["mason","mason","spellcaster","old-hag"]
+      // (village sum 6) which made `(social-bluff, players=10, variation=1)`
+      // unachievable — wolf pool minimum 3-wolf sum is -15 vs target -9, so the
+      // cell rendered |balance|=6 and tripped the US-023 audit. Swapping
+      // `spellcaster` (+1) → `prince` (+3) lifts the village sum to 8 so the
+      // solver can reach |balance| <= 5 across the whole 5–13 player span while
+      // preserving the "no info, deduction by talk alone" social-bluff identity.
+      village: ["mason", "mason", "prince", "old-hag"],
       vibe: {
-        en: "Old Hag mutes the loud, Masons whisper.",
-        th: "แม่มดแก่ทำให้คนพูดเก่งเงียบ สมาคมลับกระซิบกัน",
+        en: "Old Hag mutes the loud, Prince outvotes them all.",
+        th: "แม่มดแก่ทำคนพูดเก่งเงียบ เจ้าชายชนะโหวต",
       },
     },
     {
