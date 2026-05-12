@@ -150,7 +150,7 @@
         "After this passes, push a WIP commit `feat: warewolf lane A complete (US-001..US-008)`."
       ],
       "priority": 8,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
