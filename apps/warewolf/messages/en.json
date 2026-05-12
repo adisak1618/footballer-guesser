@@ -1,0 +1,77 @@
+{
+  "Landing": {
+    "title": "Werewolf Setup Tome",
+    "overline": "A balanced room awaits",
+    "pitchPart1": "Tell us how many",
+    "pitchPart2": "souls. We pick cards that make the night fair, with reasoning you can trust.",
+    "ctaFind": "Find a Balanced Setup",
+    "ctaHow": "How to Play",
+    "ctaBackHome": "Home",
+    "labelPlayers": "Players",
+    "labelSouls": "souls"
+  },
+  "SetupList": {
+    "pickerSubhead": "We'll suggest balanced rooms for {N} players. Pick an archetype to start.",
+    "forSouls": "for {N} souls",
+    "pathsCount": "{N} BALANCED PATHS",
+    "reRoll": "Re-roll",
+    "openSelected": "Open Selected",
+    "useThis": "Use This Path",
+    "ctaChoose": "Choose ▸",
+    "ctaSelected": "Selected",
+    "wolves": "Wolves",
+    "village": "Village"
+  },
+  "Customize": {
+    "title": "Customize",
+    "saveSetup": "Save",
+    "reset": "Reset",
+    "addRole": "Add Role",
+    "chooseCardToAdd": "Choose a card to add",
+    "swapFor": "Swap {N} for…",
+    "replace": "Replace",
+    "delete": "Delete",
+    "emptySlot": "Pick a role",
+    "emptySlotsSection": "Empty Slots",
+    "playable": "Playable",
+    "notPlayable": "Not Playable",
+    "reasonBalanced": "Setup is balanced — both sides have a fair chance.",
+    "reasonVillageEdge": "Village has a slight edge, but the setup is balanced.",
+    "reasonWolfEdge": "Wolves have a slight edge, but the setup is balanced.",
+    "reasonTiltVillage": "Setup tilts strongly toward Village.",
+    "reasonTiltWolf": "Setup tilts strongly toward Wolves.",
+    "savedToast": "Setup saved to clipboard. Share with your friends."
+  },
+  "Blockers": {
+    "wolves-gte-village": "Too many wolves: {W} wolves vs {V} village",
+    "role-count-mismatch": "{actual} roles selected for {expected} players",
+    "no-wolves": "No wolves — there is no game",
+    "unknown-role": "Unknown role detected"
+  },
+  "Tabs": {
+    "wolves": "Wolves",
+    "info": "Info",
+    "power": "Power",
+    "vanilla": "Vanilla",
+    "social": "Social",
+    "neutral": "Neutral"
+  },
+  "Teams": {
+    "village": "Village",
+    "wolf": "Wolves",
+    "neutral": "Neutral"
+  },
+  "Rules": {
+    "title": "How to Play",
+    "overline": "A grimoire of rules",
+    "toc": "Table of Contents",
+    "chapter": "CHAPTER",
+    "backToSetup": "Find a Setup",
+    "chapter1": "Setting Up",
+    "chapter2": "The First Night",
+    "chapter3": "The First Day",
+    "chapter4": "Every Night",
+    "chapter5": "Every Day & Voting",
+    "chapter6": "Ending the Game"
+  }
+}

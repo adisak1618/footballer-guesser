@@ -1,0 +1,77 @@
+{
+  "Landing": {
+    "title": "หนังสือสร้างห้องหมาป่า",
+    "overline": "ห้องที่บาลานซ์รอคุณอยู่",
+    "pitchPart1": "บอกจำนวนผู้เล่น",
+    "pitchPart2": "คน เราจะเลือกไพ่ที่ทำให้เกมยุติธรรม พร้อมเหตุผล",
+    "ctaFind": "หาเซ็ตอัพที่บาลานซ์",
+    "ctaHow": "วิธีเล่น",
+    "ctaBackHome": "หน้าหลัก",
+    "labelPlayers": "ผู้เล่น",
+    "labelSouls": "คน"
+  },
+  "SetupList": {
+    "pickerSubhead": "เราจะแนะนำห้องที่บาลานซ์สำหรับ {N} คน เลือกแนวเกมเพื่อเริ่ม",
+    "forSouls": "สำหรับผู้เล่น {N} คน",
+    "pathsCount": "{N} เส้นทางที่บาลานซ์",
+    "reRoll": "สุ่มใหม่",
+    "openSelected": "เปิดที่เลือก",
+    "useThis": "ใช้เส้นทางนี้",
+    "ctaChoose": "เลือก ▸",
+    "ctaSelected": "เลือกแล้ว",
+    "wolves": "หมาป่า",
+    "village": "ชาวบ้าน"
+  },
+  "Customize": {
+    "title": "ปรับแต่ง",
+    "saveSetup": "บันทึก",
+    "reset": "รีเซ็ต",
+    "addRole": "เพิ่มไพ่",
+    "chooseCardToAdd": "เลือกไพ่ที่จะเพิ่ม",
+    "swapFor": "เปลี่ยน {N} เป็น…",
+    "replace": "เปลี่ยน",
+    "delete": "ลบ",
+    "emptySlot": "เลือกบทบาท",
+    "emptySlotsSection": "ที่ว่าง",
+    "playable": "เล่นได้",
+    "notPlayable": "เล่นไม่ได้",
+    "reasonBalanced": "เซ็ตอัพบาลานซ์ ทั้งสองฝ่ายมีโอกาสเท่ากัน",
+    "reasonVillageEdge": "ชาวบ้านได้เปรียบเล็กน้อย แต่ยังบาลานซ์",
+    "reasonWolfEdge": "หมาป่าได้เปรียบเล็กน้อย แต่ยังบาลานซ์",
+    "reasonTiltVillage": "เซ็ตอัพเอียงไปทางชาวบ้านมาก",
+    "reasonTiltWolf": "เซ็ตอัพเอียงไปทางหมาป่ามาก",
+    "savedToast": "บันทึกลิงก์แล้ว แชร์กับเพื่อนได้เลย"
+  },
+  "Blockers": {
+    "wolves-gte-village": "หมาป่าเยอะเกิน: หมาป่า {W} ตน vs ชาวบ้าน {V} คน",
+    "role-count-mismatch": "เลือกบทบาท {actual} ชิ้นสำหรับผู้เล่น {expected} คน",
+    "no-wolves": "ไม่มีหมาป่า — ไม่มีเกม",
+    "unknown-role": "พบบทบาทที่ไม่รู้จัก"
+  },
+  "Tabs": {
+    "wolves": "หมาป่า",
+    "info": "ข้อมูล",
+    "power": "พลัง",
+    "vanilla": "พื้น",
+    "social": "สังคม",
+    "neutral": "กลาง"
+  },
+  "Teams": {
+    "village": "ชาวบ้าน",
+    "wolf": "หมาป่า",
+    "neutral": "กลาง"
+  },
+  "Rules": {
+    "title": "วิธีเล่น",
+    "overline": "หนังสือเวทกฎ",
+    "toc": "สารบัญ",
+    "chapter": "บทที่",
+    "backToSetup": "หาเซ็ตอัพ",
+    "chapter1": "ตั้งค่า",
+    "chapter2": "คืนแรก",
+    "chapter3": "วันแรก",
+    "chapter4": "ทุกคืน",
+    "chapter5": "ทุกวันและการโหวต",
+    "chapter6": "จบเกม"
+  }
+}
