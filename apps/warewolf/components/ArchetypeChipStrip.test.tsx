@@ -48,8 +48,8 @@ describe("<ArchetypeChipStrip> visibility per playerCount", () => {
   })
 })
 
-describe("<ArchetypeChipStrip> selection", () => {
-  it("tapping an inactive chip fires onChange with that id added to the set", () => {
+describe("<ArchetypeChipStrip> selection (single-select)", () => {
+  it("tapping an inactive chip fires onChange with ONLY that id selected", () => {
     const { onChange } = setup(8, new Set())
     fireEvent.click(screen.getByTestId("chip-name-wolf-chaos"))
     expect(onChange).toHaveBeenCalledTimes(1)
@@ -58,15 +58,22 @@ describe("<ArchetypeChipStrip> selection", () => {
     expect(next.size).toBe(1)
   })
 
-  it("tapping an active chip fires onChange with that id removed (toggle off)", () => {
-    const initial = new Set<ArchetypeId>(["wolf-chaos", "power-roles"])
-    const { onChange } = setup(8, initial)
+  it("tapping a different chip replaces the active selection (single-select)", () => {
+    const { onChange } = setup(8, new Set<ArchetypeId>(["power-roles"]))
     fireEvent.click(screen.getByTestId("chip-name-wolf-chaos"))
     expect(onChange).toHaveBeenCalledTimes(1)
     const next = onChange.mock.calls[0][0] as Set<ArchetypeId>
-    expect(next.has("wolf-chaos")).toBe(false)
-    expect(next.has("power-roles")).toBe(true)
+    expect(next.has("wolf-chaos")).toBe(true)
+    expect(next.has("power-roles")).toBe(false)
     expect(next.size).toBe(1)
+  })
+
+  it("tapping the active chip clears the filter back to empty (toggle off)", () => {
+    const { onChange } = setup(8, new Set<ArchetypeId>(["wolf-chaos"]))
+    fireEvent.click(screen.getByTestId("chip-name-wolf-chaos"))
+    expect(onChange).toHaveBeenCalledTimes(1)
+    const next = onChange.mock.calls[0][0] as Set<ArchetypeId>
+    expect(next.size).toBe(0)
   })
 
   it("renders active chip with aria-pressed=true and inactive with aria-pressed=false", () => {

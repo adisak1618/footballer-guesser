@@ -93,10 +93,10 @@ describe("<RoleCardThumb> name overlay", () => {
 })
 
 describe("<RoleCardThumb> sizing", () => {
-  it("defaults to 48px width", () => {
+  it("defaults to 96px width (2× post PR #34 review)", () => {
     render(<RoleCardThumb roleId="seer" />)
     const thumb = screen.getByTestId("role-card-thumb-seer") as HTMLElement
-    expect(thumb.style.width).toBe("48px")
+    expect(thumb.style.width).toBe("96px")
   })
 
   it("respects width prop", () => {

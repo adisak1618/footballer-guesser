@@ -24,7 +24,7 @@ export interface RoleCardThumbProps {
   lang?: "en" | "th"
   /** Render the bottom-fade name overlay inside the card. Defaults to true. */
   showNameOverlay?: boolean
-  /** Width in px. Defaults to 48 (mobile baseline). */
+  /** Width in px. Defaults to 96 (2× the original 48px after PR #34 review). */
   width?: number
 }
 
@@ -33,7 +33,7 @@ export function RoleCardThumb({
   count = 1,
   lang = "en",
   showNameOverlay = true,
-  width = 48,
+  width = 96,
 }: RoleCardThumbProps) {
   const role = ROLES[roleId]
   if (!role) return null
@@ -73,12 +73,12 @@ export function RoleCardThumb({
             fontFamily: "var(--font-serif)",
             fontStyle: "italic",
             fontWeight: 600,
-            fontSize: 8,
+            fontSize: 13,
             lineHeight: 1.1,
             letterSpacing: ".04em",
             textTransform: "uppercase",
             textAlign: "center",
-            padding: "6px 1px 2px",
+            padding: "10px 4px 5px",
             whiteSpace: "nowrap",
             overflow: "hidden",
             textOverflow: "ellipsis",
@@ -93,18 +93,18 @@ export function RoleCardThumb({
           aria-hidden="true"
           style={{
             position: "absolute",
-            top: -5,
-            right: -5,
-            width: 18,
-            height: 18,
+            top: -7,
+            right: -7,
+            width: 24,
+            height: 24,
             background: "var(--color-blood)",
             color: "var(--color-cream)",
-            border: "1px solid var(--color-ink)",
+            border: "1.5px solid var(--color-ink)",
             borderRadius: "50%",
             fontFamily: "var(--font-serif)",
             fontStyle: "italic",
             fontWeight: 700,
-            fontSize: 11,
+            fontSize: 14,
             lineHeight: 1,
             display: "inline-flex",
             alignItems: "center",
