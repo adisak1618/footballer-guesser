@@ -345,10 +345,9 @@ function CustomizePageInner() {
 
       {/* Body: card grid (LEFT on desktop ≥1024px, full-width on mobile) +
           detail panel (RIGHT on desktop, overlay on mobile).
-          Grid-template-columns lives in the <style> block below so the media
-          query can switch it; inline style cannot host media queries. */}
-      <div
-        data-testid="customize-body"
+          Grid-template-columns lives in globals.css `.customize-body` so the
+          media query can switch it; inline style cannot host media queries. */}
+      <Container
         className="customize-body"
         style={{
           flex: 1,
@@ -356,6 +355,7 @@ function CustomizePageInner() {
           display: "grid",
           gap: "var(--s-4)",
         }}
+        testId="customize-body"
       >
         {/* Card grid column */}
         <section
@@ -480,7 +480,7 @@ function CustomizePageInner() {
             </div>
           )}
         </aside>
-      </div>
+      </Container>
 
       {/* Sticky bottom Save CTA */}
       <footer
@@ -614,25 +614,6 @@ function CustomizePageInner() {
         </div>
       ) : null}
 
-      {/* Desktop 2-column layout per Pass 6. Inline <style> here so we can keep
-          the page self-contained; tokens come from globals.css. The same
-          breakpoint hides the mobile overlay so the right-column panel is
-          the single source of detail render. */}
-      <style>{`
-        .customize-body { grid-template-columns: 1fr; }
-        @media (min-width: 1024px) {
-          .customize-body {
-            grid-template-columns: 1fr minmax(320px, 420px);
-            max-width: 1100px;
-            margin: 0 auto;
-            width: 100%;
-          }
-          .customize-detail-overlay { display: none !important; }
-        }
-        @media (max-width: 1023px) {
-          .customize-detail-panel { display: none; }
-        }
-      `}</style>
     </main>
   )
 }

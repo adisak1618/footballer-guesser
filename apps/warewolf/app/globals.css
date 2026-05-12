@@ -150,3 +150,39 @@
     border: 0;
   }
 }
+
+/*
+ * Customize page 2-column layout (Pass 6).
+ *
+ * Mobile: single column, role detail opens as a bottom-sheet modal.
+ * Desktop (>=1024px): left card grid + right sticky detail panel.
+ * Both columns share the same selection state from useWarewolfStore.
+ *
+ * Hoisted from an inline <style> inside customize/page.tsx so the rules
+ * load reliably without any React-style hoisting timing concerns
+ * (ISSUE-004 — design doc Eng Review Decision Pass 6).
+ */
+.customize-body {
+  grid-template-columns: 1fr;
+}
+
+.customize-detail-panel {
+  display: none;
+}
+
+@media (min-width: 1024px) {
+  .customize-body {
+    grid-template-columns: 1fr minmax(320px, 420px);
+  }
+
+  .customize-detail-panel {
+    display: block;
+    position: sticky;
+    top: 200px;
+    align-self: start;
+  }
+
+  .customize-detail-overlay {
+    display: none !important;
+  }
+}
