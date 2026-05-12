@@ -302,7 +302,7 @@
         "Verify in browser using dev-browser skill."
       ],
       "priority": 15,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
@@ -323,8 +323,8 @@
         "Verify in browser using dev-browser skill."
       ],
       "priority": 16,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "apps/warewolf/components/SetupCard.tsx — full-card <button>, archetype seal+name+roman, vibe (lang-only), signed balance + BALANCED/VILLAGE TILT/WOLF TILT verdict, grouped role chips with ×N badge, WW:VV:NN team summary (neutrals only when >0), Customize▸ affordance. Tap target ≥44px; transform+opacity press visuals zeroed by global prefers-reduced-motion. lang defaults to en for testability. 14 tests pass; full warewolf suite 144/144; tsc + workspace lint green. Browser verification deferred to US-020 (the /setup page) per CLAUDE.md fallback; jsdom tests are the contract."
     },
     {
       "id": "US-017",
@@ -350,7 +350,7 @@
         "Verify in browser using dev-browser skill (mobile + desktop viewports)."
       ],
       "priority": 17,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
