@@ -339,18 +339,117 @@
 }
 
 @media (min-width: 720px) {
-  /* Desktop breathing room per Open Question #4 in story Tech Notes. */
-  .page {
-    max-width: 560px;
-    margin: 0 auto;
-    box-shadow: 0 0 0 1px rgba(26, 22, 18, 0.08);
-  }
-
+  /* Tablet: keep mobile-flow but scale the headline + cards. */
   .title {
-    font-size: 52px;
+    font-size: 64px;
   }
 
   .cardFanCard {
-    width: 96px;
+    width: 104px;
+  }
+
+  .ctaRow {
+    flex-direction: row;
+    justify-content: center;
+    gap: 14px;
+  }
+
+  .cta {
+    min-width: 220px;
+  }
+}
+
+@media (min-width: 1024px) {
+  /*
+   * Desktop hero. Mobile-first stays default; on wide viewports the page
+   * uses the full width with breathing room via inner content max-width.
+   * Replaces the previous max-width:560px cap that locked desktop to a
+   * narrow mobile-shaped column (ISSUE-001).
+   */
+  .topbar {
+    max-width: 1100px;
+    width: 100%;
+    margin-inline: auto;
+    padding: 20px 28px;
+  }
+
+  .hero {
+    border: none;
+    background: var(--color-cream);
+    background-image: radial-gradient(rgba(120, 90, 40, 0.05) 1px, transparent 1px);
+    background-size: 3px 3px;
+    border-top: 1px solid var(--color-ink);
+    border-bottom: 1px solid var(--color-ink);
+    padding-block: 32px 16px;
+  }
+
+  .heroHead {
+    max-width: 880px;
+    margin-inline: auto;
+    padding: 24px 28px 12px;
+  }
+
+  .title {
+    font-size: clamp(72px, 9vw, 132px);
+    line-height: 0.95;
+  }
+
+  .titleSub,
+  .titleSubTh {
+    font-size: 22px;
+    margin-top: 14px;
+  }
+
+  .divider {
+    max-width: 720px;
+    margin-inline: auto;
+    padding: 20px 28px 0;
+    font-size: 16px;
+  }
+
+  .heroCards {
+    padding: 36px 0 24px;
+    min-height: 320px;
+  }
+
+  .cardFanCard {
+    width: 140px;
+    box-shadow:
+      0 14px 28px rgba(26, 22, 18, 0.28),
+      inset 0 0 0 1px rgba(245, 236, 214, 0.4);
+  }
+
+  .cardFanCard:nth-child(1) {
+    transform: translateX(110px) rotate(-26deg);
+  }
+
+  .cardFanCard:nth-child(2) {
+    transform: translateX(55px) rotate(-13deg);
+    z-index: 2;
+  }
+
+  .cardFanCard:nth-child(3) {
+    transform: translateY(-22px);
+    z-index: 3;
+  }
+
+  .cardFanCard:nth-child(4) {
+    transform: translateX(-55px) rotate(13deg);
+    z-index: 2;
+  }
+
+  .cardFanCard:nth-child(5) {
+    transform: translateX(-110px) rotate(26deg);
+  }
+
+  .below {
+    max-width: 760px;
+    margin-inline: auto;
+    padding: 28px 28px 40px;
+  }
+
+  .pitch,
+  .pitchTh {
+    font-size: 17px;
   }
 }
