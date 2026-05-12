@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test"
+import AxeBuilder from "@axe-core/playwright"
 
 /**
  * US-024 — Share roundtrip:
@@ -66,4 +67,17 @@ test("classic-detective var I @ 8p → swap seer → save → reload restores", 
   await expect(
     page.locator('[data-testid="customize-card"][data-role-id="seer"]'),
   ).toHaveCount(0)
+})
+
+// US-026 — axe scan on the setup list page.
+test("axe-core: setup list has zero serious/critical violations", async ({ page }) => {
+  await page.goto("/en/setup")
+  await expect(page.getByTestId("setup-page-title")).toBeVisible()
+  const results = await new AxeBuilder({ page })
+    .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
+    .analyze()
+  const blockers = results.violations.filter(
+    (v) => v.impact === "serious" || v.impact === "critical",
+  )
+  expect(blockers, JSON.stringify(blockers, null, 2)).toEqual([])
 })

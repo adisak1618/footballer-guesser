@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "@playwright/test"
+import AxeBuilder from "@axe-core/playwright"
 
 /**
  * US-024 — Customize loop:
@@ -113,5 +114,21 @@ test.describe("US-024 — Customize loop", () => {
     const toast = page.getByTestId("customize-save-toast")
     await expect(toast).toBeVisible()
     await expect(toast).toHaveText("Link copied (fallback)")
+  })
+
+  // US-026 — axe scan after the customize flow has performed real swaps and
+  // the playable banner is rendered. Exercises the dynamic UI state.
+  test("axe-core: customize page (after a swap) has zero serious/critical violations", async ({
+    page,
+  }) => {
+    await openCustomize(page, VALID_8P)
+    await swap(page, "villager", "seer", "info")
+    const results = await new AxeBuilder({ page })
+      .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
+      .analyze()
+    const blockers = results.violations.filter(
+      (v) => v.impact === "serious" || v.impact === "critical",
+    )
+    expect(blockers, JSON.stringify(blockers, null, 2)).toEqual([])
   })
 })

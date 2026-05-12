@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test"
+import AxeBuilder from "@axe-core/playwright"
 
 /**
  * US-024 — Locale toggle:
@@ -46,4 +47,20 @@ test("`/en/setup?lang=th` 301-redirects to `/th/setup` (segment wins)", async ({
   // Location is path-relative; assert path + that ?lang= is stripped.
   expect(loc).toMatch(/\/th\/setup(\?|$)/)
   expect(loc).not.toMatch(/lang=/)
+})
+
+// US-026 — axe scan on the Thai customize page. The dual-locale rendering is
+// the highest-risk place for lang attribute / direction issues.
+test("axe-core: /th/setup/customize has zero serious/critical violations", async ({
+  page,
+}) => {
+  await page.goto(`/th/setup/customize?${VALID_8P.replace("lang=en", "lang=th")}`)
+  await expect(page.getByTestId("customize-card").first()).toBeVisible()
+  const results = await new AxeBuilder({ page })
+    .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
+    .analyze()
+  const blockers = results.violations.filter(
+    (v) => v.impact === "serious" || v.impact === "critical",
+  )
+  expect(blockers, JSON.stringify(blockers, null, 2)).toEqual([])
 })

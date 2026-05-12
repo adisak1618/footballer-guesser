@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test"
+import AxeBuilder from "@axe-core/playwright"
 
 /**
  * US-024 — Invalid URL handling:
@@ -53,4 +54,21 @@ test("invalid p + unknown roles → clamp toast + silent substitution + count-mi
 
   // Save is disabled while the setup is unplayable.
   await expect(page.getByTestId("customize-save-btn")).toBeDisabled()
+})
+
+// US-026 — axe scan on the customize page in its "invalid URL / blocker
+// banner visible / Save disabled" state. Important because banner + disabled
+// button colour contrast and aria semantics are easy to regress.
+test("axe-core: customize page with blocker banner has zero serious/critical violations", async ({
+  page,
+}) => {
+  await page.goto("/en/setup/customize?p=99&roles=foo,bar,baz&lang=en")
+  await expect(page.getByTestId("playable-banner-reason")).toBeVisible()
+  const results = await new AxeBuilder({ page })
+    .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
+    .analyze()
+  const blockers = results.violations.filter(
+    (v) => v.impact === "serious" || v.impact === "critical",
+  )
+  expect(blockers, JSON.stringify(blockers, null, 2)).toEqual([])
 })
