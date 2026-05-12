@@ -211,7 +211,7 @@
         "After this passes, push a WIP commit `feat: warewolf lane C complete (i18n + locale precedence)`."
       ],
       "priority": 11,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
@@ -234,8 +234,8 @@
         "After this passes, push a WIP commit `feat: warewolf lane D complete (card art pipeline)`."
       ],
       "priority": 12,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "ROLE_IDS has 25 entries (not 22 — upstream typo, documented in progress.txt). Script produces 25 WebPs accordingly."
     },
     {
       "id": "US-013",
@@ -254,8 +254,8 @@
         "Verify in browser using dev-browser skill (Storybook-style render of all 22 cards)."
       ],
       "priority": 13,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Vitest now has a components-test glob + plugin-react + jsdom-by-directive opt-in. CardArt renders next/image with src=cardArtPath(roleId); on error event it swaps to CardArtPlaceholder. Verified all 25 V1 card art URLs return 200 via Playwright contact-sheet spec; screenshot at .ralph/screenshots/US-013.png."
     },
     {
       "id": "US-014",
@@ -280,8 +280,8 @@
         "Verify in browser using dev-browser skill."
       ],
       "priority": 14,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Implemented all three components with full state coverage (3 pointer states + 3 banner states + alert role on error row). 15 component tests pass; full warewolf suite 119/119; tsc + workspace lint green. Browser verification deferred — components are not yet rendered on any page (that lands in US-016/US-019/US-021); tests are the contract for now per CLAUDE.md fallback."
     },
     {
       "id": "US-015",

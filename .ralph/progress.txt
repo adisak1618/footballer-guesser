@@ -6,6 +6,28 @@
 
 ## Codebase Patterns
 
+- `<CardArt>` is the only component that should ever render a card image —
+  callers never reach for raw `next/image` against `cardArtPath(...)`. Its
+  `onError` falls through to `<CardArtPlaceholder>` (Grimoire empty card with
+  wax-seal silhouette + role name + signed balance badge), so a 404 never
+  surfaces the browser's broken-image icon (Eng Review failure-mode #2).
+  Sizes: `sm` (60×90, setup-card thumb), `md` (84×126, customize grid),
+  `lg` (240×360, role-detail modal). Both are `"use client"` (the error
+  fallback needs state); fine to use in server components — Next collapses
+  the boundary at the component.
+- Component tests (`apps/warewolf/components/**/*.test.tsx`) opt INTO the
+  jsdom environment with a top-of-file `// @vitest-environment jsdom`
+  directive. The vitest config keeps `environment: "node"` as the default
+  so lib/* / scripts/* pure-TS tests stay fast. Deps to be aware of:
+  `@vitejs/plugin-react`, `@testing-library/react`, `@testing-library/jest-dom`,
+  `jsdom` — all already declared in apps/warewolf/package.json (mirrors the
+  pattern in apps/headball). The vitest setup file (`vitest.setup.ts`)
+  imports `@testing-library/jest-dom/vitest` so `toBeInTheDocument` etc.
+  work; node-env tests load it harmlessly.
+- When unit-testing components that wrap `next/image`, mock it to a plain
+  `<img>` via `vi.mock("next/image", ...)`. Strip the `priority` boolean
+  before spreading so React doesn't warn about non-DOM attrs.
+
 - Grimoire design tokens live in `docs/DESIGN-warewolf.md` (canonical) and are
   mirrored into `apps/warewolf/app/globals.css` (Tailwind v4 `@theme inline`).
   Token names match 1:1 between the two — when changing one, change the other
@@ -68,12 +90,37 @@
   is shared across all apps via `@tailwindcss/postcss`. When tokens change,
   update DESIGN-warewolf.md AND globals.css in lockstep — neither is
   authoritative alone; they are mutually-consistent sources for human + compiler.
-- Warewolf root layout chain: `app/layout.tsx` owns `<html lang="en"><body>`;
-  `app/[lang]/layout.tsx` is a passthrough. US-011 will fold the locale into
-  the html element. Don't add a second `<html>` in `[lang]/layout.tsx` —
-  Next.js renders only one.
+- Warewolf root layout chain (post-US-011): `app/layout.tsx` is a pure
+  passthrough (returns `children`); `app/[lang]/layout.tsx` owns
+  `<html lang={lang}><body>` with the dynamic locale and wraps children in
+  `NextIntlClientProvider`. Calls `setRequestLocale(lang)` so child server
+  components see the locale, and `generateStaticParams()` enumerates the
+  routing locales for SSG. Don't put `<html>` in both layouts — Next.js
+  renders only one.
 - Warewolf dev port is 3003 (headball=3000, hub=3001, insider=3002). Reflected
   in both `package.json` dev script and `playwright.config.ts` PORT default.
+- next-intl v4 wiring lives in three files: `i18n/routing.ts` (defineRouting
+  with locales + defaultLocale), `i18n/request.ts` (getRequestConfig loading
+  `messages/{lang}.json`), and the `next.config.ts` plugin
+  `createNextIntlPlugin('./i18n/request.ts')`. `i18n.ts` at the package root
+  is a thin re-export so the AC's "i18n.ts defines locales" sentence has a
+  literal hit. Add a new locale by appending to `routing.ts` and creating
+  the corresponding `messages/<locale>.json` — no other plumbing.
+- Locale precedence (Eng Review decision #5) is enforced by
+  `apps/warewolf/middleware.ts` BEFORE delegating to next-intl. The pure
+  rule lives in `lib/locale-precedence.ts` (URL → 'passthrough' | redirect
+  target) so it's unit-testable without booting Next. `?lang=` is treated
+  as one-time backward-compat: matches segment → passthrough (param
+  silently ignored downstream); mismatches → 301 to `/queryLang/...` with
+  lang stripped from the new query. Unknown lang values (`?lang=fr`) →
+  passthrough so next-intl can handle them via its own fallback.
+- ICU MessageFormat is the i18n interpolation contract (Eng Review
+  code-quality fix #2). Blocker codes carry their args in the message
+  string: `wolves-gte-village: 'Too many wolves: {W} wolves vs {V} village'`,
+  `role-count-mismatch: '{actual} roles selected for {expected} players'`,
+  `no-wolves: 'No wolves — there is no game'`. UI consumers pass
+  `{W, V}` / `{actual, expected}` to `t(...)` — never hand-format these
+  strings with template literals.
 
 ## Story Log
 
@@ -89,3 +136,9 @@ US-010 | 2026-05-12T18:25:00Z | docs/DESIGN-warewolf.md — canonical Grimoire d
 US-008 | 2026-05-12T18:12:30Z | apps/warewolf/lib/category-tabs.ts — TabKey union (wolves|info|power|vanilla|social|neutral); TABS readonly tuple in display order matching prototype line 1361 (wolf→wolves rename only); mapCategoryToTab(role) with locked precedence (wolves > neutral > vanilla-social subset > info > power > chaos→social > vanilla); VANILLA_SOCIAL_IDS = {mason, spellcaster, old-hag} per design doc Premise #8 plus Eng Review decision #6; rolesForTab(tab, roles?) helper defaulting to full ROLES catalog. Distribution across 25 V1 roles: wolves=5, info=4, power=8, vanilla=1 (villager), social=3 (mason/spellcaster/old-hag), neutral=4. JSDoc on mapCategoryToTab spells the full mapping table verbatim. 12 new tests in category-tabs.test.ts incl. partition invariant (no orphans, no duplicates), per-tab counts, and custom-roles arg. Total apps/warewolf vitest = 82 passing. Typecheck + workspace lint green.
 
 US-009 | 2026-05-12T18:24:00Z | Full Next.js 16 + Tailwind v4 + Playwright scaffolding for apps/warewolf/. package.json adds next@16.2.4, react@19.2.4, react-dom@19.2.4, next-intl@^4, zustand@5.0.12, plus devDeps @tailwindcss/postcss, tailwindcss@^4, @playwright/test, playwright, sharp, typescript, @types/{node,react,react-dom}; dev port 3003 (avoids headball=3000/hub=3001/insider=3002); build:cards is a US-012 placeholder. tsconfig.json now also loads the next plugin and includes next-env.d.ts + .next/types. next.config.ts is the minimal `{}` config matching hub/insider. playwright.config.ts: workers:1, PORT=3003, headless, 414×896 viewport (mirrors headball/hub). app/globals.css mirrors docs/DESIGN-warewolf.md 1:1 into Tailwind v4 `@theme inline` (parchment/ink/blood/cream/status palettes; Cormorant Garamond + Noto Serif Thai + Inter; type-scale --t-display-xl..--t-micro; spacing --s-1..--s-6; --motion-fast/med/slide; --texture-grain) plus prefers-reduced-motion override and base resets (box-sizing, html/body bg+grain, focus-visible blood-red outline, sr-only). app/layout.tsx owns `<html lang="en"><body>`; app/[lang]/layout.tsx is a passthrough stub (US-011 will replace with locale provider); app/[lang]/page.tsx returns "Warewolf placeholder" (US-019 replaces). .gitignore covers .next/, node_modules/, playwright-report/, test-results/, tsconfig.tsbuildinfo. `bun install` resolves the new workspace symlink at node_modules/@social-hub/warewolf; `bunx turbo run build --filter=@social-hub/warewolf` succeeds with route table `ƒ /[lang]` + auto /_not-found; per-package `bunx tsc --noEmit` green; workspace `bun run lint` green incl. realtime publication check (no-op for warewolf — no Supabase migrations); workspace vitest 448 passing across all packages.
+
+US-012 | 2026-05-12T18:35:00Z | apps/warewolf/scripts/build-cards.ts — Sharp JPG → WebP @ 512×768@85 pipeline. Reads apps/warewolf/source/processed/warewolf-card-cropped/<id>.jpg, writes packages/content/card-art/<id>.webp using `sharp(...).resize(512, 768, { fit: 'cover', position: 'centre' }).webp({ quality: 85 })`. Idempotency: skips when dest mtime >= src mtime. Path-resolution strategy (a) per ACs: writes WebPs to packages/content/card-art (single source of truth, importable cross-app) AND ensures apps/warewolf/public/cards is a symlink to ../../../packages/content/card-art so next/image serves them at the stable URL /cards/<id>.webp. Source-of-truth count: ROLE_IDS has 25 entries (5+4+8+4+4) — story AC's "22 WebP files" is the same upstream typo flagged in US-001; script + tests use ROLE_IDS.length, build emits 25. Public-URL helper cardArtPath(roleId): string added to packages/content/src/index.ts, returns `/cards/${roleId}.webp`. Wired bun run build:cards = `bun run scripts/build-cards.ts` in apps/warewolf/package.json. Vitest config now also includes scripts/**/*.test.ts. Tests in scripts/build-cards.test.ts cover: (1) WebP at exact 512×768 from synthetic 735×1000 JPG; (2) idempotent — second run built=0, skipped=N; (3) rebuild when src mtime is bumped past dest. All 98 warewolf tests pass; workspace-wide 464 pass (2 skipped); workspace `bun run lint` clean; `bunx turbo run build --filter=@social-hub/warewolf` succeeds.
+
+US-013 | 2026-05-12T18:42:00Z | apps/warewolf/components/CardArt.tsx — `"use client"` component exporting `<CardArt roleId size? priority?>` + `<CardArtPlaceholder roleId size?>`. CardArt renders next/image at cardArtPath(roleId) with width/height from SIZE_PX (sm 60×90, md 84×126, lg 240×360, all 2:3 to match prototype `.card{ aspect-ratio:2/3 }`) and stylewise covers its container (object-fit cover, top-anchored). useState-based error fallback swaps to <CardArtPlaceholder> on the next/image onError event (Eng Review failure-mode #2). Placeholder is a parchment card with a wax-seal silhouette (blood-dim for village, blood for wolves, ink-soft for neutral), role name in Cormorant italic 12px, and a signed-balance corner badge (badge bg keys off team color, with +N format for positive balances). Bumped apps/warewolf devDeps: @vitejs/plugin-react@^6.0.1, @testing-library/react@^16.3.2, @testing-library/jest-dom@^6.9.1, jsdom@^29.1.0 (all already hoisted via Headball). vitest.config.ts now plugs in @vitejs/plugin-react, registers `components/**/*.test.{ts,tsx}` in `include`, points `setupFiles` at the new vitest.setup.ts (jest-dom import), and adds the same `@/data/*` then `@/*` aliases Headball uses — keeps `environment: "node"` as the default so lib/* tests stay fast (component tests opt in to jsdom via `// @vitest-environment jsdom` directive). vitest.setup.ts imports `@testing-library/jest-dom/vitest`. Unit tests in components/CardArt.test.tsx (6 cases): renders <img> at cardArtPath; dispatches an 'error' event on the rendered img and asserts the placeholder swap; priority prop is forwarded; placeholder shows role name; placeholder shows signed balance with `+` for positive; wolf-team placeholder still renders the data-role="seal" element. next/image is mocked to a plain <img> in the test file (strips `priority` before spreading). Integration coverage via Playwright e2e/card-art.spec.ts (3 cases): GETs all 25 V1 card art URLs and asserts 200 + image content-type; asserts /cards/nonexistent.webp → 404; builds a /__cardsheet stub HTML via page.route fulfill, navigates, asserts 25 <img>s each with naturalWidth>0, screenshots full page to .ralph/screenshots/US-013.png (~400KB) — Storybook-style verification of every V1 role. All warewolf vitest = 104 passing (98 before + 6 new); typecheck green; workspace `bun run lint` green; full e2e suite passing (3/3 on the new spec). No new patterns surfaced beyond the two notes added to the Codebase Patterns section at the top of this log.
+
+US-014 | 2026-05-12T18:45:00Z | apps/warewolf/components/{BalanceScale,PlayableBanner,SolverErrorRow}.tsx — three "result" components for /setup/customize. <BalanceScale wolfSum villageSum balance hasBlocker> renders wolves-LEFT village-RIGHT (Pass 1 ordering) with a 42px circular pointer positioned by `50 + clamp(balance,-15,15)/15 * 45`%; pointer data-state is "balanced" (var(--color-green)) when balance∈[-2,+2] AND !hasBlocker, "tilt" (#7a4d00 amber) when outside [-2,+2] AND !hasBlocker, "blocked" (#8b1a1a blood) when hasBlocker===true; transitions left + background via var(--motion-med) (200ms; auto-zeroed inside prefers-reduced-motion); aria-live="polite" on the scale region. <PlayableBanner state reason> single-line `glyph · VERDICT · reason` layout: playable=green/✓/"PLAYABLE · เล่นได้", not-playable=red/✕/"NOT PLAYABLE · เล่นไม่ได้", warn=yellow/!/"WARNING · ระวัง" (reserved); verdict 17px italic + glyph 22px never wrap, reason ellipses; aria-live="polite". <SolverErrorRow archetypeId playerCount> parchment-red card with ⚠ glyph + "Solver can't balance this — {archetype name} @ {count}p"; role="alert" so failure announces. 15 component tests (7 BalanceScale: side-order + 3 pointer states + aria-live + pct-mapping incl. ±15 clamp + signed-balance text; 5 PlayableBanner: 3 state visuals + aria-live + separator presence; 3 SolverErrorRow: glyph+name+count, canonical sentence, role=alert). jsdom normalizes inline `background: '#7a4d00'` to `rgb(122, 77, 0)` — tests assert the rgb form. Full warewolf vitest = 119/119 (104 prior + 15 new); per-package `bunx tsc --noEmit` green; workspace `bun run lint` green (turbo cache hit on insider/headball/hub). Browser verification deferred — these components are not yet rendered on any page (lands in US-016/US-019/US-021); per CLAUDE.md fallback, jsdom unit tests are the verification contract for this story.
