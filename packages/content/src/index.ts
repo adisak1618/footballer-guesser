@@ -11,6 +11,19 @@ export {
   type Team,
 } from "./werewolf-roles"
 
+import type { RoleId } from "./werewolf-roles"
+
+/**
+ * Public URL for a role's card art, consumable by `next/image`.
+ *
+ * Card art lives at `packages/content/card-art/<roleId>.webp` (canonical
+ * source built by `apps/warewolf/scripts/build-cards.ts`) and is exposed at
+ * `/cards/<roleId>.webp` via a symlink from each app's `public/cards`.
+ */
+export function cardArtPath(roleId: RoleId): string {
+  return `/cards/${roleId}.webp`
+}
+
 export interface PackItem {
   itemId: string
   displayValue: string

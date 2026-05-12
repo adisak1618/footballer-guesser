@@ -9,7 +9,7 @@
     "lint": "tsc --noEmit",
     "test": "vitest run",
     "e2e": "playwright test",
-    "build:cards": "echo 'warewolf build:cards placeholder — replaced in US-012'"
+    "build:cards": "bun run scripts/build-cards.ts"
   },
   "dependencies": {
     "@social-hub/content": "workspace:*",
@@ -23,10 +23,14 @@
   "devDependencies": {
     "@playwright/test": "^1.59.1",
     "@tailwindcss/postcss": "^4",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@vitejs/plugin-react": "^6.0.1",
     "fast-check": "^4.8.0",
+    "jsdom": "^29.1.0",
     "playwright": "^1.59.1",
     "sharp": "^0.34.4",
     "tailwindcss": "^4",
