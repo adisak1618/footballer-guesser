@@ -4,6 +4,21 @@ import { fireEvent, render, screen } from "@testing-library/react"
 import { SetupCard } from "./SetupCard"
 import type { Setup } from "../lib/solver"
 
+// SetupCard now renders <RoleCardThumb> → <CardArt> → next/image.
+// Stub next/image so jsdom can render the cards without optimization machinery.
+vi.mock("next/image", () => ({
+  __esModule: true,
+  default: (props: Record<string, unknown>) => {
+    const { priority: _priority, alt, ...rest } = props as {
+      priority?: boolean
+      alt?: string
+    }
+    void _priority
+    // eslint-disable-next-line @next/next/no-img-element
+    return <img {...(rest as Record<string, unknown>)} alt={alt ?? ""} />
+  },
+}))
+
 function makeSetup(overrides: Partial<Setup> = {}): Setup {
   return {
     archetypeId: "classic-detective",
@@ -136,30 +151,53 @@ describe("<SetupCard> verdict prose", () => {
   })
 })
 
-describe("<SetupCard> role chips", () => {
-  it("renders one chip per consecutive role group; duplicates show ×N badge", () => {
+describe("<SetupCard> role card strip", () => {
+  it("renders one <RoleCardThumb> per consecutive role group; duplicates carry the count", () => {
     setup()
-    // 2 werewolves grouped → single chip with ×2
-    const wolfChip = screen.getByTestId("setup-card-chip-werewolf")
-    expect(wolfChip.getAttribute("data-count")).toBe("2")
-    expect(wolfChip.textContent).toContain("×2")
-    // Seer is solo → no ×N
-    const seerChip = screen.getByTestId("setup-card-chip-seer")
-    expect(seerChip.getAttribute("data-count")).toBe("1")
-    expect(seerChip.textContent).not.toMatch(/×/)
-    // 4 villagers grouped → ×4
-    const villagerChip = screen.getByTestId("setup-card-chip-villager")
-    expect(villagerChip.getAttribute("data-count")).toBe("4")
-    expect(villagerChip.textContent).toContain("×4")
+    // 2 werewolves grouped → single thumb with data-count=2 + badge "2"
+    const wolfThumb = screen.getByTestId("role-card-thumb-werewolf")
+    expect(wolfThumb.getAttribute("data-count")).toBe("2")
+    expect(
+      screen.getByTestId("role-card-thumb-badge-werewolf").textContent,
+    ).toBe("2")
+    // Seer is solo → no count badge
+    const seerThumb = screen.getByTestId("role-card-thumb-seer")
+    expect(seerThumb.getAttribute("data-count")).toBe("1")
+    expect(screen.queryByTestId("role-card-thumb-badge-seer")).toBeNull()
+    // 4 villagers grouped → badge "4"
+    expect(
+      screen.getByTestId("role-card-thumb-villager").getAttribute("data-count"),
+    ).toBe("4")
+    expect(
+      screen.getByTestId("role-card-thumb-badge-villager").textContent,
+    ).toBe("4")
   })
 
-  it("each role chip is present (one per distinct consecutive group)", () => {
+  it("renders one thumb per distinct consecutive group", () => {
     setup()
     // Roles: werewolf×2, seer, bodyguard, villager×4
-    expect(screen.queryByTestId("setup-card-chip-werewolf")).not.toBeNull()
-    expect(screen.queryByTestId("setup-card-chip-seer")).not.toBeNull()
-    expect(screen.queryByTestId("setup-card-chip-bodyguard")).not.toBeNull()
-    expect(screen.queryByTestId("setup-card-chip-villager")).not.toBeNull()
+    expect(screen.queryByTestId("role-card-thumb-werewolf")).not.toBeNull()
+    expect(screen.queryByTestId("role-card-thumb-seer")).not.toBeNull()
+    expect(screen.queryByTestId("role-card-thumb-bodyguard")).not.toBeNull()
+    expect(screen.queryByTestId("role-card-thumb-villager")).not.toBeNull()
+  })
+
+  it("renders the serif italic name-strip fallback below the cards", () => {
+    setup()
+    const names = screen.getByTestId("setup-card-names")
+    expect(names.textContent).toContain("Werewolf ×2")
+    expect(names.textContent).toContain("Seer")
+    expect(names.textContent).toContain("Bodyguard")
+    expect(names.textContent).toContain("Villager ×4")
+  })
+
+  it("name-strip respects the lang prop", () => {
+    setup({ lang: "th" })
+    const names = screen.getByTestId("setup-card-names")
+    // Thai name strings should be present, not English equivalents
+    expect(names.textContent).not.toContain("Werewolf")
+    expect(names.textContent).toContain("×2")
+    expect(names.textContent).toContain("×4")
   })
 })
 

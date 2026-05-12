@@ -26,10 +26,10 @@
  * animation automatically.
  */
 
-import type { CSSProperties } from "react"
 import { ARCHETYPES } from "../lib/archetypes"
 import { ROLES, type RoleId } from "@social-hub/content"
 import type { Setup } from "../lib/solver"
+import { RoleCardThumb } from "./RoleCardThumb"
 
 export interface SetupCardProps {
   setup: Setup
@@ -38,13 +38,13 @@ export interface SetupCardProps {
   lang?: "en" | "th"
 }
 
-interface ChipGroup {
+interface RoleGroup {
   id: RoleId
   count: number
 }
 
-function groupRoles(roles: RoleId[]): ChipGroup[] {
-  const groups: ChipGroup[] = []
+function groupRoles(roles: RoleId[]): RoleGroup[] {
+  const groups: RoleGroup[] = []
   for (const id of roles) {
     const last = groups[groups.length - 1]
     if (last && last.id === id) last.count += 1
@@ -79,28 +79,6 @@ function verdictFor(balance: number): {
     return { key: "village-tilt", label: "VILLAGE TILT", color: "var(--color-ink)" }
   }
   return { key: "wolf-tilt", label: "WOLF TILT", color: "var(--color-blood)" }
-}
-
-function chipStyle(team: "werewolf" | "village" | "neutral"): CSSProperties {
-  if (team === "werewolf") {
-    return {
-      background: "var(--color-ink)",
-      color: "var(--color-cream)",
-      borderColor: "var(--color-ink)",
-    }
-  }
-  if (team === "neutral") {
-    return {
-      background: "var(--color-ink-soft)",
-      color: "var(--color-cream)",
-      borderColor: "var(--color-ink-soft)",
-    }
-  }
-  return {
-    background: "var(--color-cream)",
-    color: "var(--color-ink)",
-    borderColor: "var(--color-ink)",
-  }
 }
 
 export function SetupCard({ setup, onTap, lang = "en" }: SetupCardProps) {
@@ -235,44 +213,49 @@ export function SetupCard({ setup, onTap, lang = "en" }: SetupCardProps) {
         </div>
       </div>
 
-      {/* Role chips */}
+      {/* Role card strip — variant A "Mini Card Strip", approved 2026-05-13 */}
       <div
-        data-testid="setup-card-chips"
+        data-testid="setup-card-strip"
         style={{
           display: "flex",
           flexWrap: "wrap",
-          gap: 4,
+          gap: 8,
+          rowGap: 12,
           marginBottom: 6,
+          paddingTop: 4,
         }}
       >
-        {groups.map((g, i) => {
-          const role = ROLES[g.id]
-          if (!role) return null
-          const label =
-            role.i18n[lang].name + (g.count > 1 ? ` ×${g.count}` : "")
-          return (
-            <span
-              key={`${g.id}-${i}`}
-              data-testid={`setup-card-chip-${g.id}`}
-              data-count={g.count}
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 3,
-                border: "var(--b)",
-                padding: "4px 7px",
-                fontStyle: "italic",
-                fontWeight: 500,
-                fontSize: "var(--t-body-sm)",
-                lineHeight: 1.2,
-                whiteSpace: "nowrap",
-                ...chipStyle(role.team),
-              }}
-            >
-              {label}
-            </span>
-          )
-        })}
+        {groups.map((g) => (
+          <RoleCardThumb
+            key={g.id}
+            roleId={g.id}
+            count={g.count}
+            lang={lang}
+          />
+        ))}
+      </div>
+
+      {/* Serif italic name-strip fallback — visible for sighted users and
+          read by AT users alongside the per-card aria-labels. */}
+      <div
+        data-testid="setup-card-names"
+        style={{
+          fontFamily: "var(--font-serif)",
+          fontStyle: "italic",
+          fontSize: "var(--t-micro)",
+          color: "var(--color-ink-muted)",
+          lineHeight: 1.4,
+          marginBottom: 4,
+        }}
+      >
+        {groups
+          .map((g) => {
+            const role = ROLES[g.id]
+            if (!role) return null
+            return role.i18n[lang].name + (g.count > 1 ? ` ×${g.count}` : "")
+          })
+          .filter(Boolean)
+          .join("  ·  ")}
       </div>
 
       {/* Team counts + tap affordance */}
