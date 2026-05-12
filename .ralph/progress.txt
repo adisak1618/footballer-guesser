@@ -472,3 +472,55 @@ US-023 | 2026-05-12T19:47:00Z | apps/warewolf/lib/solver-audit.test.ts — balan
   splits bundle-budget (synchronous, runs on every PR) from
   lighthouse-LCP (requires Vercel preview URL, only runs on PRs).
   Both are ERROR-level per Eng Review locked decision.
+
+## 2026-05-12T13:18:05Z — US-027 — PAUSE: manual work required
+- **Status:** Awaiting maintainer. Ralph CANNOT complete this story autonomously.
+- **Why paused:** US-027 requires Vercel dashboard project creation + DNS
+  provisioning (`warewolf.headball.app`) + TLS verification + manual
+  three-device smoke test + `/canary` baseline + `warewolf-v1-launch`
+  git tag. All of these require human credentials or physical devices
+  that the autonomous agent does not have.
+- **All preceding stories (US-001 .. US-026) are passes:true.** Lane H
+  a11y artifacts swept in 066e377.
+- **`.ralph/prd.json` left with US-027 passes:false intentionally** —
+  per Ralph instructions ("Manual Operational Story (Pause Required)"),
+  the maintainer flips this flag manually after completing the steps
+  below. DO NOT auto-flip on next iteration.
+- **Maintainer checklist (do these in order):**
+  1. Vercel dashboard → New Project → import this repo.
+     - Root Directory: `apps/warewolf`
+     - Framework Preset: Next.js
+     - Install Command: `cd ../.. && bun install`
+     - Build Command: `cd ../.. && bunx turbo run build --filter=@social-hub/warewolf`
+     - Output Directory: (default; Next will fill it)
+     - Node version: 22.x (or default)
+     - No environment variables needed (V1 has no backend).
+  2. DNS: add CNAME `warewolf` → `cname.vercel-dns.com` (or A record per
+     Vercel's UI prompt) on the `headball.app` zone. Verify TLS cert
+     issues within ~minutes (Vercel handles Let's Encrypt).
+  3. Push `feat/warewolf` to GitHub if not already; promote the resulting
+     Vercel deployment to Production (or merge `feat/warewolf` → `main`
+     and let Vercel auto-deploy main to production — your choice).
+  4. Three-device smoke test on `https://warewolf.headball.app/`:
+     - iOS Safari, Android Chrome, desktop Firefox.
+     - Each: cold load `/`, navigate `/setup`, tap a row, customize,
+       Save URL, paste URL in second tab → setup reproduces identically.
+     - Each: toggle locale TH ↔ EN; verify segment changes, URL state preserved.
+  5. Run `/canary` skill against production URL — capture pre-launch
+     baseline (console errors, perf, screenshots) per
+     `tasks/warewolf/prd.md` "/qa GATE PROTOCOL".
+  6. `git tag warewolf-v1-launch && git push origin warewolf-v1-launch`.
+  7. Update `apps/warewolf/README.md` with the production URL line.
+  8. Update `tasks/warewolf/prd.md` Success Metrics with the launch date
+     + production URL.
+  9. Draft (do NOT post) the launch announcement: screenshot of a balanced
+     setup + 1-paragraph Thai blurb. Post manually to the 2 target Werewolf
+     groups + 1 BGG forum thread later — explicitly out of scope for this
+     story per AC line 23.
+  10. Optional: schedule `/retro` for 1 week post-launch.
+  11. Edit `.ralph/prd.json` US-027 → `"passes": true` once all above are done.
+- **Lint check:** `bun run lint` was last green at HEAD~1 (US-025 pass).
+  Re-run it before tagging to confirm nothing in the sweep broke it.
+- **Files changed this iteration:** none beyond this progress.txt entry
+  and the sweep commit 066e377.
+---
