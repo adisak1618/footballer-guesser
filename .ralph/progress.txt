@@ -39,6 +39,13 @@
 - Bogus archetype ids passed to pickWolvesForBalance hit the empty-pool throw
   cleanly (WOLF_POOLS[badId] ?? [] -> throws). Use this in tests instead of
   trying to construct a singleton-only pool.
+- `fast-check` is available in `apps/warewolf` devDependencies (added in US-006).
+  Use `import fc from "fast-check"` for property tests; `fc.constantFrom(...ids)`
+  + `fc.array` compose nicely with ROLE_IDS filters by team.
+- Validator (`lib/validator.ts`) is single-pass and strict: unknown role ids are
+  blockers (`'unknown-role'`). The parser (`lib/share-url.ts`, US-007) is the
+  sole place that silently substitutes unknowns to `villager` — keep that
+  single source-of-truth split per Eng Review decision #3.
 
 ## Story Log
 
@@ -47,3 +54,4 @@ US-002 | 2026-05-12T17:53:00Z | apps/warewolf/lib/wolf-pools.ts with WOLF_POOLS 
 US-003 | 2026-05-12T17:55:00Z | apps/warewolf/lib/archetypes.ts with ARCHETYPES (8 entries: id, seal, minPlayers, maxPlayers, wolfDelta, i18n en+th name+vibe). Caps + copy pulled from prototype finalized.html:510-518. ArchetypeId stayed canonical in wolf-pools.ts and is re-exported from archetypes.ts (lower-churn path per the pattern note). 5 new tests in archetypes.test.ts; total apps/warewolf vitest = 12 passing. Typecheck + workspace lint green.
 US-004 | 2026-05-12T17:58:00Z | apps/warewolf/lib/village-seeds.ts with VILLAGE_SEEDS — 8 archetypes × 3 variations = 24 entries ported verbatim from prototype finalized.html:722-763. Type expressed as `Record<ArchetypeId, [VillageSeed, VillageSeed, VillageSeed]>` (tuple statically guarantees the 3-entry shape). 5 new tests in village-seeds.test.ts (presence, count=24, role-id resolution, en+th vibe, neutrals team check); total apps/warewolf vitest = 17 passing. Typecheck + workspace lint green.
 US-005 | 2026-05-12T18:02:00Z | apps/warewolf/lib/solver.ts — communityWolfCount (renamed from prototype bookletWolfCount), pickWolvesForBalance (DFS w/ SINGLETON/MAX_WOLF_CUB/PACK_REQUIRED constraints; THROWS on empty pool per Eng Review decision #2; deterministic; count=0 → []), generateVariations (3 Setup objects, wolfDelta applied, targetWolfSum = -(village+neutrals+filler villager sums)), computeSetupList (range filter + activeFilters + catches throws into SolverError marker; sorts non-errors by |balance| ASC, errors at end). 26 new tests; perf gate computeSetupList(20) < 50ms passes. Total apps/warewolf vitest = 43 passing. Typecheck + workspace lint green.
+US-006 | 2026-05-12T18:06:00Z | apps/warewolf/lib/validator.ts — single-pass `validate(setup, playerCount)` returning {ok, blockers, balance, wolfSum, villageSum, wolfCount, villageCount, neutralCount}. BlockerCode union: 'no-wolves' | 'wolves-gte-village' | 'role-count-mismatch' | 'unknown-role'. Strict on unknown role ids (Eng Review decision #3 — validator stays strict; only `decodeSetup` substitutes). Neutrals excluded from wolves-vs-village parity check (design doc Premise #3). 9 new tests in validator.test.ts incl. 2 fast-check properties (valid setup passes; all-village returns no-wolves). Added `fast-check@4.8.0` to apps/warewolf devDependencies. Total apps/warewolf vitest = 52 passing; workspace lib tests 303 passing. Typecheck + workspace lint green.
