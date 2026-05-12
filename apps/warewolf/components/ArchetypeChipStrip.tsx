@@ -1,11 +1,16 @@
 "use client"
 
 /**
- * <ArchetypeChipStrip> — multi-select filter strip above the /setup list.
+ * <ArchetypeChipStrip> — single-select filter strip above the /setup list.
  *
  * Renders one chip per archetype in ARCHETYPES whose [minPlayers, maxPlayers]
  * window includes the current `playerCount`; archetypes outside the window
  * do NOT render (per US-015 AC + design doc Reconciliation pass).
+ *
+ * Selection is single-select: tapping a chip selects ONLY that archetype
+ * (clearing any other); tapping the same chip again clears the filter
+ * back to "show all". This matches the room-setup mental model where the
+ * user is browsing one category at a time, not building a complex query.
  *
  * Empty `activeFilters` set means "show all" — consumed by `computeSetupList`
  * (lib/solver.ts) which treats an empty Set as a no-op filter.
@@ -46,9 +51,11 @@ export function ArchetypeChipStrip({
   )
 
   function toggle(id: ArchetypeId) {
-    const next = new Set(activeFilters)
-    if (next.has(id)) next.delete(id)
-    else next.add(id)
+    // Single-select: tap a chip → only that chip is active; tap the active
+    // chip → clear back to "show all". Set-based payload preserves
+    // backward compatibility with computeSetupList's empty-set semantics.
+    const next = new Set<ArchetypeId>()
+    if (!activeFilters.has(id)) next.add(id)
     onChange(next)
   }
 
@@ -99,6 +106,11 @@ export function ArchetypeChipStrip({
               padding: "8px 12px",
               minHeight: 44,
               minWidth: 44,
+              // flex-shrink: 0 prevents the parent flex container from
+              // squeezing chips into truncated boxes when many archetypes
+              // are visible — labels now render their full name and the
+              // strip scrolls horizontally instead.
+              flexShrink: 0,
               border: active
                 ? "1.5px solid var(--color-blood)"
                 : "1.5px solid var(--color-ink)",
