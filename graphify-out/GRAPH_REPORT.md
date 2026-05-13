@@ -1,12 +1,18 @@
-# Graph Report - apps/warewolf  (2026-05-14)
+# Graph Report - board-game  (2026-05-14)
 
 ## Corpus Check
-- Corpus is ~43,486 words - fits in a single context window. You may not need a graph.
+- 397 files · ~1,740,437 words
+- Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 455 nodes · 602 edges · 30 communities (27 shown, 3 thin omitted)
+- 469 nodes · 615 edges · 31 communities (28 shown, 3 thin omitted)
 - Extraction: 99% EXTRACTED · 1% INFERRED · 0% AMBIGUOUS · INFERRED: 7 edges (avg confidence: 0.89)
-- Token cost: 74,000 input · 18,000 output
+- Token cost: 0 input · 0 output
+
+## Graph Freshness
+- Built from commit: `47a3e114`
+- Run `git rev-parse HEAD` and compare to check if the graph is stale.
+- Run `graphify update .` after code changes (no API cost).
 
 ## Community Hubs (Navigation)
 - [[_COMMUNITY_Solver & Archetype Logic|Solver & Archetype Logic]]
@@ -35,18 +41,19 @@
 - [[_COMMUNITY_Root App Layout|Root App Layout]]
 - [[_COMMUNITY_Landing E2E|Landing E2E]]
 - [[_COMMUNITY_Locale Toggle E2E|Locale Toggle E2E]]
+- [[_COMMUNITY_Next Type Defs|Next Type Defs]]
 
 ## God Nodes (most connected - your core abstractions)
 1. `Warewolf V2 Roadmap` - 11 edges
 2. `Warewolf App-local CLAUDE.md` - 11 edges
 3. `Narrator Script v0.2 (26 Thai cues)` - 11 edges
-4. `ARCHETYPES` - 10 edges
-5. `V2 Design — Wireframe Prototype + Decisions` - 10 edges
-6. `CardArt()` - 8 edges
-7. `ArchetypeId` - 8 edges
-8. `ElevenLabs v3 Audio Tags Reference` - 8 edges
-9. `Narrator Audio Inventory (26 MP3s)` - 8 edges
-10. `Warewolf Accessibility Floor (Pass 6 + Pass 7)` - 7 edges
+4. `Headball — Multi-Game Platform Monorepo` - 10 edges
+5. `ARCHETYPES` - 10 edges
+6. `V2 Design — Wireframe Prototype + Decisions` - 10 edges
+7. `CardArt()` - 8 edges
+8. `ArchetypeId` - 8 edges
+9. `ElevenLabs v3 Audio Tags Reference` - 8 edges
+10. `Narrator Audio Inventory (26 MP3s)` - 8 edges
 
 ## Surprising Connections (you probably didn't know these)
 - `SetupListPageInner()` --calls--> `useWarewolfStore`  [EXTRACTED]
@@ -65,19 +72,19 @@
 - **Apprentice Seer silent inheritance (audio + UI + cue)** — claude_apprentice_silent_inheritance, narrator_cue_seer_wake, v2design_stadium_info_asymmetry [EXTRACTED 1.00]
 - **V1 CI quality gates (a11y + bundle + Lighthouse)** — a11y_axe_e2e_spec, perf_bundle_budget_gate, perf_lighthouse_lcp_gate [INFERRED 0.85]
 
-## Communities (30 total, 3 thin omitted)
+## Communities (31 total, 3 thin omitted)
 
 ### Community 0 - "Solver & Archetype Logic"
 Cohesion: 0.06
-Nodes (47): SolverErrorRow(), SolverErrorRowProps, row, Archetype, ArchetypeI18nStrings, ARCHETYPES, EXPECTED_IDS, keys (+39 more)
+Nodes (52): 44px Minimum Tap Targets, e2e/a11y.spec.ts (axe automated scans), Focus-visible Blood-red Rings, Keyboard Tab Order (top-to-bottom, left-to-right), Reduced Motion (prefers-reduced-motion), lib/__tests__/tap-targets.test.ts, Manual VoiceOver Screen Reader Pass, Warewolf Accessibility Floor (Pass 6 + Pass 7) (+44 more)
 
 ### Community 1 - "Customize Page & Banner"
 Cohesion: 0.05
 Nodes (37): BannerVisual, PlayableBanner(), PlayableBannerProps, PlayableBannerState, banner, VISUALS, CustomizePageInner(), emptyGlyphStyle (+29 more)
 
 ### Community 2 - "V2 Audio Pipeline Docs"
-Cohesion: 0.06
-Nodes (49): Apprentice Seer Silent Inheritance, V2 Audio Pipeline Rules (load-bearing), Static MP3s Only (no runtime TTS), Reuse V1 Verbatim (solver, CardArt, BalanceScale), V2 Locked Decisions (do not relitigate), Warewolf App-local CLAUDE.md, ElevenLabs v3 Audio Tags Reference, Eleven v3 Alpha Model (+41 more)
+Cohesion: 0.07
+Nodes (40): ALL_ARCHETYPES, failures, start, communityWolfCount(), computeSetupList(), generateVariations(), isSolverError(), pickWolvesForBalance() (+32 more)
 
 ### Community 3 - "Card Art Rendering"
 Cohesion: 0.07
@@ -85,11 +92,11 @@ Nodes (29): CardArt(), CardArtPlaceholder(), CardArtPlaceholderProps, CardArtPro
 
 ### Community 4 - "Add Role Sheet"
 Cohesion: 0.08
-Nodes (27): AddRoleSheet(), AddRoleSheetProps, TAB_LABEL, card, infoTab, { onAdd }, { onAdd, onClose }, { onClose } (+19 more)
+Nodes (23): ArchetypeChipStrip(), ArchetypeChipStripProps, buttons, chip, { container }, next, { onChange }, powerRoles (+15 more)
 
 ### Community 5 - "Setup List Page"
-Cohesion: 0.09
-Nodes (24): countTeams(), groupRoles(), RoleGroup, SetupCard(), SetupCardProps, card, makeSetup(), names (+16 more)
+Cohesion: 0.08
+Nodes (27): AddRoleSheet(), AddRoleSheetProps, TAB_LABEL, card, infoTab, { onAdd }, { onAdd, onClose }, { onClose } (+19 more)
 
 ### Community 6 - "i18n Routing & Layout"
 Cohesion: 0.11
@@ -101,35 +108,35 @@ Nodes (12): Container(), ContainerProps, MAX_WIDTHS, { container }, el, RULES_CH
 
 ### Community 8 - "Narrator Audio Build Script"
 Cohesion: 0.13
-Nodes (9): Cue, CUES, exists(), found, printCueTable(), PUBLIC_AUDIO_DIR, { values }, VOICE_SETTINGS (+1 more)
+Nodes (18): countTeams(), groupRoles(), RoleGroup, SetupCard(), SetupCardProps, card, makeSetup(), names (+10 more)
 
 ### Community 9 - "Bundle Budget CI"
+Cohesion: 0.13
+Nodes (9): Cue, CUES, exists(), found, printCueTable(), PUBLIC_AUDIO_DIR, { values }, VOICE_SETTINGS (+1 more)
+
+### Community 10 - "Card Build Script"
 Cohesion: 0.12
 Nodes (11): APP_ROOT, BASELINE_HTML, baselineChunks, baselineHtml, breakdown, gz, NEXT_DIR, ROUTE_HTML (+3 more)
 
-### Community 10 - "Card Build Script"
+### Community 11 - "Archetype Chip Strip"
 Cohesion: 0.19
 Nodes (12): buildCards(), BuildCardsOptions, BuildCardsResult, ensurePublicSymlink(), fileExists(), isUpToDate(), main(), destFile (+4 more)
 
-### Community 11 - "Archetype Chip Strip"
-Cohesion: 0.17
-Nodes (10): ArchetypeChipStrip(), ArchetypeChipStripProps, buttons, chip, { container }, next, { onChange }, powerRoles (+2 more)
-
 ### Community 12 - "Balance Scale UI"
+Cohesion: 0.14
+Nodes (13): code:block1 (apps/), code:bash (bun install                    # resolves workspace symlinks), code:bash (# Workspace level (proxied through turbo where appropriate):), graphify, Headball — Multi-Game Platform Monorepo, Key Files, Local development, Project structure (+5 more)
+
+### Community 13 - "Tap Target Tests"
 Cohesion: 0.25
 Nodes (9): BalanceScale(), BalanceScaleProps, pointerBg(), pointerPercent(), pointerState(), { container }, pointer, { rerender } (+1 more)
 
-### Community 13 - "Tap Target Tests"
+### Community 14 - "Customize Loop E2E"
 Cohesion: 0.2
 Nodes (8): block, css, ctaRules, m, match, minH, minW, repoRoot
 
-### Community 14 - "Customize Loop E2E"
+### Community 15 - "A11Y Floor (docs + tests)"
 Cohesion: 0.22
 Nodes (6): banner, blockers, saveBtn, toast, urlAfterSave, villagerTile
-
-### Community 15 - "A11Y Floor (docs + tests)"
-Cohesion: 0.36
-Nodes (8): 44px Minimum Tap Targets, e2e/a11y.spec.ts (axe automated scans), Focus-visible Blood-red Rings, Keyboard Tab Order (top-to-bottom, left-to-right), Reduced Motion (prefers-reduced-motion), lib/__tests__/tap-targets.test.ts, Manual VoiceOver Screen Reader Pass, Warewolf Accessibility Floor (Pass 6 + Pass 7)
 
 ### Community 16 - "A11Y E2E Helpers"
 Cohesion: 0.29
@@ -152,32 +159,36 @@ Cohesion: 0.4
 Nodes (4): banner, blockers, toast, villagerCards
 
 ### Community 21 - "Next Config"
+Cohesion: 0.4
+Nodes (5): Bundle Budget Gate (80KB/96KB gz), scripts/check-bundle-budget.ts, Lighthouse Mobile LCP Gate (≤2500ms), .github/lighthouserc.json, Warewolf Perf Gates
+
+### Community 22 - "Card Art E2E"
 Cohesion: 0.5
 Nodes (3): nextConfig, withAnalyzer, withNextIntl
 
-### Community 22 - "Card Art E2E"
+### Community 23 - "Root App Layout"
 Cohesion: 0.5
 Nodes (3): imgs, ROLE_IDS, screenshotPath
 
 ## Knowledge Gaps
-- **248 isolated node(s):** `config`, `intlSpy`, `res`, `location`, `dest` (+243 more)
+- **258 isolated node(s):** `Quick Reference`, `code:block1 (apps/)`, `code:bash (bun install                    # resolves workspace symlinks)`, `code:bash (# Workspace level (proxied through turbo where appropriate):)`, `Workspace conventions` (+253 more)
   These have ≤1 connection - possible missing edges or undocumented components.
 - **3 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `CardArt()` connect `Card Art Rendering` to `Customize Page & Banner`, `Add Role Sheet`, `i18n Routing & Layout`, `Rules Page Layout`?**
-  _High betweenness centrality (0.055) - this node is a cross-community bridge._
-- **Why does `Container()` connect `Rules Page Layout` to `Customize Page & Banner`, `Setup List Page`?**
-  _High betweenness centrality (0.021) - this node is a cross-community bridge._
-- **What connects `config`, `intlSpy`, `res` to the rest of the system?**
-  _248 weakly-connected nodes found - possible documentation gaps or missing edges._
+- **Why does `CardArt()` connect `Card Art Rendering` to `Customize Page & Banner`, `Setup List Page`, `i18n Routing & Layout`, `Rules Page Layout`?**
+  _High betweenness centrality (0.052) - this node is a cross-community bridge._
+- **Why does `Container()` connect `Rules Page Layout` to `Customize Page & Banner`, `Add Role Sheet`?**
+  _High betweenness centrality (0.019) - this node is a cross-community bridge._
+- **What connects `Quick Reference`, `code:block1 (apps/)`, `code:bash (bun install                    # resolves workspace symlinks)` to the rest of the system?**
+  _258 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Solver & Archetype Logic` be split into smaller, more focused modules?**
   _Cohesion score 0.06 - nodes in this community are weakly interconnected._
 - **Should `Customize Page & Banner` be split into smaller, more focused modules?**
   _Cohesion score 0.05 - nodes in this community are weakly interconnected._
 - **Should `V2 Audio Pipeline Docs` be split into smaller, more focused modules?**
-  _Cohesion score 0.06 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.07 - nodes in this community are weakly interconnected._
 - **Should `Card Art Rendering` be split into smaller, more focused modules?**
   _Cohesion score 0.07 - nodes in this community are weakly interconnected._
