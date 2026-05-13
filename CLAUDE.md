@@ -169,10 +169,12 @@ Key routing rules:
 
 ## graphify
 
-This project has a knowledge graph at graphify-out/ with god nodes, community structure, and cross-file relationships.
+This project has a knowledge graph at `graphify-out/` (scoped to `apps/warewolf` — see `apps/warewolf/.graphifyignore`). Contains god nodes, community structure, and cross-file relationships.
+
+**No git hook installed** — the graph does NOT auto-rebuild on commit. You must refresh it explicitly when work is done so the next session starts from a current map.
 
 Rules:
-- ALWAYS read graphify-out/GRAPH_REPORT.md before reading any source files, running grep/glob searches, or answering codebase questions. The graph is your primary map of the codebase.
-- IF graphify-out/wiki/index.md EXISTS, navigate it instead of reading raw files
-- For cross-module "how does X relate to Y" questions, prefer `graphify query "<question>"`, `graphify path "<A>" "<B>"`, or `graphify explain "<concept>"` over grep — these traverse the graph's EXTRACTED + INFERRED edges instead of scanning files
-- After modifying code, run `graphify update .` to keep the graph current (AST-only, no API cost).
+- ALWAYS read `graphify-out/GRAPH_REPORT.md` before reading source files, running grep/glob searches, or answering codebase questions. The graph is your primary map.
+- For cross-module "how does X relate to Y" questions, prefer `graphify query "<question>"`, `graphify path "<A>" "<B>"`, or `graphify explain "<concept>"` over grep — these traverse EXTRACTED + INFERRED edges instead of scanning files.
+- **When a task is done** (feature shipped, bug fixed, refactor complete, before final commit on a PR): run `/graphify --update` to refresh the graph. AST-only on code changes = free. Doc/image changes = small LLM cost. Commit the refreshed `graphify-out/{graph.json,graph.html,GRAPH_REPORT.md}` together with the work.
+- Skip the refresh for trivial single-line fixes or pure config tweaks — the graph is for navigable code/doc structure, not commit-by-commit churn.
