@@ -57,10 +57,12 @@ Full V2 wireframe prototype shipped before any code. The design contract lives i
 
 ## Phase 1 — Architectural lock-in (1–2 days)
 
-- [ ] `/plan-eng-review` on the design doc — catches RPC signature gaps, RLS holes, edge cases
-- [ ] **BLOCKER:** iOS Safari audio autoplay spike — 50-line standalone PWA on real iPhone 12+/iOS 17+. Confirms `AudioContext` unlock survives across cues.
-- [ ] Domain decision (warewolf.your-domain.com vs `*.vercel.app`)
-- [ ] Procure: real iOS device (12+/iOS 17+), real low-end Android (Pixel 4a-class), Bluetooth speaker for testing
+- [x] `/plan-eng-review` on the design doc — Round 2 P1.1–P2.4 + CQ.1–4 + Perf.1–2 added to design doc (2026-05-14)
+- [x] **BLOCKER CLEARED:** iOS Safari audio + Service Worker spike — `apps/audio-spike/` (commit `0913500`), tested on real iPhone 2026-05-14, **all 13 tests pass**. Results: `~/.gstack/projects/board-game/audio-spike-results-2026-05-14.md`. Confirms: AudioContext survives across cues + backgrounding + screen lock + 5min idle; SW activation does NOT cut audio (offline cards stay in scope); silent mode + BT speaker work; no Wake Lock needed.
+- [x] Procure: real low-end Android (Pixel 4a-class) for parity testing, Bluetooth speaker for further BT testing
+- ~~Domain decision~~ → **deferred to Phase 2 week 10** (ship week). All v2.0 build + test happens locally (`bunx supabase start` + `bun run dev` on `localhost:3003`) and on Vercel preview URLs. Domain only matters at the moment of `/ship` to production.
+
+**Phase 1 complete.** Cleared to start Phase 2 (Week 1: backend foundations).
 
 ## Phase 2 — v2.0 build (target 10 weeks)
 
@@ -139,6 +141,7 @@ Full V2 wireframe prototype shipped before any code. The design contract lives i
 - [ ] 5-group beta playtest (different cities/ages)
 - [ ] Bug bash + UX fixes from playtest
 - [ ] Performance gates: card flip 60fps on Pixel 4a, bundle ≤80KB gz on customize-equivalent route
+- [ ] **Domain decision** (deferred from Phase 1): pick `warewolf.<your-domain>` vs free `*.vercel.app`, point Vercel project at it. All build + test up to this week runs on local dev + preview URLs.
 - [ ] `/qa` full sweep
 - [ ] `/ship` to production
 

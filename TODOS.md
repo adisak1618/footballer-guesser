@@ -17,12 +17,9 @@ Deferred work captured during reviews. Items here are explicitly scoped out of t
 **Context:** From plan-eng-review Round 2 finding 1.9. Not blocking, but easy to defer-and-forget then trip CI on the migration PR.
 **Depends on:** Phase 2 week 1 (backend foundations).
 
-### [P2] Service-worker × iOS Safari audio decision must be in Phase 1 spike scope
-**What:** Add to the iOS Safari audio autoplay spike (Phase 1 BLOCKER): explicit test of "does enabling a service worker kill audio mid-game?" Test must run on real iPhone 12+/iOS 17+ before any SW code is written.
-**Why:** Design doc line 222 flags this concern but doesn't make it part of the spike. If SW kills audio, the offline-cards-via-SW plan in Distribution gets dropped from v2.0 and we ship without offline support. If we discover this after writing SW code, it's a refactor.
-**Outcome:** Spike report says either "SW + audio works → keep offline cards" OR "SW kills audio → drop SW from v2.0, ship online-only with lobby preload."
-**Context:** From plan-eng-review Round 2 finding 1.10. The spike is already on the critical path; this just expands its scope by one test.
-**Depends on:** Phase 1 spike (already scheduled).
+### [RESOLVED 2026-05-14] Service-worker × iOS Safari audio decision
+**Outcome:** ✅ SW + audio works. Spike test 8 (SW activation during in-flight playback) passed on real iPhone. Offline-cards-via-SW stays in v2.0 scope. Test 9 (new SW takes over, next cue plays) also passed.
+**Evidence:** `~/.gstack/projects/board-game/audio-spike-results-2026-05-14.md`
 
 ---
 

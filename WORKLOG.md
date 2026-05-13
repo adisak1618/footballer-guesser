@@ -6,6 +6,51 @@ Reverse-chronological log of meaningful work in this repo. One entry per session
 
 ---
 
+## 2026-05-14 — Phase 1 audio blocker CLEARED via real-iPhone spike
+
+**What changed**
+
+- Built throwaway `apps/audio-spike/` static PWA (148KB, no `package.json` so Bun/Turbo/Vitest skip it): unlock gate + 5 real Werewolf cues + auto-advance + SW register/update/unregister + Wake Lock + status panel + log
+- User deployed to Vercel, ran the 13-row test matrix on a real iPhone — **all pass** including critical tests 3 (auto-advance across `ended` listener, no gesture) and 8 (SW activation during in-flight playback)
+- Captured outcomes to `~/.gstack/projects/board-game/audio-spike-results-2026-05-14.md`
+- Updated `apps/warewolf/ROADMAP.md` Phase 1 — BLOCKER marked cleared, eng-review checkbox marked done
+- Closed `TODOS.md` P2 SW × audio concern with RESOLVED marker
+
+**Why**
+
+Per ROADMAP Phase 1, iOS Safari audio autoplay was the single highest-risk technical area for v2.0. Spike was the gate before writing the V2 Ralph PRD — outcomes change which stories ship.
+
+**What this UNLOCKS for V2 PRD**
+
+- Service worker for offline cards stays in scope (test 8 passed)
+- No Wake Lock requirement (test 5 passed)
+- No "stay foregrounded" UX rule (test 4 passed)
+- No silent-mode warning needed in `00a-audio-unlock-gate` copy (test 12 passed)
+- AudioUnlockGate per-page-load (test 10 expected behavior, per design Option B)
+
+**Files touched**
+
+- `apps/audio-spike/` (new) — `index.html`, `sw.js`, `manifest.webmanifest`, `vercel.json`, `README.md`, 5 cue MP3s
+- `apps/warewolf/ROADMAP.md` — Phase 1 BLOCKER marked done
+- `TODOS.md` — P2 SW × audio resolved
+- `WORKLOG.md` — this entry
+
+Outside-repo:
+- `~/.gstack/projects/board-game/audio-spike-results-2026-05-14.md` (new) — full results matrix + V2 PRD scope implications
+
+**Commits**
+
+- `0913500` — `spike(warewolf): iOS Safari + SW audio test PWA` (pushed to origin/main)
+- (planning updates pending commit)
+
+**Follow-ups**
+
+- **V2 Ralph PRD is unblocked** on the audio side. Remaining gates: draft `supabase/migrations/YYYYMMDD_warewolf_multiplayer.sql` (anchors story AC), then archive V1 prd.json → write V2 prd.json
+- Optional: re-run the spike on iOS 18.x once available, in case Apple changes background audio behavior
+- Optional: keep `apps/audio-spike/` committed as regression suite, OR delete after v2.0 ships (148KB, low cost to keep)
+
+---
+
 ## 2026-05-13 — V2 wireframe prototype finalized → reviewed → bumped to v1.1
 
 **What changed**
