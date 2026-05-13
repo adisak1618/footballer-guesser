@@ -106,6 +106,7 @@ There is no workspace-root `tsconfig.json`. Run typecheck per-package; CI will e
 - `apps/headball/app/` — Headball's Next.js App Router pages
 - `apps/headball/components/ui/` — shadcn primitives (button, input, dialog)
 - `apps/headball/lib/utils.ts` — shadcn cn() helper
+- `WORKLOG.md` — reverse-chronological log of meaningful work. Read top 1–3 entries when resuming a session. **Append a new entry every time you make a code or load-bearing config change** (see "Worklog discipline" section below).
 - `docs/PLAN.md` — Headball implementation plan, schema, file structure (pre-monorepo, mostly still accurate)
 - `docs/DESIGN.md` — Stadium Energy design system — **READ BEFORE ANY UI WORK**
 - `docs/game-rules.md` — game rules in Thai
@@ -123,6 +124,28 @@ Do not deviate without explicit user approval.
 **The memorable thing**: "รู้สึกเหมือนเชียร์ Liverpool ตอนชนะ" — every UI decision should serve this stadium energy.
 
 In QA mode (/qa, /design-review), flag any code that doesn't match `DESIGN.md`.
+
+## Worklog discipline
+
+`WORKLOG.md` at the repo root is the single timeline for everything done in this repo. Read the top 1–3 entries when resuming a session — that's how future-you (and Claude) get context cold.
+
+**When to append an entry:**
+- After committing a unit of code work (feature, bug fix, refactor that took ≥15 min)
+- After load-bearing config changes (CI, env, supabase migration, package.json deps with intent)
+- After meaningful design / docs / planning work (new ROADMAP phase, new design contract, locked decision)
+- At the end of a session that touched any of the above, even if uncommitted
+
+**When to skip:**
+- Single-char typo fixes
+- Pure formatting / lint passes
+- Generated-file updates (build outputs, lockfile churn)
+- Read-only exploration
+
+**How to append:** prepend a new dated section to the top of `WORKLOG.md` (newest first) using the template at the bottom of that file. Each entry must answer: what changed, why, files touched, commits, follow-ups.
+
+**Multi-day work:** update the existing entry's bullets in place — do not create a second entry for the same feature on different days. Keep the original date.
+
+**Failure mode to avoid:** treating WORKLOG.md as a commit-message dump. Group changes by intent, not by file. The reader wants to know *why* the work happened and what's left, not a `git log` rerun.
 
 ## Skill routing
 
