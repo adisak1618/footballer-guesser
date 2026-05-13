@@ -87,3 +87,19 @@ apps/*/scripts/ralph/.last-branch
 /supabase/snippets/
 .ralph/run.log
 .gstack/
+
+# Graphify — commit graph artifacts for team, ignore local state.
+# Recommended by https://github.com/safishamsi/graphify#team-setup
+graphify-out/manifest.json
+graphify-out/cost.json
+graphify-out/cache/
+# Detection dotfiles leak absolute home-dir paths — never commit on public repo
+graphify-out/.graphify_detect.json
+graphify-out/.graphify_python
+graphify-out/.graphify_root
+graphify-out/.graphify_labels.json
+
+# Local agent/skill caches (per-developer, not source)
+.agents/
+.claude/skills/
+skills-lock.json

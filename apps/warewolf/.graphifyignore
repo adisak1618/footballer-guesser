@@ -1,0 +1,15 @@
+# Graphify scope: code + docs only.
+# Skip large asset directories; their content is already named in
+# narrator-script-v0.md and the V2-DESIGN.md page inventory.
+
+# Audio narrator cues (26 MP3s — content covered by narrator-script-v0.md)
+public/audio/
+
+# Source assets — card art, role reference images, rule scans
+source/
+
+# Build / runtime
+.next/
+node_modules/
+playwright-report/
+test-results/
