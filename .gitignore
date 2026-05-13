@@ -98,6 +98,7 @@ graphify-out/.graphify_detect.json
 graphify-out/.graphify_python
 graphify-out/.graphify_root
 graphify-out/.graphify_labels.json
+graphify-out/.rebuild.lock
 
 # Local agent/skill caches (per-developer, not source)
 .agents/
