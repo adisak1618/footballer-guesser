@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>iOS Audio + SW Spike</title>
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="theme-color" content="#1a0f0a" />
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #1a0f0a;
+      --fg: #f5ecd6;
+      --accent: #c9a05a;
+      --ok: #4a6741;
+      --bad: #8b1a1a;
+      --muted: #6b5a3a;
+    }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html, body { margin: 0; padding: 0; background: var(--bg); color: var(--fg); font-family: ui-sans-serif, system-ui, sans-serif; min-height: 100vh; }
+    main { max-width: 480px; margin: 0 auto; padding: 16px; padding-bottom: 80px; }
+    h1 { font-size: 18px; margin: 0 0 4px; }
+    h2 { font-size: 14px; margin: 24px 0 8px; color: var(--accent); text-transform: uppercase; letter-spacing: 0.06em; }
+    p, .small { font-size: 13px; line-height: 1.5; color: var(--muted); margin: 0 0 12px; }
+    button {
+      width: 100%; padding: 16px; margin: 6px 0;
+      background: var(--accent); color: var(--bg); border: 0; border-radius: 8px;
+      font-size: 16px; font-weight: 600; cursor: pointer;
+      min-height: 56px;
+    }
+    button.secondary { background: transparent; color: var(--fg); border: 1px solid var(--muted); }
+    button.danger { background: var(--bad); color: var(--fg); }
+    button:disabled { opacity: 0.4; }
+    .gate {
+      position: fixed; inset: 0; background: var(--bg);
+      display: flex; align-items: center; justify-content: center; padding: 24px;
+      z-index: 100;
+    }
+    .gate.hidden { display: none; }
+    .gate-inner { text-align: center; max-width: 320px; }
+    .gate h1 { font-size: 28px; margin-bottom: 12px; }
+    .gate button { font-size: 20px; padding: 24px; }
+    .grid { display: grid; gap: 6px; }
+    .grid-2 { grid-template-columns: 1fr 1fr; }
+    .grid-3 { grid-template-columns: 1fr 1fr 1fr; }
+    .status {
+      background: rgba(255,255,255,0.04); border: 1px solid var(--muted);
+      border-radius: 8px; padding: 12px; font-family: ui-monospace, monospace;
+      font-size: 12px; line-height: 1.6; word-break: break-word;
+    }
+    .status .row { display: flex; justify-content: space-between; gap: 12px; }
+    .status .k { color: var(--muted); }
+    .status .v { color: var(--fg); }
+    .status .v.ok { color: #8fc97a; }
+    .status .v.bad { color: #d97a7a; }
+    .log {
+      background: rgba(0,0,0,0.4); border-radius: 8px; padding: 8px; margin-top: 8px;
+      font-family: ui-monospace, monospace; font-size: 11px; line-height: 1.5;
+      max-height: 160px; overflow-y: auto;
+    }
+    .log .entry { color: var(--fg); margin: 2px 0; }
+    .log .entry.err { color: #d97a7a; }
+    .log .ts { color: var(--muted); margin-right: 8px; }
+  </style>
+</head>
+<body>
+  <div id="gate" class="gate">
+    <div class="gate-inner">
+      <h1>iOS Audio Spike</h1>
+      <p>Tap once to unlock audio for this session. After this, cues should play without further taps.</p>
+      <button id="begin">Tap to begin</button>
+      <p class="small" style="margin-top: 16px;">Make sure phone is OFF silent mode for fair test.</p>
+    </div>
+  </div>
+
+  <main>
+    <h1>iOS Audio + SW Spike</h1>
+    <p>5 cues, SW controls, status panel. Run the test matrix in <code>README.md</code>.</p>
+
+    <h2>Status</h2>
+    <div class="status">
+      <div class="row"><span class="k">AudioContext.state</span><span class="v" id="s-ctx">—</span></div>
+      <div class="row"><span class="k">Last cue</span><span class="v" id="s-cue">—</span></div>
+      <div class="row"><span class="k">Last error</span><span class="v" id="s-err">—</span></div>
+      <div class="row"><span class="k">SW state</span><span class="v" id="s-sw">—</span></div>
+      <div class="row"><span class="k">Wake Lock</span><span class="v" id="s-wl">not held</span></div>
+      <div class="row"><span class="k">Page lifecycle</span><span class="v" id="s-vis">visible</span></div>
+      <div class="log" id="log"></div>
+    </div>
+
+    <h2>Cues (manual)</h2>
+    <div class="grid">
+      <button class="cue" data-src="/cues/cue1-game-start.mp3">Cue 1 — game start (~3s)</button>
+      <button class="cue" data-src="/cues/cue2-role-reveal.mp3">Cue 2 — role reveal (~2s)</button>
+      <button class="cue" data-src="/cues/cue3-wolves-wake.mp3">Cue 3 — wolves wake (~1s)</button>
+      <button class="cue" data-src="/cues/cue4-dawn-death.mp3">Cue 4 — dawn death (~2s)</button>
+      <button class="cue" data-src="/cues/cue5-vote-open.mp3">Cue 5 — vote open (~1s)</button>
+    </div>
+
+    <h2>Auto-advance (test row 3)</h2>
+    <button id="auto5" class="secondary">Play cues 1→5 sequentially</button>
+    <p class="small">Plays cue 1, then schedules 2..5 from the <code>ended</code> handler with no further gestures. If iOS revokes the unlock between cues, cue 2 fails silently.</p>
+
+    <h2>Service Worker (test rows 7, 8, 9)</h2>
+    <div class="grid">
+      <button id="sw-register" class="secondary">Register SW</button>
+      <button id="sw-update" class="secondary">Force SW update (skipWaiting + claim)</button>
+      <button id="sw-unregister" class="danger">Unregister SW</button>
+    </div>
+    <p class="small">For test 8: tap Cue 2 (longest), then DURING playback tap "Force SW update". Listen for whether playback cuts.</p>
+
+    <h2>Wake Lock (test row 5 fallback)</h2>
+    <div class="grid grid-2">
+      <button id="wl-acquire" class="secondary">Acquire Wake Lock</button>
+      <button id="wl-release" class="secondary">Release Wake Lock</button>
+    </div>
+    <p class="small">If screen-lock test fails, retry with Wake Lock held. iOS 16.4+ supports it.</p>
+  </main>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const log = (msg, err = false) => {
+      const el = document.createElement('div');
+      el.className = 'entry' + (err ? ' err' : '');
+      const ts = new Date().toTimeString().slice(0, 8);
+      el.innerHTML = `<span class="ts">${ts}</span>${msg}`;
+      $('log').prepend(el);
+    };
+    const setStatus = (id, val, cls) => {
+      const el = $(id);
+      el.textContent = val;
+      el.className = 'v' + (cls ? ' ' + cls : '');
+    };
+
+    let ctx = null;
+    let unlocked = false;
+    let wakeLock = null;
+
+    // ---- The unlock gate (synchronous, the load-bearing test) ----
+    $('begin').addEventListener('click', () => {
+      try {
+        // 1. WebAudio context, synchronously, inside the gesture
+        const Ctor = window.AudioContext || window.webkitAudioContext;
+        ctx = new Ctor();
+        ctx.resume();
+
+        // 2. Prime with a 1-sample silent buffer
+        const buf = ctx.createBuffer(1, 1, 22050);
+        const src = ctx.createBufferSource();
+        src.buffer = buf;
+        src.connect(ctx.destination);
+        src.start(0);
+
+        // 3. Prime an HTMLAudioElement (we use these for cues, not WebAudio nodes)
+        const primer = new Audio('/cues/cue3-wolves-wake.mp3');
+        primer.muted = true;
+        const p = primer.play();
+        if (p && p.then) p.then(() => primer.pause()).catch((e) => log('primer pause err: ' + e.message, true));
+
+        unlocked = true;
+        setStatus('s-ctx', ctx.state, ctx.state === 'running' ? 'ok' : 'bad');
+        log('gate: unlocked ✓');
+        $('gate').classList.add('hidden');
+      } catch (e) {
+        log('gate FAILED: ' + e.message, true);
+        setStatus('s-err', e.message, 'bad');
+      }
+    });
+
+    // ---- Cue playback (no gesture required after unlock) ----
+    function playCue(src) {
+      const a = new Audio(src);
+      const p = a.play();
+      setStatus('s-cue', src.split('/').pop());
+      setStatus('s-ctx', ctx ? ctx.state : 'no ctx', ctx && ctx.state === 'running' ? 'ok' : 'bad');
+      if (p && p.catch) {
+        p.catch((e) => {
+          log('cue FAILED ' + src + ': ' + e.message, true);
+          setStatus('s-err', e.message, 'bad');
+        });
+      }
+      return a;
+    }
+
+    document.querySelectorAll('button.cue').forEach((b) => {
+      b.addEventListener('click', () => playCue(b.dataset.src));
+    });
+
+    // ---- Auto-advance (test row 3) ----
+    $('auto5').addEventListener('click', async () => {
+      const cues = [1, 2, 3, 4, 5].map((n) => `/cues/cue${n}-${['game-start','role-reveal','wolves-wake','dawn-death','vote-open'][n-1]}.mp3`);
+      log('auto-advance: starting');
+      for (let i = 0; i < cues.length; i++) {
+        const a = playCue(cues[i]);
+        await new Promise((res) => {
+          a.addEventListener('ended', res, { once: true });
+          a.addEventListener('error', res, { once: true });
+        });
+        log(`auto-advance: cue ${i + 1} done`);
+      }
+      log('auto-advance: complete ✓');
+    });
+
+    // ---- Service Worker controls ----
+    $('sw-register').addEventListener('click', async () => {
+      if (!('serviceWorker' in navigator)) { log('SW unsupported', true); return; }
+      try {
+        const reg = await navigator.serviceWorker.register('/sw.js');
+        setStatus('s-sw', 'registered (scope: ' + reg.scope + ')', 'ok');
+        log('SW registered');
+      } catch (e) {
+        log('SW register FAILED: ' + e.message, true);
+      }
+    });
+
+    $('sw-update').addEventListener('click', async () => {
+      try {
+        const reg = await navigator.serviceWorker.getRegistration();
+        if (!reg) { log('no SW registered', true); return; }
+        await reg.update();
+        if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+        setStatus('s-sw', 'updating');
+        log('SW update triggered');
+      } catch (e) {
+        log('SW update FAILED: ' + e.message, true);
+      }
+    });
+
+    $('sw-unregister').addEventListener('click', async () => {
+      const regs = await navigator.serviceWorker.getRegistrations();
+      for (const r of regs) await r.unregister();
+      setStatus('s-sw', 'unregistered');
+      log('SW unregistered');
+    });
+
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        log('SW: controllerchange (new SW took over)');
+        setStatus('s-sw', 'controlled by new SW', 'ok');
+      });
+    }
+
+    // ---- Wake Lock ----
+    $('wl-acquire').addEventListener('click', async () => {
+      if (!('wakeLock' in navigator)) { log('Wake Lock unsupported', true); return; }
+      try {
+        wakeLock = await navigator.wakeLock.request('screen');
+        setStatus('s-wl', 'held', 'ok');
+        log('Wake Lock acquired');
+        wakeLock.addEventListener('release', () => {
+          setStatus('s-wl', 'released');
+          log('Wake Lock released by system');
+        });
+      } catch (e) {
+        log('Wake Lock FAILED: ' + e.message, true);
+      }
+    });
+
+    $('wl-release').addEventListener('click', async () => {
+      if (wakeLock) { await wakeLock.release(); wakeLock = null; setStatus('s-wl', 'released'); }
+    });
+
+    // ---- Page visibility (helps interpret test rows 4 + 5) ----
+    document.addEventListener('visibilitychange', () => {
+      setStatus('s-vis', document.visibilityState);
+      log('visibility → ' + document.visibilityState);
+    });
+
+    log('ready');
+  </script>
+</body>
+</html>

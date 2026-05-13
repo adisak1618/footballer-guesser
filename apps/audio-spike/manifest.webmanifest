@@ -1,0 +1,9 @@
+{
+  "name": "iOS Audio Spike",
+  "short_name": "AudioSpike",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1a0f0a",
+  "theme_color": "#1a0f0a",
+  "icons": []
+}
